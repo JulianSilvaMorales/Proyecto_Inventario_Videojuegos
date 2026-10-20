@@ -1,0 +1,65 @@
+{
+  "modulo": "terceros",
+  "descripcion": "Proveedores oficiales y clientes",
+  "entidades": [
+    {
+      "nombre": "proveedor",
+      "descripcion": "Proveedor oficial por marca o producto",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "razon_social", "tipo": "texto", "obligatorio": true},
+        {"nombre": "pais_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "pais", "campo": "id"}},
+        {"nombre": "identificacion_tributaria", "tipo": "texto"},
+        {"nombre": "persona_contacto", "tipo": "texto"},
+        {"nombre": "correo", "tipo": "texto"},
+        {"nombre": "telefono", "tipo": "texto"},
+        {"nombre": "moneda_compra_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "moneda", "campo": "id"}},
+        {"nombre": "condiciones_pago", "tipo": "texto"},
+        {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true}
+      ],
+      "indices": [["razon_social", "pais_id"]],
+      "etiquetas": {"es": "Proveedor", "en": "Supplier"}
+    },
+    {
+      "nombre": "producto_proveedor",
+      "descripcion": "Relación de productos con sus proveedores oficiales",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "producto", "campo": "id"}},
+        {"nombre": "proveedor_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "proveedor", "campo": "id"}}
+      ],
+      "unicos": [["producto_id", "proveedor_id"]],
+      "etiquetas": {"es": "Proveedor de producto", "en": "Product supplier"}
+    },
+    {
+      "nombre": "cliente",
+      "descripcion": "Cliente con país, clasificación y consentimiento de datos",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "pais_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "pais", "campo": "id"}},
+        {"nombre": "clasificacion", "tipo": "texto", "obligatorio": true, "valores": ["INFRECUENTE", "FRECUENTE"]},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "apellidos", "tipo": "texto"},
+        {"nombre": "tipo_documento", "tipo": "texto"},
+        {"nombre": "documento", "tipo": "texto"},
+        {"nombre": "codigo_postal", "tipo": "texto"},
+        {"nombre": "direccion", "tipo": "texto"},
+        {"nombre": "telefono", "tipo": "texto"},
+        {"nombre": "correo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "base_legal", "tipo": "texto", "obligatorio": true},
+        {"nombre": "consentimiento_registrado", "tipo": "booleano", "obligatorio": true},
+        {"nombre": "consentimiento_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
+        {"nombre": "ultimo_contacto_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
+        {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true}
+      ],
+      "indices": [["pais_id", "clasificacion"], ["correo"]],
+      "etiquetas": {"es": "Cliente", "en": "Customer"}
+    }
+  ]
+}

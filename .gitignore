@@ -1,0 +1,40 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Java / Maven
+target/
+*.class
+
+# Node.js
+node_modules/
+dist/
+coverage/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local logs and generated runtime state
+logs/*
+!logs/.gitkeep
+!logs/tools/
+!logs/tests/
+logs/tools/*
+logs/tests/*
+!logs/tools/.gitkeep
+!logs/tests/.gitkeep

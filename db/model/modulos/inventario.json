@@ -1,0 +1,151 @@
+{
+  "modulo": "inventario",
+  "descripcion": "Órdenes y entradas, saldos, movimientos y ajustes de inventario",
+  "entidades": [
+    {
+      "nombre": "bodega",
+      "descripcion": "Ubicación interna de almacenamiento",
+      "inmutable": false,
+      "generar_crud": true,
+      "solo_desactivar": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "codigo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "categoria_id", "tipo": "uuid", "ref": {"entidad": "categoria", "campo": "id"}},
+        {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true}
+      ],
+      "unicos": [["codigo"]],
+      "etiquetas": {"es": "Bodega", "en": "Warehouse"}
+    },
+    {
+      "nombre": "orden_compra",
+      "descripcion": "Pedido básico a un proveedor que agrupa las recepciones parciales",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "numero", "tipo": "texto", "obligatorio": true},
+        {"nombre": "proveedor_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "proveedor", "campo": "id"}},
+        {"nombre": "pais_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "pais", "campo": "id"}},
+        {"nombre": "moneda_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "moneda", "campo": "id"}},
+        {"nombre": "tipo_cambio", "tipo": "decimal", "precision": 19, "escala": 8, "min": 0.00000001},
+        {"nombre": "estado", "tipo": "texto", "obligatorio": true, "valores": ["BORRADOR", "ENVIADA_AL_PROVEEDOR", "RECIBIDA_PARCIAL", "RECIBIDA_COMPLETA", "CANCELADA"]},
+        {"nombre": "creada_por_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "creada_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true}
+      ],
+      "unicos": [["numero"]],
+      "indices": [["proveedor_id", "estado", "creada_en_utc"]],
+      "etiquetas": {"es": "Orden de compra", "en": "Purchase order"}
+    },
+    {
+      "nombre": "orden_compra_linea",
+      "descripcion": "Producto, cantidad y costo acordados en una orden de compra",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "orden_compra_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "orden_compra", "campo": "id"}},
+        {"nombre": "producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "producto", "campo": "id"}},
+        {"nombre": "cantidad_pedida", "tipo": "entero", "obligatorio": true, "min": 1},
+        {"nombre": "costo_unitario", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0}
+      ],
+      "unicos": [["orden_compra_id", "producto_id"]],
+      "etiquetas": {"es": "Línea de orden de compra", "en": "Purchase order line"}
+    },
+    {
+      "nombre": "entrada_inventario",
+      "descripcion": "Recepción documentada de mercancía de una orden de compra",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "orden_compra_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "orden_compra", "campo": "id"}},
+        {"nombre": "bodega_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "bodega", "campo": "id"}},
+        {"nombre": "numero_documento", "tipo": "texto", "obligatorio": true},
+        {"nombre": "tipo_cambio_aplicado", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 8, "min": 0.00000001},
+        {"nombre": "recibida_por_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "recibida_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true}
+      ],
+      "indices": [["orden_compra_id", "recibida_en_utc"]],
+      "etiquetas": {"es": "Entrada de inventario", "en": "Inventory receipt"}
+    },
+    {
+      "nombre": "entrada_inventario_linea",
+      "descripcion": "Cantidad y costo de un producto recibido en una entrada",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "entrada_inventario_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "entrada_inventario", "campo": "id"}},
+        {"nombre": "orden_compra_linea_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "orden_compra_linea", "campo": "id"}},
+        {"nombre": "producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "producto", "campo": "id"}},
+        {"nombre": "cantidad", "tipo": "entero", "obligatorio": true, "min": 1},
+        {"nombre": "costo_unitario", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0},
+        {"nombre": "costo_unitario_moneda_base", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0}
+      ],
+      "indices": [["entrada_inventario_id", "producto_id"], ["orden_compra_linea_id"]],
+      "etiquetas": {"es": "Línea de entrada", "en": "Receipt line"}
+    },
+    {
+      "nombre": "saldo_inventario",
+      "descripcion": "Cantidad disponible de un producto en una bodega",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "producto", "campo": "id"}},
+        {"nombre": "bodega_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "bodega", "campo": "id"}},
+        {"nombre": "cantidad", "tipo": "entero", "obligatorio": true, "min": 0},
+        {"nombre": "actualizado_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true}
+      ],
+      "unicos": [["producto_id", "bodega_id"]],
+      "indices": [["producto_id"]],
+      "etiquetas": {"es": "Saldo de inventario", "en": "Inventory balance"}
+    },
+    {
+      "nombre": "movimiento_inventario",
+      "descripcion": "Registro inmutable de entrada, salida o ajuste de existencias",
+      "inmutable": true,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "producto", "campo": "id"}},
+        {"nombre": "bodega_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "bodega", "campo": "id"}},
+        {"nombre": "tipo", "tipo": "texto", "obligatorio": true, "valores": ["ENTRADA", "SALIDA_VENTA", "SALIDA_PERDIDA", "SALIDA_DANO", "SALIDA_ROBO", "SALIDA_DEFECTO", "AJUSTE"]},
+        {"nombre": "cantidad", "tipo": "entero", "obligatorio": true, "min": 1},
+        {"nombre": "referencia_tipo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "referencia_id", "tipo": "uuid", "obligatorio": true},
+        {"nombre": "usuario_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "fecha_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
+        {"nombre": "observacion", "tipo": "texto"}
+      ],
+      "indices": [["producto_id", "fecha_utc"], ["bodega_id", "fecha_utc"], ["usuario_id", "fecha_utc"]],
+      "etiquetas": {"es": "Movimiento de inventario", "en": "Inventory movement"}
+    },
+    {
+      "nombre": "ajuste_inventario",
+      "descripcion": "Solicitud de conteo físico y ajuste sujeto a aprobación",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "producto", "campo": "id"}},
+        {"nombre": "bodega_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "bodega", "campo": "id"}},
+        {"nombre": "tipo", "tipo": "texto", "obligatorio": true, "valores": ["OPERATIVO", "TECNICO"]},
+        {"nombre": "cantidad_sistema", "tipo": "entero", "obligatorio": true, "min": 0},
+        {"nombre": "cantidad_contada", "tipo": "entero", "obligatorio": true, "min": 0},
+        {"nombre": "diferencia", "tipo": "entero", "obligatorio": true},
+        {"nombre": "motivo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "estado", "tipo": "texto", "obligatorio": true, "valores": ["PENDIENTE_DE_APROBACION", "APROBADO", "APLICADO"]},
+        {"nombre": "solicitado_por_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "aprobado_por_id", "tipo": "uuid", "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "solicitado_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
+        {"nombre": "aprobado_en_utc", "tipo": "fecha_hora_utc"},
+        {"nombre": "aplicado_en_utc", "tipo": "fecha_hora_utc"}
+      ],
+      "indices": [["estado", "solicitado_en_utc"], ["producto_id", "bodega_id"]],
+      "etiquetas": {"es": "Ajuste de inventario", "en": "Inventory adjustment"}
+    }
+  ]
+}

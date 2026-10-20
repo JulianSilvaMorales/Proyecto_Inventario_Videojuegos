@@ -1,0 +1,9 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+logging:
+  level:
+    com.inventario: INFO
+    org.hibernate.orm.jdbc.bind: WARN

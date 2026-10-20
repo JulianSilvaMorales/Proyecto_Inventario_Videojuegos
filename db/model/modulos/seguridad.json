@@ -1,0 +1,91 @@
+{
+  "modulo": "seguridad",
+  "descripcion": "Usuarios, roles, permisos y alcance por país",
+  "entidades": [
+    {
+      "nombre": "usuario",
+      "descripcion": "Cuenta de acceso al sistema",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "correo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "hash_contrasena", "tipo": "texto", "obligatorio": true},
+        {"nombre": "idioma_id", "tipo": "uuid", "ref": {"entidad": "idioma", "campo": "id"}},
+        {"nombre": "intentos_fallidos", "tipo": "entero", "obligatorio": true, "min": 0, "default": 0},
+        {"nombre": "bloqueado_hasta_utc", "tipo": "fecha_hora_utc"},
+        {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true},
+        {"nombre": "creado_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true}
+      ],
+      "unicos": [["correo"]],
+      "etiquetas": {"es": "Usuario", "en": "User"}
+    },
+    {
+      "nombre": "rol",
+      "descripcion": "Rol de acceso compuesto por permisos",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "codigo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true}
+      ],
+      "unicos": [["codigo"]],
+      "etiquetas": {"es": "Rol", "en": "Role"}
+    },
+    {
+      "nombre": "usuario_rol",
+      "descripcion": "Asignación de rol a usuario",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "usuario_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "rol_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "rol", "campo": "id"}}
+      ],
+      "unicos": [["usuario_id", "rol_id"]],
+      "etiquetas": {"es": "Rol de usuario", "en": "User role"}
+    },
+    {
+      "nombre": "permiso",
+      "descripcion": "Acción autorizable del sistema",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "codigo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "descripcion", "tipo": "texto", "obligatorio": true}
+      ],
+      "unicos": [["codigo"]],
+      "etiquetas": {"es": "Permiso", "en": "Permission"}
+    },
+    {
+      "nombre": "rol_permiso",
+      "descripcion": "Permisos asignados a un rol",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "rol_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "rol", "campo": "id"}},
+        {"nombre": "permiso_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "permiso", "campo": "id"}}
+      ],
+      "unicos": [["rol_id", "permiso_id"]],
+      "etiquetas": {"es": "Permiso de rol", "en": "Role permission"}
+    },
+    {
+      "nombre": "usuario_pais",
+      "descripcion": "Países a los que se limita el acceso de un usuario",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "usuario_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "pais_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "pais", "campo": "id"}}
+      ],
+      "unicos": [["usuario_id", "pais_id"]],
+      "etiquetas": {"es": "País de usuario", "en": "User country"}
+    }
+  ]
+}

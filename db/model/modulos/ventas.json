@@ -1,0 +1,57 @@
+{
+  "modulo": "ventas",
+  "descripcion": "Ventas de mostrador y sus líneas de detalle",
+  "entidades": [
+    {
+      "nombre": "venta",
+      "descripcion": "Operación de venta con moneda, impuesto y contexto de país",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "numero", "tipo": "texto", "obligatorio": true},
+        {"nombre": "cliente_id", "tipo": "uuid", "ref": {"entidad": "cliente", "campo": "id"}},
+        {"nombre": "pais_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "pais", "campo": "id"}},
+        {"nombre": "moneda_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "moneda", "campo": "id"}},
+        {"nombre": "tipo_cambio_aplicado", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 8, "min": 0},
+        {"nombre": "subtotal", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0},
+        {"nombre": "total_impuestos", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0},
+        {"nombre": "total", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0},
+        {"nombre": "total_moneda_base", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4},
+        {"nombre": "estado", "tipo": "texto", "obligatorio": true, "valores": ["PENDIENTE_DE_PAGO", "CONFIRMADA", "ANULADA"]},
+        {"nombre": "estado_pago", "tipo": "texto", "obligatorio": true, "valores": ["SIN_PAGO", "PAGADO"]},
+        {"nombre": "medio_pago", "tipo": "texto"},
+        {"nombre": "registrada_por_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "creada_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
+        {"nombre": "pagada_en_utc", "tipo": "fecha_hora_utc"},
+        {"nombre": "confirmada_en_utc", "tipo": "fecha_hora_utc"},
+        {"nombre": "anulada_en_utc", "tipo": "fecha_hora_utc"}
+      ],
+      "unicos": [["numero"]],
+      "indices": [["pais_id", "creada_en_utc"], ["estado", "creada_en_utc"], ["cliente_id", "creada_en_utc"]],
+      "etiquetas": {"es": "Venta", "en": "Sale"}
+    },
+    {
+      "nombre": "venta_linea",
+      "descripcion": "Producto, cantidad, precio e impuesto conservados en una venta",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "venta_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "venta", "campo": "id"}},
+        {"nombre": "producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "producto", "campo": "id"}},
+        {"nombre": "bodega_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "bodega", "campo": "id"}},
+        {"nombre": "cantidad", "tipo": "entero", "obligatorio": true, "min": 1},
+        {"nombre": "precio_unitario", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0},
+        {"nombre": "impuesto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "impuesto", "campo": "id"}},
+        {"nombre": "nombre_impuesto_aplicado", "tipo": "texto", "obligatorio": true},
+        {"nombre": "tasa_impuesto_aplicada", "tipo": "decimal", "obligatorio": true, "precision": 9, "escala": 6, "min": 0},
+        {"nombre": "importe_impuesto", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0},
+        {"nombre": "subtotal_linea", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0},
+        {"nombre": "total_linea", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0}
+      ],
+      "indices": [["venta_id", "producto_id"]],
+      "etiquetas": {"es": "Línea de venta", "en": "Sale line"}
+    }
+  ]
+}

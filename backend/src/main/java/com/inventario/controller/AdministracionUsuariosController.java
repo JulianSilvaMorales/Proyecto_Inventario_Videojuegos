@@ -1,0 +1,28 @@
+package com.inventario.controller;
+
+import com.inventario.service.AutenticacionService;
+import java.util.UUID;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/admin/usuarios")
+public class AdministracionUsuariosController {
+
+    private final AutenticacionService autenticacionService;
+
+    public AdministracionUsuariosController(AutenticacionService autenticacionService) {
+        this.autenticacionService = autenticacionService;
+    }
+
+    @PostMapping("/{usuarioId}/desbloquear")
+    @PreAuthorize("hasAuthority('USUARIOS_GESTIONAR')")
+    public ResponseEntity<Void> desbloquear(@PathVariable UUID usuarioId) {
+        autenticacionService.desbloquearUsuario(usuarioId);
+        return ResponseEntity.noContent().build();
+    }
+}

@@ -1,0 +1,17 @@
+spring:
+  config:
+    activate:
+      on-profile: produccion
+  datasource:
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 5
+      connection-timeout: 5000
+
+server:
+  forward-headers-strategy: framework
+
+logging:
+  level:
+    root: INFO
+    com.inventario: INFO

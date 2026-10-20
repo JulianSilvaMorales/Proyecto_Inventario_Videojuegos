@@ -1,0 +1,2225 @@
+{
+  "_cabecera": "GENERADO — no editar; modifique el JSON del modelo o la plantilla.",
+  "version_modelo": 1,
+  "entidades": [
+    {
+      "modulo": "catalogo",
+      "nombre": "categoria",
+      "descripcion": "Categoría o subcategoría de productos",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "codigo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "padre_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "categoria",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": true
+        }
+      ],
+      "unicos": [
+        [
+          "codigo"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Categoría",
+        "en": "Category"
+      }
+    },
+    {
+      "modulo": "catalogo",
+      "nombre": "tipo_producto",
+      "descripcion": "Tipo de producto con sus atributos configurables",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "codigo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": true
+        }
+      ],
+      "unicos": [
+        [
+          "codigo"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Tipo de producto",
+        "en": "Product type"
+      }
+    },
+    {
+      "modulo": "catalogo",
+      "nombre": "atributo_definicion",
+      "descripcion": "Regla configurable para validar atributos de un tipo de producto",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "tipo_producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "tipo_producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "tipo_dato",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "TEXTO",
+            "ENTERO",
+            "DECIMAL",
+            "BOOLEANO",
+            "JSON"
+          ]
+        },
+        {
+          "nombre": "obligatorio",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": false
+        },
+        {
+          "nombre": "opciones",
+          "tipo": "json"
+        }
+      ],
+      "unicos": [
+        [
+          "tipo_producto_id",
+          "nombre"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Definición de atributo",
+        "en": "Attribute definition"
+      }
+    },
+    {
+      "modulo": "catalogo",
+      "nombre": "producto",
+      "descripcion": "Producto identificable del catálogo",
+      "inmutable": false,
+      "generar_crud": true,
+      "solo_desactivar": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "codigo_interno",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "tipo_producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "tipo_producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "categoria_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "categoria",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "subcategoria_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "categoria",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "atributos",
+          "tipo": "json",
+          "obligatorio": true
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": true
+        },
+        {
+          "nombre": "creado_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        },
+        {
+          "nombre": "actualizado_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        }
+      ],
+      "unicos": [
+        [
+          "codigo_interno"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Producto",
+        "en": "Product"
+      }
+    },
+    {
+      "modulo": "catalogo",
+      "nombre": "producto_traduccion",
+      "descripcion": "Nombre y descripción de producto por idioma",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "idioma_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "idioma",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "descripcion",
+          "tipo": "texto"
+        }
+      ],
+      "unicos": [
+        [
+          "producto_id",
+          "idioma_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Traducción de producto",
+        "en": "Product translation"
+      }
+    },
+    {
+      "modulo": "catalogo",
+      "nombre": "precio_producto",
+      "descripcion": "Precio de producto en una moneda durante una vigencia",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "moneda_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "moneda",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "importe",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        },
+        {
+          "nombre": "vigente_desde",
+          "tipo": "fecha",
+          "obligatorio": true
+        },
+        {
+          "nombre": "vigente_hasta",
+          "tipo": "fecha"
+        }
+      ],
+      "indices": [
+        [
+          "producto_id",
+          "moneda_id",
+          "vigente_desde"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Precio de producto",
+        "en": "Product price"
+      }
+    },
+    {
+      "modulo": "inventario",
+      "nombre": "bodega",
+      "descripcion": "Ubicación interna de almacenamiento",
+      "inmutable": false,
+      "generar_crud": true,
+      "solo_desactivar": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "codigo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "categoria_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "categoria",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": true
+        }
+      ],
+      "unicos": [
+        [
+          "codigo"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Bodega",
+        "en": "Warehouse"
+      }
+    },
+    {
+      "modulo": "inventario",
+      "nombre": "orden_compra",
+      "descripcion": "Pedido básico a un proveedor que agrupa las recepciones parciales",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "numero",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "proveedor_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "proveedor",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "pais_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "pais",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "moneda_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "moneda",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "tipo_cambio",
+          "tipo": "decimal",
+          "precision": 19,
+          "escala": 8,
+          "min": 1e-08
+        },
+        {
+          "nombre": "estado",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "BORRADOR",
+            "ENVIADA_AL_PROVEEDOR",
+            "RECIBIDA_PARCIAL",
+            "RECIBIDA_COMPLETA",
+            "CANCELADA"
+          ]
+        },
+        {
+          "nombre": "creada_por_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "creada_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        }
+      ],
+      "unicos": [
+        [
+          "numero"
+        ]
+      ],
+      "indices": [
+        [
+          "proveedor_id",
+          "estado",
+          "creada_en_utc"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Orden de compra",
+        "en": "Purchase order"
+      }
+    },
+    {
+      "modulo": "inventario",
+      "nombre": "orden_compra_linea",
+      "descripcion": "Producto, cantidad y costo acordados en una orden de compra",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "orden_compra_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "orden_compra",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "cantidad_pedida",
+          "tipo": "entero",
+          "obligatorio": true,
+          "min": 1
+        },
+        {
+          "nombre": "costo_unitario",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        }
+      ],
+      "unicos": [
+        [
+          "orden_compra_id",
+          "producto_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Línea de orden de compra",
+        "en": "Purchase order line"
+      }
+    },
+    {
+      "modulo": "inventario",
+      "nombre": "entrada_inventario",
+      "descripcion": "Recepción documentada de mercancía de una orden de compra",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "orden_compra_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "orden_compra",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "bodega_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "bodega",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "numero_documento",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "tipo_cambio_aplicado",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 8,
+          "min": 1e-08
+        },
+        {
+          "nombre": "recibida_por_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "recibida_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        }
+      ],
+      "indices": [
+        [
+          "orden_compra_id",
+          "recibida_en_utc"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Entrada de inventario",
+        "en": "Inventory receipt"
+      }
+    },
+    {
+      "modulo": "inventario",
+      "nombre": "entrada_inventario_linea",
+      "descripcion": "Cantidad y costo de un producto recibido en una entrada",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "entrada_inventario_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "entrada_inventario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "orden_compra_linea_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "orden_compra_linea",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "cantidad",
+          "tipo": "entero",
+          "obligatorio": true,
+          "min": 1
+        },
+        {
+          "nombre": "costo_unitario",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        },
+        {
+          "nombre": "costo_unitario_moneda_base",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        }
+      ],
+      "indices": [
+        [
+          "entrada_inventario_id",
+          "producto_id"
+        ],
+        [
+          "orden_compra_linea_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Línea de entrada",
+        "en": "Receipt line"
+      }
+    },
+    {
+      "modulo": "inventario",
+      "nombre": "saldo_inventario",
+      "descripcion": "Cantidad disponible de un producto en una bodega",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "bodega_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "bodega",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "cantidad",
+          "tipo": "entero",
+          "obligatorio": true,
+          "min": 0
+        },
+        {
+          "nombre": "actualizado_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        }
+      ],
+      "unicos": [
+        [
+          "producto_id",
+          "bodega_id"
+        ]
+      ],
+      "indices": [
+        [
+          "producto_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Saldo de inventario",
+        "en": "Inventory balance"
+      }
+    },
+    {
+      "modulo": "inventario",
+      "nombre": "movimiento_inventario",
+      "descripcion": "Registro inmutable de entrada, salida o ajuste de existencias",
+      "inmutable": true,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "bodega_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "bodega",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "tipo",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "ENTRADA",
+            "SALIDA_VENTA",
+            "SALIDA_PERDIDA",
+            "SALIDA_DANO",
+            "SALIDA_ROBO",
+            "SALIDA_DEFECTO",
+            "AJUSTE"
+          ]
+        },
+        {
+          "nombre": "cantidad",
+          "tipo": "entero",
+          "obligatorio": true,
+          "min": 1
+        },
+        {
+          "nombre": "referencia_tipo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "referencia_id",
+          "tipo": "uuid",
+          "obligatorio": true
+        },
+        {
+          "nombre": "usuario_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "fecha_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        },
+        {
+          "nombre": "observacion",
+          "tipo": "texto"
+        }
+      ],
+      "indices": [
+        [
+          "producto_id",
+          "fecha_utc"
+        ],
+        [
+          "bodega_id",
+          "fecha_utc"
+        ],
+        [
+          "usuario_id",
+          "fecha_utc"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Movimiento de inventario",
+        "en": "Inventory movement"
+      }
+    },
+    {
+      "modulo": "inventario",
+      "nombre": "ajuste_inventario",
+      "descripcion": "Solicitud de conteo físico y ajuste sujeto a aprobación",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "bodega_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "bodega",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "tipo",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "OPERATIVO",
+            "TECNICO"
+          ]
+        },
+        {
+          "nombre": "cantidad_sistema",
+          "tipo": "entero",
+          "obligatorio": true,
+          "min": 0
+        },
+        {
+          "nombre": "cantidad_contada",
+          "tipo": "entero",
+          "obligatorio": true,
+          "min": 0
+        },
+        {
+          "nombre": "diferencia",
+          "tipo": "entero",
+          "obligatorio": true
+        },
+        {
+          "nombre": "motivo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "estado",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "PENDIENTE_DE_APROBACION",
+            "APROBADO",
+            "APLICADO"
+          ]
+        },
+        {
+          "nombre": "solicitado_por_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "aprobado_por_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "solicitado_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        },
+        {
+          "nombre": "aprobado_en_utc",
+          "tipo": "fecha_hora_utc"
+        },
+        {
+          "nombre": "aplicado_en_utc",
+          "tipo": "fecha_hora_utc"
+        }
+      ],
+      "indices": [
+        [
+          "estado",
+          "solicitado_en_utc"
+        ],
+        [
+          "producto_id",
+          "bodega_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Ajuste de inventario",
+        "en": "Inventory adjustment"
+      }
+    },
+    {
+      "modulo": "parametrizacion",
+      "nombre": "parametro",
+      "descripcion": "Valor de configuración con ámbito y vigencia",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "clave",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "valor",
+          "tipo": "json",
+          "obligatorio": true
+        },
+        {
+          "nombre": "tipo",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "TEXTO",
+            "ENTERO",
+            "DECIMAL",
+            "BOOLEANO",
+            "JSON"
+          ]
+        },
+        {
+          "nombre": "minimo",
+          "tipo": "decimal",
+          "precision": 19,
+          "escala": 4
+        },
+        {
+          "nombre": "maximo",
+          "tipo": "decimal",
+          "precision": 19,
+          "escala": 4
+        },
+        {
+          "nombre": "valor_por_defecto",
+          "tipo": "json",
+          "obligatorio": true
+        },
+        {
+          "nombre": "ambito",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "NEGOCIO",
+            "PAIS"
+          ]
+        },
+        {
+          "nombre": "pais_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "pais",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "vigente_desde",
+          "tipo": "fecha",
+          "obligatorio": true
+        },
+        {
+          "nombre": "vigente_hasta",
+          "tipo": "fecha"
+        },
+        {
+          "nombre": "actualizado_por_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "actualizado_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        }
+      ],
+      "indices": [
+        [
+          "clave",
+          "ambito",
+          "pais_id",
+          "vigente_desde"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Parámetro",
+        "en": "Parameter"
+      }
+    },
+    {
+      "modulo": "parametrizacion",
+      "nombre": "pais",
+      "descripcion": "País habilitado y configuración regional asociada",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "codigo_iso",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "moneda_local_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "moneda",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "idioma_predeterminado_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "idioma",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "zona_horaria",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "habilitado",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": false
+        }
+      ],
+      "unicos": [
+        [
+          "codigo_iso"
+        ]
+      ],
+      "etiquetas": {
+        "es": "País",
+        "en": "Country"
+      }
+    },
+    {
+      "modulo": "parametrizacion",
+      "nombre": "moneda",
+      "descripcion": "Moneda con código ISO y reglas de presentación",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "codigo_iso",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "simbolo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "decimales",
+          "tipo": "entero",
+          "obligatorio": true,
+          "min": 0,
+          "max": 4
+        },
+        {
+          "nombre": "formato",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "regla_redondeo",
+          "tipo": "texto",
+          "obligatorio": true
+        }
+      ],
+      "unicos": [
+        [
+          "codigo_iso"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Moneda",
+        "en": "Currency"
+      }
+    },
+    {
+      "modulo": "parametrizacion",
+      "nombre": "idioma",
+      "descripcion": "Idioma habilitado identificado por etiqueta BCP 47",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "codigo_bcp47",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "habilitado",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": true
+        }
+      ],
+      "unicos": [
+        [
+          "codigo_bcp47"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Idioma",
+        "en": "Language"
+      }
+    },
+    {
+      "modulo": "parametrizacion",
+      "nombre": "tipo_cambio",
+      "descripcion": "Tasa fechada entre moneda origen y moneda destino",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "moneda_origen_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "moneda",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "moneda_destino_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "moneda",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "tasa",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 8,
+          "min": 0
+        },
+        {
+          "nombre": "vigente_desde_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        },
+        {
+          "nombre": "origen",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "MANUAL",
+            "SERVICIO"
+          ]
+        },
+        {
+          "nombre": "actualizado_por_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        }
+      ],
+      "indices": [
+        [
+          "moneda_origen_id",
+          "moneda_destino_id",
+          "vigente_desde_utc"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Tipo de cambio",
+        "en": "Exchange rate"
+      }
+    },
+    {
+      "modulo": "parametrizacion",
+      "nombre": "impuesto",
+      "descripcion": "Tarifa de impuesto por país, categoría y vigencia",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "pais_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "pais",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "categoria_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "categoria",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "tasa",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 9,
+          "escala": 6,
+          "min": 0
+        },
+        {
+          "nombre": "incluido_en_precio",
+          "tipo": "booleano",
+          "obligatorio": true
+        },
+        {
+          "nombre": "vigente_desde",
+          "tipo": "fecha",
+          "obligatorio": true
+        },
+        {
+          "nombre": "vigente_hasta",
+          "tipo": "fecha"
+        }
+      ],
+      "indices": [
+        [
+          "pais_id",
+          "categoria_id",
+          "vigente_desde"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Impuesto",
+        "en": "Tax"
+      }
+    },
+    {
+      "modulo": "seguridad",
+      "nombre": "usuario",
+      "descripcion": "Cuenta de acceso al sistema",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "correo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "hash_contrasena",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "idioma_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "idioma",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "intentos_fallidos",
+          "tipo": "entero",
+          "obligatorio": true,
+          "min": 0,
+          "default": 0
+        },
+        {
+          "nombre": "bloqueado_hasta_utc",
+          "tipo": "fecha_hora_utc"
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": true
+        },
+        {
+          "nombre": "creado_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        }
+      ],
+      "unicos": [
+        [
+          "correo"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Usuario",
+        "en": "User"
+      }
+    },
+    {
+      "modulo": "seguridad",
+      "nombre": "rol",
+      "descripcion": "Rol de acceso compuesto por permisos",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "codigo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": true
+        }
+      ],
+      "unicos": [
+        [
+          "codigo"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Rol",
+        "en": "Role"
+      }
+    },
+    {
+      "modulo": "seguridad",
+      "nombre": "usuario_rol",
+      "descripcion": "Asignación de rol a usuario",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "usuario_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "rol_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "rol",
+            "campo": "id"
+          }
+        }
+      ],
+      "unicos": [
+        [
+          "usuario_id",
+          "rol_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Rol de usuario",
+        "en": "User role"
+      }
+    },
+    {
+      "modulo": "seguridad",
+      "nombre": "permiso",
+      "descripcion": "Acción autorizable del sistema",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "codigo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "descripcion",
+          "tipo": "texto",
+          "obligatorio": true
+        }
+      ],
+      "unicos": [
+        [
+          "codigo"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Permiso",
+        "en": "Permission"
+      }
+    },
+    {
+      "modulo": "seguridad",
+      "nombre": "rol_permiso",
+      "descripcion": "Permisos asignados a un rol",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "rol_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "rol",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "permiso_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "permiso",
+            "campo": "id"
+          }
+        }
+      ],
+      "unicos": [
+        [
+          "rol_id",
+          "permiso_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Permiso de rol",
+        "en": "Role permission"
+      }
+    },
+    {
+      "modulo": "seguridad",
+      "nombre": "usuario_pais",
+      "descripcion": "Países a los que se limita el acceso de un usuario",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "usuario_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "pais_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "pais",
+            "campo": "id"
+          }
+        }
+      ],
+      "unicos": [
+        [
+          "usuario_id",
+          "pais_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "País de usuario",
+        "en": "User country"
+      }
+    },
+    {
+      "modulo": "terceros",
+      "nombre": "proveedor",
+      "descripcion": "Proveedor oficial por marca o producto",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "razon_social",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "pais_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "pais",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "identificacion_tributaria",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "persona_contacto",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "correo",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "telefono",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "moneda_compra_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "moneda",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "condiciones_pago",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": true
+        }
+      ],
+      "indices": [
+        [
+          "razon_social",
+          "pais_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Proveedor",
+        "en": "Supplier"
+      }
+    },
+    {
+      "modulo": "terceros",
+      "nombre": "producto_proveedor",
+      "descripcion": "Relación de productos con sus proveedores oficiales",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "proveedor_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "proveedor",
+            "campo": "id"
+          }
+        }
+      ],
+      "unicos": [
+        [
+          "producto_id",
+          "proveedor_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Proveedor de producto",
+        "en": "Product supplier"
+      }
+    },
+    {
+      "modulo": "terceros",
+      "nombre": "cliente",
+      "descripcion": "Cliente con país, clasificación y consentimiento de datos",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "pais_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "pais",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "clasificacion",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "INFRECUENTE",
+            "FRECUENTE"
+          ]
+        },
+        {
+          "nombre": "nombre",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "apellidos",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "tipo_documento",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "documento",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "codigo_postal",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "direccion",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "telefono",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "correo",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "base_legal",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "consentimiento_registrado",
+          "tipo": "booleano",
+          "obligatorio": true
+        },
+        {
+          "nombre": "consentimiento_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        },
+        {
+          "nombre": "ultimo_contacto_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        },
+        {
+          "nombre": "activo",
+          "tipo": "booleano",
+          "obligatorio": true,
+          "default": true
+        }
+      ],
+      "indices": [
+        [
+          "pais_id",
+          "clasificacion"
+        ],
+        [
+          "correo"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Cliente",
+        "en": "Customer"
+      }
+    },
+    {
+      "modulo": "transversal",
+      "nombre": "auditoria",
+      "descripcion": "Registro inmutable de operación, actor y valores afectados",
+      "inmutable": true,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "usuario_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "pais_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "pais",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "accion",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "entidad",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "registro_id",
+          "tipo": "uuid"
+        },
+        {
+          "nombre": "datos_anteriores",
+          "tipo": "json"
+        },
+        {
+          "nombre": "datos_nuevos",
+          "tipo": "json"
+        },
+        {
+          "nombre": "fecha_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        },
+        {
+          "nombre": "contexto",
+          "tipo": "json"
+        }
+      ],
+      "indices": [
+        [
+          "entidad",
+          "registro_id",
+          "fecha_utc"
+        ],
+        [
+          "usuario_id",
+          "fecha_utc"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Auditoría",
+        "en": "Audit log"
+      }
+    },
+    {
+      "modulo": "transversal",
+      "nombre": "migracion_historial",
+      "descripcion": "Migraciones aplicadas y checksum de integridad",
+      "inmutable": true,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "version",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "checksum",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "aplicada_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        }
+      ],
+      "unicos": [
+        [
+          "version"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Historial de migraciones",
+        "en": "Migration history"
+      }
+    },
+    {
+      "modulo": "ventas",
+      "nombre": "venta",
+      "descripcion": "Operación de venta con moneda, impuesto y contexto de país",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "numero",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "cliente_id",
+          "tipo": "uuid",
+          "ref": {
+            "entidad": "cliente",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "pais_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "pais",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "moneda_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "moneda",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "tipo_cambio_aplicado",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 8,
+          "min": 0
+        },
+        {
+          "nombre": "subtotal",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        },
+        {
+          "nombre": "total_impuestos",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        },
+        {
+          "nombre": "total",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        },
+        {
+          "nombre": "total_moneda_base",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4
+        },
+        {
+          "nombre": "estado",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "PENDIENTE_DE_PAGO",
+            "CONFIRMADA",
+            "ANULADA"
+          ]
+        },
+        {
+          "nombre": "estado_pago",
+          "tipo": "texto",
+          "obligatorio": true,
+          "valores": [
+            "SIN_PAGO",
+            "PAGADO"
+          ]
+        },
+        {
+          "nombre": "medio_pago",
+          "tipo": "texto"
+        },
+        {
+          "nombre": "registrada_por_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "usuario",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "creada_en_utc",
+          "tipo": "fecha_hora_utc",
+          "obligatorio": true
+        },
+        {
+          "nombre": "pagada_en_utc",
+          "tipo": "fecha_hora_utc"
+        },
+        {
+          "nombre": "confirmada_en_utc",
+          "tipo": "fecha_hora_utc"
+        },
+        {
+          "nombre": "anulada_en_utc",
+          "tipo": "fecha_hora_utc"
+        }
+      ],
+      "unicos": [
+        [
+          "numero"
+        ]
+      ],
+      "indices": [
+        [
+          "pais_id",
+          "creada_en_utc"
+        ],
+        [
+          "estado",
+          "creada_en_utc"
+        ],
+        [
+          "cliente_id",
+          "creada_en_utc"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Venta",
+        "en": "Sale"
+      }
+    },
+    {
+      "modulo": "ventas",
+      "nombre": "venta_linea",
+      "descripcion": "Producto, cantidad, precio e impuesto conservados en una venta",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {
+          "nombre": "id",
+          "tipo": "uuid",
+          "pk": true
+        },
+        {
+          "nombre": "venta_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "venta",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "producto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "producto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "bodega_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "bodega",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "cantidad",
+          "tipo": "entero",
+          "obligatorio": true,
+          "min": 1
+        },
+        {
+          "nombre": "precio_unitario",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        },
+        {
+          "nombre": "impuesto_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "impuesto",
+            "campo": "id"
+          }
+        },
+        {
+          "nombre": "nombre_impuesto_aplicado",
+          "tipo": "texto",
+          "obligatorio": true
+        },
+        {
+          "nombre": "tasa_impuesto_aplicada",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 9,
+          "escala": 6,
+          "min": 0
+        },
+        {
+          "nombre": "importe_impuesto",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        },
+        {
+          "nombre": "subtotal_linea",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        },
+        {
+          "nombre": "total_linea",
+          "tipo": "decimal",
+          "obligatorio": true,
+          "precision": 19,
+          "escala": 4,
+          "min": 0
+        }
+      ],
+      "indices": [
+        [
+          "venta_id",
+          "producto_id"
+        ]
+      ],
+      "etiquetas": {
+        "es": "Línea de venta",
+        "en": "Sale line"
+      }
+    }
+  ]
+}

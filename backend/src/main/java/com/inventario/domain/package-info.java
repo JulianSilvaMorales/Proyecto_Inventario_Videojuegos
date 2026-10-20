@@ -1,0 +1,1 @@
+package com.inventario.domain;

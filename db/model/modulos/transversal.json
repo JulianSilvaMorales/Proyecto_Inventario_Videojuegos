@@ -1,0 +1,40 @@
+{
+  "modulo": "transversal",
+  "descripcion": "Auditoría de operaciones e historial de migraciones",
+  "entidades": [
+    {
+      "nombre": "auditoria",
+      "descripcion": "Registro inmutable de operación, actor y valores afectados",
+      "inmutable": true,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "usuario_id", "tipo": "uuid", "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "pais_id", "tipo": "uuid", "ref": {"entidad": "pais", "campo": "id"}},
+        {"nombre": "accion", "tipo": "texto", "obligatorio": true},
+        {"nombre": "entidad", "tipo": "texto", "obligatorio": true},
+        {"nombre": "registro_id", "tipo": "uuid"},
+        {"nombre": "datos_anteriores", "tipo": "json"},
+        {"nombre": "datos_nuevos", "tipo": "json"},
+        {"nombre": "fecha_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
+        {"nombre": "contexto", "tipo": "json"}
+      ],
+      "indices": [["entidad", "registro_id", "fecha_utc"], ["usuario_id", "fecha_utc"]],
+      "etiquetas": {"es": "Auditoría", "en": "Audit log"}
+    },
+    {
+      "nombre": "migracion_historial",
+      "descripcion": "Migraciones aplicadas y checksum de integridad",
+      "inmutable": true,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "version", "tipo": "texto", "obligatorio": true},
+        {"nombre": "checksum", "tipo": "texto", "obligatorio": true},
+        {"nombre": "aplicada_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true}
+      ],
+      "unicos": [["version"]],
+      "etiquetas": {"es": "Historial de migraciones", "en": "Migration history"}
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "modulo": "catalogo",
+  "descripcion": "Categorías, tipos de producto, catálogo, traducciones y precios",
+  "entidades": [
+    {
+      "nombre": "categoria",
+      "descripcion": "Categoría o subcategoría de productos",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "codigo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "padre_id", "tipo": "uuid", "ref": {"entidad": "categoria", "campo": "id"}},
+        {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true}
+      ],
+      "unicos": [["codigo"]],
+      "etiquetas": {"es": "Categoría", "en": "Category"}
+    },
+    {
+      "nombre": "tipo_producto",
+      "descripcion": "Tipo de producto con sus atributos configurables",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "codigo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true}
+      ],
+      "unicos": [["codigo"]],
+      "etiquetas": {"es": "Tipo de producto", "en": "Product type"}
+    },
+    {
+      "nombre": "atributo_definicion",
+      "descripcion": "Regla configurable para validar atributos de un tipo de producto",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "tipo_producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "tipo_producto", "campo": "id"}},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "tipo_dato", "tipo": "texto", "obligatorio": true, "valores": ["TEXTO", "ENTERO", "DECIMAL", "BOOLEANO", "JSON"]},
+        {"nombre": "obligatorio", "tipo": "booleano", "obligatorio": true, "default": false},
+        {"nombre": "opciones", "tipo": "json"}
+      ],
+      "unicos": [["tipo_producto_id", "nombre"]],
+      "etiquetas": {"es": "Definición de atributo", "en": "Attribute definition"}
+    },
+    {
+      "nombre": "producto",
+      "descripcion": "Producto identificable del catálogo",
+      "inmutable": false,
+      "generar_crud": true,
+      "solo_desactivar": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "codigo_interno", "tipo": "texto", "obligatorio": true},
+        {"nombre": "tipo_producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "tipo_producto", "campo": "id"}},
+        {"nombre": "categoria_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "categoria", "campo": "id"}},
+        {"nombre": "subcategoria_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "categoria", "campo": "id"}},
+        {"nombre": "atributos", "tipo": "json", "obligatorio": true},
+        {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true},
+        {"nombre": "creado_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
+        {"nombre": "actualizado_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true}
+      ],
+      "unicos": [["codigo_interno"]],
+      "etiquetas": {"es": "Producto", "en": "Product"}
+    },
+    {
+      "nombre": "producto_traduccion",
+      "descripcion": "Nombre y descripción de producto por idioma",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "producto", "campo": "id"}},
+        {"nombre": "idioma_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "idioma", "campo": "id"}},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "descripcion", "tipo": "texto"}
+      ],
+      "unicos": [["producto_id", "idioma_id"]],
+      "etiquetas": {"es": "Traducción de producto", "en": "Product translation"}
+    },
+    {
+      "nombre": "precio_producto",
+      "descripcion": "Precio de producto en una moneda durante una vigencia",
+      "inmutable": false,
+      "generar_crud": false,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "producto_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "producto", "campo": "id"}},
+        {"nombre": "moneda_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "moneda", "campo": "id"}},
+        {"nombre": "importe", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 4, "min": 0},
+        {"nombre": "vigente_desde", "tipo": "fecha", "obligatorio": true},
+        {"nombre": "vigente_hasta", "tipo": "fecha"}
+      ],
+      "indices": [["producto_id", "moneda_id", "vigente_desde"]],
+      "etiquetas": {"es": "Precio de producto", "en": "Product price"}
+    }
+  ]
+}

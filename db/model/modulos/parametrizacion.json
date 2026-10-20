@@ -1,0 +1,112 @@
+{
+  "modulo": "parametrizacion",
+  "descripcion": "Configuración internacional y reglas vigentes del negocio",
+  "entidades": [
+    {
+      "nombre": "parametro",
+      "descripcion": "Valor de configuración con ámbito y vigencia",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "clave", "tipo": "texto", "obligatorio": true},
+        {"nombre": "valor", "tipo": "json", "obligatorio": true},
+        {"nombre": "tipo", "tipo": "texto", "obligatorio": true, "valores": ["TEXTO", "ENTERO", "DECIMAL", "BOOLEANO", "JSON"]},
+        {"nombre": "minimo", "tipo": "decimal", "precision": 19, "escala": 4},
+        {"nombre": "maximo", "tipo": "decimal", "precision": 19, "escala": 4},
+        {"nombre": "valor_por_defecto", "tipo": "json", "obligatorio": true},
+        {"nombre": "ambito", "tipo": "texto", "obligatorio": true, "valores": ["NEGOCIO", "PAIS"]},
+        {"nombre": "pais_id", "tipo": "uuid", "ref": {"entidad": "pais", "campo": "id"}},
+        {"nombre": "vigente_desde", "tipo": "fecha", "obligatorio": true},
+        {"nombre": "vigente_hasta", "tipo": "fecha"},
+        {"nombre": "actualizado_por_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}},
+        {"nombre": "actualizado_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true}
+      ],
+      "indices": [["clave", "ambito", "pais_id", "vigente_desde"]],
+      "etiquetas": {"es": "Parámetro", "en": "Parameter"}
+    },
+    {
+      "nombre": "pais",
+      "descripcion": "País habilitado y configuración regional asociada",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "codigo_iso", "tipo": "texto", "obligatorio": true},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "moneda_local_id", "tipo": "uuid", "ref": {"entidad": "moneda", "campo": "id"}},
+        {"nombre": "idioma_predeterminado_id", "tipo": "uuid", "ref": {"entidad": "idioma", "campo": "id"}},
+        {"nombre": "zona_horaria", "tipo": "texto"},
+        {"nombre": "habilitado", "tipo": "booleano", "obligatorio": true, "default": false}
+      ],
+      "unicos": [["codigo_iso"]],
+      "etiquetas": {"es": "País", "en": "Country"}
+    },
+    {
+      "nombre": "moneda",
+      "descripcion": "Moneda con código ISO y reglas de presentación",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "codigo_iso", "tipo": "texto", "obligatorio": true},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "simbolo", "tipo": "texto", "obligatorio": true},
+        {"nombre": "decimales", "tipo": "entero", "obligatorio": true, "min": 0, "max": 4},
+        {"nombre": "formato", "tipo": "texto", "obligatorio": true},
+        {"nombre": "regla_redondeo", "tipo": "texto", "obligatorio": true}
+      ],
+      "unicos": [["codigo_iso"]],
+      "etiquetas": {"es": "Moneda", "en": "Currency"}
+    },
+    {
+      "nombre": "idioma",
+      "descripcion": "Idioma habilitado identificado por etiqueta BCP 47",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "codigo_bcp47", "tipo": "texto", "obligatorio": true},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "habilitado", "tipo": "booleano", "obligatorio": true, "default": true}
+      ],
+      "unicos": [["codigo_bcp47"]],
+      "etiquetas": {"es": "Idioma", "en": "Language"}
+    },
+    {
+      "nombre": "tipo_cambio",
+      "descripcion": "Tasa fechada entre moneda origen y moneda destino",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "moneda_origen_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "moneda", "campo": "id"}},
+        {"nombre": "moneda_destino_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "moneda", "campo": "id"}},
+        {"nombre": "tasa", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 8, "min": 0},
+        {"nombre": "vigente_desde_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
+        {"nombre": "origen", "tipo": "texto", "obligatorio": true, "valores": ["MANUAL", "SERVICIO"]},
+        {"nombre": "actualizado_por_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}}
+      ],
+      "indices": [["moneda_origen_id", "moneda_destino_id", "vigente_desde_utc"]],
+      "etiquetas": {"es": "Tipo de cambio", "en": "Exchange rate"}
+    },
+    {
+      "nombre": "impuesto",
+      "descripcion": "Tarifa de impuesto por país, categoría y vigencia",
+      "inmutable": false,
+      "generar_crud": true,
+      "campos": [
+        {"nombre": "id", "tipo": "uuid", "pk": true},
+        {"nombre": "pais_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "pais", "campo": "id"}},
+        {"nombre": "categoria_id", "tipo": "uuid", "ref": {"entidad": "categoria", "campo": "id"}},
+        {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
+        {"nombre": "tasa", "tipo": "decimal", "obligatorio": true, "precision": 9, "escala": 6, "min": 0},
+        {"nombre": "incluido_en_precio", "tipo": "booleano", "obligatorio": true},
+        {"nombre": "vigente_desde", "tipo": "fecha", "obligatorio": true},
+        {"nombre": "vigente_hasta", "tipo": "fecha"}
+      ],
+      "indices": [["pais_id", "categoria_id", "vigente_desde"]],
+      "etiquetas": {"es": "Impuesto", "en": "Tax"}
+    }
+  ]
+}

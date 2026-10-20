@@ -1,0 +1,201 @@
+{
+  "monedas": [
+    {
+      "codigo_iso": "COP",
+      "nombre": "Peso colombiano",
+      "simbolo": "$",
+      "decimales": 2,
+      "formato": "es-CO",
+      "regla_redondeo": "HALF_UP"
+    },
+    {
+      "codigo_iso": "USD",
+      "nombre": "Dólar estadounidense",
+      "simbolo": "$",
+      "decimales": 2,
+      "formato": "en-US",
+      "regla_redondeo": "HALF_UP"
+    }
+  ],
+  "idiomas": [
+    {"codigo_bcp47": "es", "nombre": "Español", "habilitado": true},
+    {"codigo_bcp47": "en", "nombre": "English", "habilitado": true}
+  ],
+  "paises": [
+    {
+      "codigo_iso": "CO",
+      "nombre": "Colombia",
+      "moneda_local": "COP",
+      "idioma_predeterminado": "es",
+      "zona_horaria": "America/Bogota",
+      "habilitado": true
+    },
+    {
+      "codigo_iso": "US",
+      "nombre": "Estados Unidos",
+      "moneda_local": "USD",
+      "idioma_predeterminado": "en",
+      "zona_horaria": "America/New_York",
+      "habilitado": false
+    }
+  ],
+  "impuestos": [
+    {
+      "pais_codigo": "CO",
+      "nombre": "IVA",
+      "tasa": 0.19,
+      "incluido_en_precio": false,
+      "vigente_desde": "2026-01-01"
+    }
+  ],
+  "bodegas": [
+    {
+      "codigo": "GENERAL",
+      "nombre": "Bodega general",
+      "activo": true
+    }
+  ],
+  "roles": [
+    {"codigo": "ADMINISTRADOR", "nombre": "Administrador"},
+    {"codigo": "ENCARGADO_INVENTARIO", "nombre": "Encargado de inventario"},
+    {"codigo": "EXPERTO_TECNICO", "nombre": "Experto técnico"},
+    {"codigo": "VENDEDOR_CAJERO", "nombre": "Vendedor/cajero"},
+    {"codigo": "GERENTE_PROPIETARIO", "nombre": "Gerente/propietario"}
+  ],
+  "permisos": [
+    {"codigo": "USUARIOS_GESTIONAR", "descripcion": "Gestionar usuarios y roles"},
+    {"codigo": "PARAMETROS_GESTIONAR", "descripcion": "Gestionar parámetros y catálogos de país"},
+    {"codigo": "TIPOS_CAMBIO_GESTIONAR", "descripcion": "Gestionar tipos de cambio"},
+    {"codigo": "PRODUCTOS_GESTIONAR", "descripcion": "Crear, modificar y desactivar productos"},
+    {"codigo": "CATALOGO_CONSULTAR", "descripcion": "Consultar el catálogo"},
+    {"codigo": "INVENTARIO_CONSULTAR", "descripcion": "Consultar existencias"},
+    {"codigo": "COMPRAS_GESTIONAR", "descripcion": "Gestionar órdenes y entradas de inventario"},
+    {"codigo": "SALIDAS_INVENTARIO_GESTIONAR", "descripcion": "Registrar salidas por pérdida, daño, robo o defecto"},
+    {"codigo": "PROVEEDORES_GESTIONAR", "descripcion": "Gestionar proveedores oficiales"},
+    {"codigo": "PROVEEDORES_CONSULTAR", "descripcion": "Consultar proveedores"},
+    {"codigo": "VENTAS_GESTIONAR", "descripcion": "Registrar ventas y cobros"},
+    {"codigo": "VENTAS_ANULAR_PENDIENTES", "descripcion": "Anular ventas sin pago recibido"},
+    {"codigo": "CLIENTES_GESTIONAR", "descripcion": "Gestionar clientes"},
+    {"codigo": "AJUSTE_OPERATIVO_SOLICITAR", "descripcion": "Solicitar ajustes operativos"},
+    {"codigo": "AJUSTE_TECNICO_SOLICITAR", "descripcion": "Solicitar ajustes técnicos"},
+    {"codigo": "AJUSTES_APROBAR", "descripcion": "Aprobar y aplicar ajustes de inventario"},
+    {"codigo": "REPORTES_TODOS", "descripcion": "Consultar todos los reportes"},
+    {"codigo": "REPORTES_INVENTARIO", "descripcion": "Consultar reportes de inventario"},
+    {"codigo": "AUDITORIA_TODOS_LEER", "descripcion": "Consultar toda la auditoría"},
+    {"codigo": "AUDITORIA_INVENTARIO_LEER", "descripcion": "Consultar auditoría de inventario"},
+    {"codigo": "AUDITORIA_TECNICA_LEER", "descripcion": "Consultar auditoría técnica"}
+  ],
+  "permisos_por_rol": {
+    "ADMINISTRADOR": [
+      "USUARIOS_GESTIONAR",
+      "PARAMETROS_GESTIONAR",
+      "TIPOS_CAMBIO_GESTIONAR",
+      "PRODUCTOS_GESTIONAR",
+      "CATALOGO_CONSULTAR",
+      "INVENTARIO_CONSULTAR",
+      "COMPRAS_GESTIONAR",
+      "SALIDAS_INVENTARIO_GESTIONAR",
+      "PROVEEDORES_GESTIONAR",
+      "PROVEEDORES_CONSULTAR",
+      "VENTAS_GESTIONAR",
+      "VENTAS_ANULAR_PENDIENTES",
+      "CLIENTES_GESTIONAR",
+      "AJUSTES_APROBAR",
+      "REPORTES_TODOS",
+      "REPORTES_INVENTARIO",
+      "AUDITORIA_TODOS_LEER",
+      "AUDITORIA_INVENTARIO_LEER",
+      "AUDITORIA_TECNICA_LEER"
+    ],
+    "ENCARGADO_INVENTARIO": [
+      "PRODUCTOS_GESTIONAR",
+      "CATALOGO_CONSULTAR",
+      "INVENTARIO_CONSULTAR",
+      "COMPRAS_GESTIONAR",
+      "SALIDAS_INVENTARIO_GESTIONAR",
+      "PROVEEDORES_GESTIONAR",
+      "AJUSTE_OPERATIVO_SOLICITAR",
+      "REPORTES_INVENTARIO",
+      "AUDITORIA_INVENTARIO_LEER"
+    ],
+    "EXPERTO_TECNICO": [
+      "CATALOGO_CONSULTAR",
+      "INVENTARIO_CONSULTAR",
+      "AJUSTE_TECNICO_SOLICITAR",
+      "AUDITORIA_TECNICA_LEER"
+    ],
+    "VENDEDOR_CAJERO": [
+      "CATALOGO_CONSULTAR",
+      "INVENTARIO_CONSULTAR",
+      "VENTAS_GESTIONAR",
+      "VENTAS_ANULAR_PENDIENTES",
+      "CLIENTES_GESTIONAR"
+    ],
+    "GERENTE_PROPIETARIO": [
+      "CATALOGO_CONSULTAR",
+      "INVENTARIO_CONSULTAR",
+      "PROVEEDORES_CONSULTAR",
+      "REPORTES_TODOS"
+    ]
+  },
+  "parametros": [
+    {
+      "clave": "sesion.inactividad_minutos",
+      "valor": 60,
+      "tipo": "ENTERO",
+      "minimo": 1,
+      "maximo": 1440
+    },
+    {
+      "clave": "seguridad.intentos_fallidos_max",
+      "valor": 5,
+      "tipo": "ENTERO",
+      "minimo": 1,
+      "maximo": 20
+    },
+    {
+      "clave": "cliente.umbral_frecuente",
+      "valor": 2,
+      "tipo": "ENTERO",
+      "minimo": 1,
+      "maximo": 1000
+    },
+    {
+      "clave": "cliente.retencion_infrecuente_meses",
+      "valor": 12,
+      "tipo": "ENTERO",
+      "minimo": 1,
+      "maximo": 120
+    },
+    {
+      "clave": "auditoria.retencion_anios",
+      "valor": 10,
+      "tipo": "ENTERO",
+      "minimo": 10
+    },
+    {
+      "clave": "movimientos.retencion_anios",
+      "valor": 8,
+      "tipo": "ENTERO",
+      "minimo": 1,
+      "maximo": 8
+    },
+    {
+      "clave": "parametros.cache_minutos",
+      "valor": 5,
+      "tipo": "ENTERO",
+      "minimo": 1,
+      "maximo": 5
+    },
+    {
+      "clave": "moneda.base_codigo_iso",
+      "valor": "COP",
+      "tipo": "TEXTO"
+    },
+    {
+      "clave": "pais.origen_codigo_iso",
+      "valor": "CO",
+      "tipo": "TEXTO"
+    }
+  ]
+}
