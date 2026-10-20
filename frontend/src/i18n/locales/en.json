@@ -1,0 +1,115 @@
+{
+  "app": {
+    "name": "Inventory",
+    "subtitle": "Clear inventory and sales control"
+  },
+  "auth": {
+    "title": "Sign in",
+    "subtitle": "Access your inventory account",
+    "email": "Email address",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Checking access…",
+    "serverStarting": "The server is waking up. This may take a few seconds."
+  },
+  "common": {
+    "language": "Language",
+    "spanish": "Spanish",
+    "english": "English",
+    "loading": "Loading",
+    "logout": "Sign out",
+    "close": "Close",
+    "currency": "Sample currency",
+    "role": "Role",
+    "countries": "Allowed countries",
+    "allCountries": "All countries"
+  },
+  "crud": {
+    "back": "Back",
+    "create": "Create",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deactivate": "Deactivate",
+    "actions": "Actions",
+    "search": "Search",
+    "empty": "There are no records to display.",
+    "none": "No selection",
+    "rowsPerPage": "Rows per page",
+    "displayedRows": "{{from}}–{{to}} of {{count}}",
+    "createEntity": "Create {{entity}}",
+    "editEntity": "Edit {{entity}}",
+    "confirmDelete": "Delete this record?",
+    "confirmDeactivate": "Deactivate this record?",
+    "confirmMessage": "This action will apply to {{entity}}.",
+    "validation": {
+      "required": "This field is required.",
+      "number": "Enter a valid number.",
+      "integer": "Enter a whole number.",
+      "minimum": "The value must be at least {{value}}.",
+      "maximum": "The value must be at most {{value}}.",
+      "json": "Enter valid JSON.",
+      "option": "Choose a valid option.",
+      "consent": "The customer's authorization must be recorded."
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "catalog": "Catalog",
+    "inventory": "Inventory",
+    "purchases": "Purchases",
+    "suppliers": "Suppliers",
+    "sales": "Sales",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "eyebrow": "Dashboard",
+    "welcome": "Hello, {{name}}",
+    "subtitle": "Your workspace is ready.",
+    "accessTitle": "Access for this session",
+    "permissions": "Assigned permissions",
+    "formatTitle": "Formats for your language and currency",
+    "formatDescription": "Selections update instantly without reloading the page.",
+    "amount": "Sample amount",
+    "number": "Quantity",
+    "date": "Date and time"
+  },
+  "modules": {
+    "catalog": {
+      "title": "Catalog",
+      "description": "Browse and manage products and categories. Management screens will be enabled in the next substage."
+    },
+    "inventory": {
+      "title": "Inventory",
+      "description": "Review stock, movements, and adjustments in your authorized countries."
+    },
+    "purchases": {
+      "title": "Purchases",
+      "description": "Manage purchase orders and inventory receipts."
+    },
+    "suppliers": {
+      "title": "Suppliers",
+      "description": "Browse suppliers within your country scope."
+    },
+    "sales": {
+      "title": "Sales",
+      "description": "Register sales and confirm payments in the transaction currency."
+    },
+    "reports": {
+      "title": "Reports",
+      "description": "Review stock and movements with country filters."
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Manage parameters and configuration data."
+    },
+    "availableSoon": "This section will be implemented in the upcoming E6 substages."
+  },
+  "errors": {
+    "network": "Could not connect to the server. Check that it is running and try again.",
+    "logoutNetwork": "This device signed out, but the server could not confirm the sign-out.",
+    "unexpected": "An unexpected error occurred."
+  }
+}

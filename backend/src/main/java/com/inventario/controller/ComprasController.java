@@ -2,6 +2,7 @@ package com.inventario.controller;
 
 import com.inventario.domain.DetalleEntradaInventario;
 import com.inventario.domain.DetalleOrdenCompra;
+import com.inventario.domain.OrdenCompra;
 import com.inventario.domain.UsuarioAutenticado;
 import com.inventario.dto.SolicitudEntradaInventario;
 import com.inventario.dto.SolicitudOrdenCompra;
@@ -35,23 +36,28 @@ public class ComprasController {
     }
 
     @GetMapping("/ordenes")
-    public Page<com.inventario.domain.OrdenCompra> listarOrdenes(
+    public Page<OrdenCompra> listarOrdenes(
             @RequestParam(required = false) UUID proveedorId,
             @RequestParam(required = false) String estado,
+            @AuthenticationPrincipal UsuarioAutenticado actor,
             Pageable pageable) {
-        return comprasService.listarOrdenes(proveedorId, estado, pageable);
+        return comprasService.listarOrdenes(
+                proveedorId, estado, actor.paises(), pageable);
     }
 
     @GetMapping("/ordenes/{id}")
-    public DetalleOrdenCompra obtenerOrden(@PathVariable UUID id) {
-        return comprasService.obtenerOrden(id);
+    public DetalleOrdenCompra obtenerOrden(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
+        return comprasService.obtenerOrden(id, actor.paises());
     }
 
     @PostMapping("/ordenes")
     public ResponseEntity<DetalleOrdenCompra> crearOrden(
             @Valid @RequestBody SolicitudOrdenCompra solicitud,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
-        DetalleOrdenCompra orden = comprasService.crearOrden(solicitud, actor.usuarioId());
+        DetalleOrdenCompra orden =
+                comprasService.crearOrden(solicitud, actor.usuarioId(), actor.paises());
         return creado("/ordenes", orden.orden().id(), orden);
     }
 
@@ -59,14 +65,14 @@ public class ComprasController {
     public DetalleOrdenCompra enviarOrden(
             @PathVariable UUID id,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
-        return comprasService.enviarOrden(id, actor.usuarioId());
+        return comprasService.enviarOrden(id, actor.usuarioId(), actor.paises());
     }
 
     @PostMapping("/ordenes/{id}/cancelar")
     public DetalleOrdenCompra cancelarOrden(
             @PathVariable UUID id,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
-        return comprasService.cancelarOrden(id, actor.usuarioId());
+        return comprasService.cancelarOrden(id, actor.usuarioId(), actor.paises());
     }
 
     @PostMapping("/entradas")
@@ -74,13 +80,15 @@ public class ComprasController {
             @Valid @RequestBody SolicitudEntradaInventario solicitud,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
         DetalleEntradaInventario entrada =
-                comprasService.recibir(solicitud, actor.usuarioId());
+                comprasService.recibir(solicitud, actor.usuarioId(), actor.paises());
         return creado("/entradas", entrada.entrada().id(), entrada);
     }
 
     @GetMapping("/entradas/{id}")
-    public DetalleEntradaInventario obtenerEntrada(@PathVariable UUID id) {
-        return comprasService.obtenerEntrada(id);
+    public DetalleEntradaInventario obtenerEntrada(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
+        return comprasService.obtenerEntrada(id, actor.paises());
     }
 
     private <T> ResponseEntity<T> creado(String path, UUID id, T body) {

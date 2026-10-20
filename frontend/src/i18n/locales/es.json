@@ -1,0 +1,115 @@
+{
+  "app": {
+    "name": "Inventario",
+    "subtitle": "Control claro de inventario y ventas"
+  },
+  "auth": {
+    "title": "Inicia sesión",
+    "subtitle": "Accede con tu cuenta de inventario",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "submit": "Entrar",
+    "submitting": "Validando acceso…",
+    "serverStarting": "El servidor se está despertando. Esto puede tardar unos segundos."
+  },
+  "common": {
+    "language": "Idioma",
+    "spanish": "Español",
+    "english": "Inglés",
+    "loading": "Cargando",
+    "logout": "Cerrar sesión",
+    "close": "Cerrar",
+    "currency": "Moneda de ejemplo",
+    "role": "Rol",
+    "countries": "Países permitidos",
+    "allCountries": "Todos los países"
+  },
+  "crud": {
+    "back": "Volver",
+    "create": "Crear",
+    "edit": "Editar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "deactivate": "Desactivar",
+    "actions": "Acciones",
+    "search": "Buscar",
+    "empty": "No hay registros para mostrar.",
+    "none": "Sin selección",
+    "rowsPerPage": "Filas por página",
+    "displayedRows": "{{from}}–{{to}} de {{count}}",
+    "createEntity": "Crear {{entity}}",
+    "editEntity": "Editar {{entity}}",
+    "confirmDelete": "¿Eliminar este registro?",
+    "confirmDeactivate": "¿Desactivar este registro?",
+    "confirmMessage": "La acción se aplicará a {{entity}}.",
+    "validation": {
+      "required": "Este campo es obligatorio.",
+      "number": "Ingresa un número válido.",
+      "integer": "Ingresa un número entero.",
+      "minimum": "El valor debe ser al menos {{value}}.",
+      "maximum": "El valor debe ser como máximo {{value}}.",
+      "json": "Ingresa un JSON válido.",
+      "option": "Selecciona una opción válida.",
+      "consent": "Debes registrar la autorización del cliente."
+    }
+  },
+  "nav": {
+    "home": "Inicio",
+    "catalog": "Catálogo",
+    "inventory": "Inventario",
+    "purchases": "Compras",
+    "suppliers": "Proveedores",
+    "sales": "Ventas",
+    "reports": "Reportes",
+    "settings": "Configuración"
+  },
+  "dashboard": {
+    "eyebrow": "Panel de control",
+    "welcome": "Hola, {{name}}",
+    "subtitle": "Tu espacio de trabajo está listo.",
+    "accessTitle": "Acceso de esta sesión",
+    "permissions": "Permisos asignados",
+    "formatTitle": "Formatos según tu idioma y moneda",
+    "formatDescription": "La selección cambia al instante, sin recargar la página.",
+    "amount": "Importe de ejemplo",
+    "number": "Cantidad",
+    "date": "Fecha y hora"
+  },
+  "modules": {
+    "catalog": {
+      "title": "Catálogo",
+      "description": "Consulta y administra productos y categorías. La pantalla de gestión se habilitará en la siguiente subetapa."
+    },
+    "inventory": {
+      "title": "Inventario",
+      "description": "Consulta existencias, movimientos y ajustes de tus países autorizados."
+    },
+    "purchases": {
+      "title": "Compras",
+      "description": "Gestiona órdenes y recepciones de inventario."
+    },
+    "suppliers": {
+      "title": "Proveedores",
+      "description": "Consulta proveedores dentro de tu alcance por país."
+    },
+    "sales": {
+      "title": "Ventas",
+      "description": "Registra ventas y confirma pagos en la moneda de la transacción."
+    },
+    "reports": {
+      "title": "Reportes",
+      "description": "Consulta existencias y movimientos con filtros por país."
+    },
+    "settings": {
+      "title": "Configuración",
+      "description": "Administra parámetros e información de configuración."
+    },
+    "availableSoon": "Esta sección se implementará en las próximas subetapas de E6."
+  },
+  "errors": {
+    "network": "No se pudo conectar con el servidor. Comprueba que esté iniciado e inténtalo de nuevo.",
+    "logoutNetwork": "La sesión se cerró en este dispositivo, pero no se pudo confirmar el cierre en el servidor.",
+    "unexpected": "Ocurrió un error inesperado."
+  }
+}

@@ -7,5 +7,6 @@ public record Bodega(
         String codigo,
         String nombre,
         UUID categoriaId,
+        UUID paisId,
         boolean activo) {
 }

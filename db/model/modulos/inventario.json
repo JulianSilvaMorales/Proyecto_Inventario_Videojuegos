@@ -13,6 +13,7 @@
         {"nombre": "codigo", "tipo": "texto", "obligatorio": true},
         {"nombre": "nombre", "tipo": "texto", "obligatorio": true},
         {"nombre": "categoria_id", "tipo": "uuid", "ref": {"entidad": "categoria", "campo": "id"}},
+        {"nombre": "pais_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "pais", "campo": "id"}},
         {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true}
       ],
       "unicos": [["codigo"]],

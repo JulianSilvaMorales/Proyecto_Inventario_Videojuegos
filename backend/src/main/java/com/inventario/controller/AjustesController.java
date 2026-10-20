@@ -38,13 +38,17 @@ public class AjustesController {
             @RequestParam(required = false) String tipo,
             @RequestParam(required = false) UUID productoId,
             @RequestParam(required = false) UUID bodegaId,
+            @AuthenticationPrincipal UsuarioAutenticado actor,
             Pageable pageable) {
-        return ajustesService.listar(estado, tipo, productoId, bodegaId, pageable);
+        return ajustesService.listar(
+                estado, tipo, productoId, bodegaId, actor.paises(), pageable);
     }
 
     @GetMapping("/{id}")
-    public AjusteInventario obtener(@PathVariable UUID id) {
-        return ajustesService.obtener(id);
+    public AjusteInventario obtener(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
+        return ajustesService.obtener(id, actor.paises());
     }
 
     @PostMapping("/operativos")
@@ -53,7 +57,8 @@ public class AjustesController {
             @Valid @RequestBody SolicitudAjusteInventario solicitud,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
         AjusteInventario ajuste =
-                ajustesService.solicitar("OPERATIVO", solicitud, actor.usuarioId());
+                ajustesService.solicitar(
+                        "OPERATIVO", solicitud, actor.usuarioId(), actor.paises());
         return creado(ajuste.id(), ajuste);
     }
 
@@ -63,7 +68,8 @@ public class AjustesController {
             @Valid @RequestBody SolicitudAjusteInventario solicitud,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
         AjusteInventario ajuste =
-                ajustesService.solicitar("TECNICO", solicitud, actor.usuarioId());
+                ajustesService.solicitar(
+                        "TECNICO", solicitud, actor.usuarioId(), actor.paises());
         return creado(ajuste.id(), ajuste);
     }
 
@@ -72,7 +78,7 @@ public class AjustesController {
     public AjusteInventario aprobar(
             @PathVariable UUID id,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
-        return ajustesService.aprobar(id, actor.usuarioId());
+        return ajustesService.aprobar(id, actor.usuarioId(), actor.paises());
     }
 
     @PostMapping("/{id}/aplicar")
@@ -80,7 +86,7 @@ public class AjustesController {
     public AjusteInventario aplicar(
             @PathVariable UUID id,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
-        return ajustesService.aplicar(id, actor.usuarioId());
+        return ajustesService.aplicar(id, actor.usuarioId(), actor.paises());
     }
 
     private ResponseEntity<AjusteInventario> creado(UUID id, AjusteInventario body) {
@@ -97,6 +103,6 @@ public class AjustesController {
     public AjusteInventario revalidar(
             @PathVariable UUID id,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
-        return ajustesService.revalidar(id, actor.usuarioId());
+        return ajustesService.revalidar(id, actor.usuarioId(), actor.paises());
     }
 }

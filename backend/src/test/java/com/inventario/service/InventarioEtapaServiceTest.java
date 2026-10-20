@@ -22,6 +22,7 @@ import com.inventario.domain.ParametroResuelto;
 import com.inventario.dto.SolicitudEntradaInventario;
 import com.inventario.dto.SolicitudLineaEntradaInventario;
 import com.inventario.dto.SolicitudSalidaInventario;
+import com.inventario.repository.ConfiguracionRepository;
 import com.inventario.repository.InventarioRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -30,6 +31,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +53,9 @@ class InventarioEtapaServiceTest {
     private AuditoriaService auditoria;
 
     @Mock
+    private ConfiguracionRepository configuracion;
+
+    @Mock
     private ParametroService parametros;
 
     private InventarioService inventario;
@@ -64,9 +69,13 @@ class InventarioEtapaServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        inventario = new InventarioService(repository, auditoria, clock);
-        compras = new ComprasService(repository, auditoria, parametros, clock);
-        ajustes = new AjustesService(repository, auditoria, clock);
+        AccesoPaisService accesoPais = new AccesoPaisService();
+        inventario = new InventarioService(
+                repository, configuracion, auditoria, accesoPais, clock);
+        compras = new ComprasService(
+                repository, configuracion, auditoria, accesoPais, parametros, clock);
+        ajustes = new AjustesService(
+                repository, configuracion, auditoria, accesoPais, clock);
         actorId = UUID.randomUUID();
         productoId = UUID.randomUUID();
         bodegaId = UUID.randomUUID();
@@ -77,7 +86,8 @@ class InventarioEtapaServiceTest {
     void registraSalidaConProveedorOficialYRestaSaldoDeFormaAtomica() {
         when(repository.productoExiste(productoId)).thenReturn(true);
         when(repository.buscarBodega(bodegaId))
-                .thenReturn(Optional.of(new Bodega(bodegaId, "GENERAL", "General", null, true)));
+                .thenReturn(Optional.of(
+                        new Bodega(bodegaId, "GENERAL", "General", null, null, true)));
         when(repository.proveedorProducto(proveedorId, productoId)).thenReturn(true);
         when(repository.bloquearSaldo(eq(productoId), eq(bodegaId), any())).thenReturn(5);
         AtomicReference<MovimientoInventario> movimientoGuardado = new AtomicReference<>();
@@ -97,7 +107,8 @@ class InventarioEtapaServiceTest {
                         proveedorId,
                         "REP-204",
                         "Caja averiada"),
-                actorId);
+                actorId,
+                Set.of());
 
         assertThat(salida.tipo()).isEqualTo("SALIDA_DANO");
         assertThat(salida.referenciaTipo()).isEqualTo("PROVEEDOR");
@@ -113,14 +124,16 @@ class InventarioEtapaServiceTest {
     void rechazaSalidaQueSuperaExistenciasSinEscribirMovimiento() {
         when(repository.productoExiste(productoId)).thenReturn(true);
         when(repository.buscarBodega(bodegaId))
-                .thenReturn(Optional.of(new Bodega(bodegaId, "GENERAL", "General", null, true)));
+                .thenReturn(Optional.of(
+                        new Bodega(bodegaId, "GENERAL", "General", null, null, true)));
         when(repository.proveedorProducto(proveedorId, productoId)).thenReturn(true);
         when(repository.bloquearSaldo(eq(productoId), eq(bodegaId), any())).thenReturn(1);
 
         assertThatThrownBy(() -> inventario.registrarSalida(
                 new SolicitudSalidaInventario(
                         productoId, bodegaId, "ROBO", 2, proveedorId, "REP-205", null),
-                actorId))
+                actorId,
+                Set.of()))
                 .isInstanceOfSatisfying(
                         ErrorAplicacionException.class,
                         exception -> {
@@ -142,13 +155,16 @@ class InventarioEtapaServiceTest {
                 "OC-1",
                 proveedorId,
                 "Proveedor",
-                UUID.randomUUID(),
+                null,
                 UUID.randomUUID(),
                 new BigDecimal("2.00000000"),
                 "ENVIADA_AL_PROVEEDOR",
                 actorId,
                 java.time.OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC));
         when(repository.buscarOrden(ordenId)).thenReturn(Optional.of(orden));
+        when(repository.buscarBodega(bodegaId))
+                .thenReturn(Optional.of(
+                        new Bodega(bodegaId, "GENERAL", "General", null, null, true)));
         configurarMonedaBase();
         when(repository.bodegaActiva(bodegaId)).thenReturn(true);
         when(repository.codigoMoneda(orden.monedaId())).thenReturn("USD");
@@ -190,7 +206,8 @@ class InventarioEtapaServiceTest {
                         "FAC-10",
                         new BigDecimal("2.00000000"),
                         List.of(new SolicitudLineaEntradaInventario(lineaId, 2))),
-                actorId);
+                actorId,
+                Set.of());
 
         assertThat(resultado.entrada().numeroDocumento()).isEqualTo("FAC-10");
         verify(repository).actualizarSaldo(eq(productoId), eq(bodegaId), eq(2), any());
@@ -210,13 +227,16 @@ class InventarioEtapaServiceTest {
                 "OC-2",
                 proveedorId,
                 "Proveedor",
-                UUID.randomUUID(),
+                null,
                 UUID.randomUUID(),
                 BigDecimal.ONE,
                 "ENVIADA_AL_PROVEEDOR",
                 actorId,
                 java.time.OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC));
         when(repository.buscarOrden(ordenId)).thenReturn(Optional.of(orden));
+        when(repository.buscarBodega(bodegaId))
+                .thenReturn(Optional.of(
+                        new Bodega(bodegaId, "GENERAL", "General", null, null, true)));
         configurarMonedaBase();
         when(repository.bodegaActiva(bodegaId)).thenReturn(true);
         when(repository.codigoMoneda(orden.monedaId())).thenReturn("COP");
@@ -237,7 +257,8 @@ class InventarioEtapaServiceTest {
                         "FAC-11",
                         BigDecimal.ONE,
                         List.of(new SolicitudLineaEntradaInventario(lineaId, 3))),
-                actorId))
+                actorId,
+                Set.of()))
                 .isInstanceOfSatisfying(
                         ErrorAplicacionException.class,
                         exception -> assertThat(exception.messageKey())
@@ -286,10 +307,13 @@ class InventarioEtapaServiceTest {
                 java.time.OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC));
         when(repository.buscarAjuste(ajusteId))
                 .thenReturn(Optional.of(aprobado), Optional.of(aplicado));
+        when(repository.buscarBodega(bodegaId))
+                .thenReturn(Optional.of(
+                        new Bodega(bodegaId, "GENERAL", "General", null, null, true)));
         when(repository.bloquearSaldo(eq(productoId), eq(bodegaId), any())).thenReturn(5);
         when(repository.actualizarAjusteAplicado(eq(ajusteId), any())).thenReturn(true);
 
-        AjusteInventario resultado = ajustes.aplicar(ajusteId, actorId);
+        AjusteInventario resultado = ajustes.aplicar(ajusteId, actorId, Set.of());
 
         assertThat(resultado.estado()).isEqualTo("APLICADO");
         verify(repository).actualizarSaldo(eq(productoId), eq(bodegaId), eq(3), any());
@@ -320,9 +344,12 @@ class InventarioEtapaServiceTest {
                         java.time.OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC),
                         java.time.OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC),
                         null)));
+        when(repository.buscarBodega(bodegaId))
+                .thenReturn(Optional.of(
+                        new Bodega(bodegaId, "GENERAL", "General", null, null, true)));
         when(repository.bloquearSaldo(eq(productoId), eq(bodegaId), any())).thenReturn(4);
 
-        assertThatThrownBy(() -> ajustes.aplicar(ajusteId, actorId))
+        assertThatThrownBy(() -> ajustes.aplicar(ajusteId, actorId, Set.of()))
                 .isInstanceOfSatisfying(
                         ErrorAplicacionException.class,
                         exception -> assertThat(exception.messageKey())

@@ -10,5 +10,6 @@ public record SolicitudBodega(
         @NotBlank @Size(max = 80) @Pattern(regexp = "^[A-Za-z0-9_-]+$") String codigo,
         @NotBlank @Size(max = 160) String nombre,
         UUID categoriaId,
+        @NotNull UUID paisId,
         @NotNull Boolean activo) {
 }

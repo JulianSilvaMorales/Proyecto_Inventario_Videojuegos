@@ -1,8 +1,11 @@
 package com.inventario.service;
 
 import com.inventario.domain.AjusteInventario;
+import com.inventario.domain.Bodega;
 import com.inventario.domain.MovimientoInventario;
+import com.inventario.domain.Pais;
 import com.inventario.dto.SolicitudAjusteInventario;
+import com.inventario.repository.ConfiguracionRepository;
 import com.inventario.repository.InventarioRepository;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -24,15 +27,21 @@ public class AjustesService {
             Set.of("PENDIENTE_DE_APROBACION", "APROBADO", "APLICADO");
 
     private final InventarioRepository repository;
+    private final ConfiguracionRepository configuracion;
     private final AuditoriaService auditoria;
+    private final AccesoPaisService accesoPais;
     private final Clock clock;
 
     public AjustesService(
             InventarioRepository repository,
+            ConfiguracionRepository configuracion,
             AuditoriaService auditoria,
+            AccesoPaisService accesoPais,
             Clock clock) {
         this.repository = repository;
+        this.configuracion = configuracion;
         this.auditoria = auditoria;
+        this.accesoPais = accesoPais;
         this.clock = clock;
     }
 
@@ -42,6 +51,7 @@ public class AjustesService {
             String tipo,
             UUID productoId,
             UUID bodegaId,
+            Set<String> paisesPermitidos,
             Pageable pageable) {
         String estadoNormalizado = estado == null
                 ? null
@@ -56,28 +66,36 @@ public class AjustesService {
             throw error(HttpStatus.BAD_REQUEST, "error.inventory.adjustment.type");
         }
         return repository.listarAjustes(
-                estadoNormalizado, tipoNormalizado, productoId, bodegaId, pageable);
+                estadoNormalizado,
+                tipoNormalizado,
+                productoId,
+                bodegaId,
+                paisesPermitidos,
+                pageable);
     }
 
     @Transactional(readOnly = true)
-    public AjusteInventario obtener(UUID id) {
-        return ajusteExistente(id);
+    public AjusteInventario obtener(UUID id, Set<String> paisesPermitidos) {
+        return ajusteExistente(id, paisesPermitidos);
     }
 
     @Transactional
     public AjusteInventario solicitar(
             String tipo,
             SolicitudAjusteInventario solicitud,
-            UUID actorId) {
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         if (!TIPOS.contains(tipo)) {
             throw error(HttpStatus.BAD_REQUEST, "error.inventory.adjustment.type");
         }
         if (!repository.productoExiste(solicitud.productoId())) {
             throw error(HttpStatus.NOT_FOUND, "error.catalog.product.not-found");
         }
-        if (repository.buscarBodega(solicitud.bodegaId()).isEmpty()) {
-            throw error(HttpStatus.NOT_FOUND, "error.inventory.warehouse.not-found");
-        }
+        Bodega bodega = repository.buscarBodega(solicitud.bodegaId())
+                .orElseThrow(() -> error(
+                        HttpStatus.NOT_FOUND,
+                        "error.inventory.warehouse.not-found"));
+        validarAccesoPais(bodega.paisId(), paisesPermitidos);
         repository.bloquearBodega(solicitud.bodegaId());
         if (!repository.bodegaActiva(solicitud.bodegaId())) {
             throw error(HttpStatus.CONFLICT, "error.inventory.warehouse.inactive");
@@ -104,32 +122,38 @@ public class AjustesService {
                 null,
                 null);
         UUID id = repository.crearAjuste(ajuste);
-        AjusteInventario creado = ajusteExistente(id);
+        AjusteInventario creado = ajusteExistente(id, paisesPermitidos);
         auditoria.registrar(
                 actorId, null, "SOLICITAR", "ajuste_inventario", id, null, creado);
         return creado;
     }
 
     @Transactional
-    public AjusteInventario aprobar(UUID id, UUID actorId) {
+    public AjusteInventario aprobar(
+            UUID id,
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         repository.bloquearAjuste(id);
-        AjusteInventario anterior = ajusteExistente(id);
+        AjusteInventario anterior = ajusteExistente(id, paisesPermitidos);
         if (!"PENDIENTE_DE_APROBACION".equals(anterior.estado())) {
             throw error(HttpStatus.CONFLICT, "error.inventory.adjustment.transition");
         }
         if (!repository.actualizarAjusteAprobado(id, actorId, ahora())) {
             throw error(HttpStatus.CONFLICT, "error.inventory.adjustment.transition");
         }
-        AjusteInventario aprobado = ajusteExistente(id);
+        AjusteInventario aprobado = ajusteExistente(id, paisesPermitidos);
         auditoria.registrar(
                 actorId, null, "APROBAR", "ajuste_inventario", id, anterior, aprobado);
         return aprobado;
     }
 
     @Transactional
-    public AjusteInventario aplicar(UUID id, UUID actorId) {
+    public AjusteInventario aplicar(
+            UUID id,
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         repository.bloquearAjuste(id);
-        AjusteInventario ajuste = ajusteExistente(id);
+        AjusteInventario ajuste = ajusteExistente(id, paisesPermitidos);
         if (!"APROBADO".equals(ajuste.estado())) {
             throw error(HttpStatus.CONFLICT, "error.inventory.adjustment.apply-state");
         }
@@ -160,16 +184,19 @@ public class AjustesService {
         if (!repository.actualizarAjusteAplicado(id, ahora)) {
             throw error(HttpStatus.CONFLICT, "error.inventory.adjustment.apply-state");
         }
-        AjusteInventario aplicado = ajusteExistente(id);
+        AjusteInventario aplicado = ajusteExistente(id, paisesPermitidos);
         auditoria.registrar(
                 actorId, null, "APLICAR", "ajuste_inventario", id, ajuste, aplicado);
         return aplicado;
     }
 
     @Transactional
-    public AjusteInventario revalidar(UUID id, UUID actorId) {
+    public AjusteInventario revalidar(
+            UUID id,
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         repository.bloquearAjuste(id);
-        AjusteInventario anterior = ajusteExistente(id);
+        AjusteInventario anterior = ajusteExistente(id, paisesPermitidos);
         if (!"APROBADO".equals(anterior.estado())) {
             throw error(HttpStatus.CONFLICT, "error.inventory.adjustment.revalidate-state");
         }
@@ -184,17 +211,31 @@ public class AjustesService {
                 anterior.cantidadContada() - saldoActual)) {
             throw error(HttpStatus.CONFLICT, "error.inventory.adjustment.transition");
         }
-        AjusteInventario actualizado = ajusteExistente(id);
+        AjusteInventario actualizado = ajusteExistente(id, paisesPermitidos);
         auditoria.registrar(
                 actorId, null, "REVALIDAR", "ajuste_inventario", id, anterior, actualizado);
         return actualizado;
     }
 
-    private AjusteInventario ajusteExistente(UUID id) {
-        return repository.buscarAjuste(id)
+    private AjusteInventario ajusteExistente(UUID id, Set<String> paisesPermitidos) {
+        AjusteInventario ajuste = repository.buscarAjuste(id)
                 .orElseThrow(() -> error(
                         HttpStatus.NOT_FOUND,
                         "error.inventory.adjustment.not-found"));
+        Bodega bodega = repository.buscarBodega(ajuste.bodegaId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "El ajuste referencia una bodega que no existe."));
+        validarAccesoPais(bodega.paisId(), paisesPermitidos);
+        return ajuste;
+    }
+
+    private void validarAccesoPais(UUID paisId, Set<String> paisesPermitidos) {
+        Pais pais = paisId == null
+                ? null
+                : configuracion.buscarPais(paisId)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "La bodega referencia un país que no existe."));
+        accesoPais.validar(paisesPermitidos, pais);
     }
 
     private OffsetDateTime ahora() {

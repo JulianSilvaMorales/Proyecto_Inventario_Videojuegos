@@ -111,6 +111,20 @@ public class ConfiguracionRepository {
                 id);
     }
 
+    public Optional<Moneda> buscarMonedaPorCodigo(String codigoIso) {
+        return jdbcTemplate.query(
+                        """
+                        SELECT id, codigo_iso, nombre, simbolo, decimales, formato,
+                               regla_redondeo
+                        FROM public.moneda
+                        WHERE upper(codigo_iso) = upper(?)
+                        """,
+                        MONEDA_ROW_MAPPER,
+                        codigoIso)
+                .stream()
+                .findFirst();
+    }
+
     public UUID crearMoneda(Moneda moneda) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(

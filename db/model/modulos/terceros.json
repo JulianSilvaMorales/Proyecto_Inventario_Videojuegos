@@ -40,6 +40,11 @@
       "descripcion": "Cliente con país, clasificación y consentimiento de datos",
       "inmutable": false,
       "generar_crud": true,
+      "validaciones_frontend": [
+        {"campo": "consentimiento_registrado", "requiere_verdadero": true, "solo_creacion": true},
+        {"campo": "clasificacion", "valor": "FRECUENTE", "requeridos": ["apellidos", "codigo_postal", "direccion", "telefono"]},
+        {"campo": "clasificacion", "valor": "INFRECUENTE", "requeridos": ["documento"]}
+      ],
       "campos": [
         {"nombre": "id", "tipo": "uuid", "pk": true},
         {"nombre": "pais_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "pais", "campo": "id"}},
@@ -54,8 +59,8 @@
         {"nombre": "correo", "tipo": "texto", "obligatorio": true},
         {"nombre": "base_legal", "tipo": "texto", "obligatorio": true},
         {"nombre": "consentimiento_registrado", "tipo": "booleano", "obligatorio": true},
-        {"nombre": "consentimiento_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
-        {"nombre": "ultimo_contacto_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
+        {"nombre": "consentimiento_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true, "solo_lectura": true},
+        {"nombre": "ultimo_contacto_en_utc", "tipo": "fecha_hora_utc", "obligatorio": true, "solo_lectura": true},
         {"nombre": "activo", "tipo": "booleano", "obligatorio": true, "default": true}
       ],
       "indices": [["pais_id", "clasificacion"], ["correo"]],

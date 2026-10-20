@@ -18,6 +18,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -35,6 +36,7 @@ public class InventarioRepository {
                     rs.getString("codigo"),
                     rs.getString("nombre"),
                     uuid(rs, "categoria_id"),
+                    uuid(rs, "pais_id"),
                     rs.getBoolean("activo"));
     private static final RowMapper<Proveedor> PROVEEDOR_MAPPER =
             (rs, row) -> new Proveedor(
@@ -138,16 +140,24 @@ public class InventarioRepository {
     }
 
     public Page<Bodega> listarBodegas(String buscar, Pageable pageable) {
-        String from = "FROM public.bodega b";
+        return listarBodegas(buscar, Set.of(), pageable);
+    }
+
+    public Page<Bodega> listarBodegas(
+            String buscar,
+            Set<String> paisesPermitidos,
+            Pageable pageable) {
+        StringBuilder from = new StringBuilder("FROM public.bodega b WHERE 1 = 1");
         List<Object> args = new ArrayList<>();
         if (buscar != null && !buscar.isBlank()) {
-            from += " WHERE (lower(b.codigo) LIKE lower(?) OR lower(b.nombre) LIKE lower(?))";
+            from.append(" AND (lower(b.codigo) LIKE lower(?) OR lower(b.nombre) LIKE lower(?))");
             args.add("%" + buscar.trim() + "%");
             args.add("%" + buscar.trim() + "%");
         }
+        agregarFiltroPaises(from, args, paisesPermitidos);
         return pagina(
-                "b.id, b.codigo, b.nombre, b.categoria_id, b.activo",
-                from,
+                "b.id, b.codigo, b.nombre, b.categoria_id, b.pais_id, b.activo",
+                from.toString(),
                 "b.codigo",
                 BODEGA_MAPPER,
                 pageable,
@@ -169,6 +179,7 @@ public class InventarioRepository {
                 bodega.codigo(),
                 bodega.nombre(),
                 bodega.categoriaId(),
+                bodega.paisId(),
                 bodega.activo());
         return id;
     }
@@ -179,6 +190,7 @@ public class InventarioRepository {
                 bodega.codigo(),
                 bodega.nombre(),
                 bodega.categoriaId(),
+                bodega.paisId(),
                 bodega.activo(),
                 bodega.id()) == 1;
     }
@@ -214,18 +226,22 @@ public class InventarioRepository {
                 id);
     }
 
-    public Page<Proveedor> listarProveedores(String buscar, Pageable pageable) {
-        String from = "FROM public.proveedor p";
+    public Page<Proveedor> listarProveedores(
+            String buscar,
+            Set<String> paisesPermitidos,
+            Pageable pageable) {
+        StringBuilder from = new StringBuilder("FROM public.proveedor p WHERE 1 = 1");
         List<Object> args = new ArrayList<>();
         if (buscar != null && !buscar.isBlank()) {
-            from += " WHERE lower(p.razon_social) LIKE lower(?)";
+            from.append(" AND lower(p.razon_social) LIKE lower(?)");
             args.add("%" + buscar.trim() + "%");
         }
+        agregarFiltroPaises(from, args, paisesPermitidos, "p.pais_id");
         return pagina(
                 "p.id, p.razon_social, p.pais_id, p.identificacion_tributaria,"
                         + " p.persona_contacto, p.correo, p.telefono, p.moneda_compra_id,"
                         + " p.condiciones_pago, p.activo",
-                from,
+                from.toString(),
                 "p.razon_social",
                 PROVEEDOR_MAPPER,
                 pageable,
@@ -406,6 +422,7 @@ public class InventarioRepository {
     public Page<OrdenCompra> listarOrdenes(
             UUID proveedorId,
             String estado,
+            Set<String> paisesPermitidos,
             Pageable pageable) {
         StringBuilder from = new StringBuilder("""
                 FROM public.orden_compra oc
@@ -421,6 +438,7 @@ public class InventarioRepository {
             from.append(" AND oc.estado = ?");
             args.add(estado);
         }
+        agregarFiltroPaises(from, args, paisesPermitidos, "oc.pais_id");
         return pagina(
                 "oc.id, oc.numero, oc.proveedor_id, p.razon_social AS proveedor_nombre,"
                         + " oc.pais_id, oc.moneda_id, oc.tipo_cambio, oc.estado,"
@@ -619,6 +637,19 @@ public class InventarioRepository {
                 id);
     }
 
+    public int cantidadDisponible(UUID productoId, UUID bodegaId) {
+        return jdbc.queryForObject(
+                """
+                SELECT COALESCE(
+                    (SELECT cantidad FROM public.saldo_inventario
+                     WHERE producto_id = ? AND bodega_id = ?),
+                    0)
+                """,
+                Integer.class,
+                productoId,
+                bodegaId);
+    }
+
     public int bloquearSaldo(UUID productoId, UUID bodegaId, OffsetDateTime ahora) {
         jdbc.update(
                 """
@@ -663,6 +694,17 @@ public class InventarioRepository {
             UUID bodegaId,
             boolean soloConExistencia,
             Pageable pageable) {
+        return listarSaldos(
+                productoId, bodegaId, null, Set.of(), soloConExistencia, pageable);
+    }
+
+    public Page<SaldoInventario> listarSaldos(
+            UUID productoId,
+            UUID bodegaId,
+            UUID paisId,
+            Set<String> paisesPermitidos,
+            boolean soloConExistencia,
+            Pageable pageable) {
         StringBuilder from = new StringBuilder("""
                 FROM public.saldo_inventario si
                 JOIN public.producto p ON p.id = si.producto_id
@@ -681,6 +723,11 @@ public class InventarioRepository {
             from.append(" AND si.bodega_id = ?");
             args.add(bodegaId);
         }
+        if (paisId != null) {
+            from.append(" AND b.pais_id = ?");
+            args.add(paisId);
+        }
+        agregarFiltroPaises(from, args, paisesPermitidos);
         if (soloConExistencia) {
             from.append(" AND si.cantidad > 0");
         }
@@ -725,11 +772,39 @@ public class InventarioRepository {
             String tipo,
             OffsetDateTime desde,
             OffsetDateTime hasta,
+            UUID paisId,
+            UUID monedaId,
+            Pageable pageable) {
+        return listarMovimientos(
+                productoId,
+                bodegaId,
+                usuarioId,
+                tipo,
+                desde,
+                hasta,
+                paisId,
+                monedaId,
+                Set.of(),
+                pageable);
+    }
+
+    public Page<MovimientoInventario> listarMovimientos(
+            UUID productoId,
+            UUID bodegaId,
+            UUID usuarioId,
+            String tipo,
+            OffsetDateTime desde,
+            OffsetDateTime hasta,
+            UUID paisId,
+            UUID monedaId,
+            Set<String> paisesPermitidos,
             Pageable pageable) {
         StringBuilder from = new StringBuilder("""
                 FROM public.movimiento_inventario mi
                 JOIN public.producto p ON p.id = mi.producto_id
                 JOIN public.bodega b ON b.id = mi.bodega_id
+                LEFT JOIN public.venta v
+                    ON mi.referencia_tipo = 'VENTA' AND v.id = mi.referencia_id
                 WHERE 1 = 1
                 """);
         List<Object> args = new ArrayList<>();
@@ -757,6 +832,15 @@ public class InventarioRepository {
             from.append(" AND mi.fecha_utc <= ?");
             args.add(hasta);
         }
+        if (paisId != null) {
+            from.append(" AND COALESCE(v.pais_id, b.pais_id) = ?");
+            args.add(paisId);
+        }
+        if (monedaId != null) {
+            from.append(" AND v.moneda_id = ?");
+            args.add(monedaId);
+        }
+        agregarFiltroPaises(from, args, paisesPermitidos);
         return pagina(
                 "mi.id, mi.producto_id, p.codigo_interno AS codigo_producto,"
                         + " mi.bodega_id, b.nombre AS bodega_nombre, mi.tipo, mi.cantidad,"
@@ -879,6 +963,7 @@ public class InventarioRepository {
             String tipo,
             UUID productoId,
             UUID bodegaId,
+            Set<String> paisesPermitidos,
             Pageable pageable) {
         StringBuilder from = new StringBuilder("""
                 FROM public.ajuste_inventario ai
@@ -903,6 +988,7 @@ public class InventarioRepository {
             from.append(" AND ai.bodega_id = ?");
             args.add(bodegaId);
         }
+        agregarFiltroPaises(from, args, paisesPermitidos, "b.pais_id");
         return pagina(
                 "ai.id, ai.producto_id, p.codigo_interno AS codigo_producto,"
                         + " ai.bodega_id, b.nombre AS bodega_nombre, ai.tipo,"
@@ -914,6 +1000,31 @@ public class InventarioRepository {
                 AJUSTE_MAPPER,
                 pageable,
                 args);
+    }
+
+    private void agregarFiltroPaises(
+            StringBuilder from,
+            List<Object> args,
+            Set<String> paisesPermitidos) {
+        agregarFiltroPaises(from, args, paisesPermitidos, "b.pais_id");
+    }
+
+    private void agregarFiltroPaises(
+            StringBuilder from,
+            List<Object> args,
+            Set<String> paisesPermitidos,
+            String columnaPais) {
+        if (paisesPermitidos == null || paisesPermitidos.isEmpty()) {
+            return;
+        }
+        List<String> codigos = paisesPermitidos.stream().sorted().toList();
+        from.append(" AND ")
+                .append(columnaPais)
+                .append(" IN (SELECT pais.id FROM public.pais pais")
+                .append(" WHERE pais.codigo_iso IN (")
+                .append(String.join(",", codigos.stream().map(codigo -> "?").toList()))
+                .append("))");
+        args.addAll(codigos);
     }
 
     private <T> Page<T> pagina(

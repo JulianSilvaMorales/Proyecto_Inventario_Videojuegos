@@ -1,0 +1,1402 @@
+{
+  "_cabecera": "GENERADO — no editar; modifique el JSON del modelo o la plantilla.",
+  "entidades": [
+    {
+      "nombre": "pais",
+      "modulo": "settings",
+      "rutaApi": "/api/v1/configuracion/paises",
+      "permisosConsulta": [
+        "PARAMETROS_GESTIONAR"
+      ],
+      "permisosGestion": [
+        "PARAMETROS_GESTIONAR"
+      ],
+      "eliminacion": "delete",
+      "validacionesCondicionales": [],
+      "etiquetas": {
+        "es": "País",
+        "en": "Country"
+      },
+      "campos": [
+        {
+          "nombre": "id",
+          "apiName": "id",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificador",
+            "en": "Identifier"
+          }
+        },
+        {
+          "nombre": "codigo_iso",
+          "apiName": "codigoIso",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Código ISO",
+            "en": "ISO code"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "apiName": "nombre",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Nombre",
+            "en": "Name"
+          }
+        },
+        {
+          "nombre": "moneda_local_id",
+          "apiName": "monedaLocalId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "moneda",
+          "etiquetas": {
+            "es": "Moneda local",
+            "en": "Local currency"
+          }
+        },
+        {
+          "nombre": "idioma_predeterminado_id",
+          "apiName": "idiomaPredeterminadoId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "idioma",
+          "etiquetas": {
+            "es": "Idioma predeterminado",
+            "en": "Default language"
+          }
+        },
+        {
+          "nombre": "zona_horaria",
+          "apiName": "zonaHoraria",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Zona horaria",
+            "en": "Time zone"
+          }
+        },
+        {
+          "nombre": "habilitado",
+          "apiName": "habilitado",
+          "tipo": "booleano",
+          "typescript": "boolean",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": false,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Habilitado",
+            "en": "Enabled"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "moneda",
+      "modulo": "settings",
+      "rutaApi": "/api/v1/configuracion/monedas",
+      "permisosConsulta": [
+        "PARAMETROS_GESTIONAR"
+      ],
+      "permisosGestion": [
+        "PARAMETROS_GESTIONAR"
+      ],
+      "eliminacion": "delete",
+      "validacionesCondicionales": [],
+      "etiquetas": {
+        "es": "Moneda",
+        "en": "Currency"
+      },
+      "campos": [
+        {
+          "nombre": "id",
+          "apiName": "id",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificador",
+            "en": "Identifier"
+          }
+        },
+        {
+          "nombre": "codigo_iso",
+          "apiName": "codigoIso",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Código ISO",
+            "en": "ISO code"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "apiName": "nombre",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Nombre",
+            "en": "Name"
+          }
+        },
+        {
+          "nombre": "simbolo",
+          "apiName": "simbolo",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Símbolo",
+            "en": "Symbol"
+          }
+        },
+        {
+          "nombre": "decimales",
+          "apiName": "decimales",
+          "tipo": "entero",
+          "typescript": "number",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": 0,
+          "max": 4,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Decimales",
+            "en": "Decimal places"
+          }
+        },
+        {
+          "nombre": "formato",
+          "apiName": "formato",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Formato",
+            "en": "Format"
+          }
+        },
+        {
+          "nombre": "regla_redondeo",
+          "apiName": "reglaRedondeo",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Regla de redondeo",
+            "en": "Rounding rule"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "idioma",
+      "modulo": "settings",
+      "rutaApi": "/api/v1/configuracion/idiomas",
+      "permisosConsulta": [
+        "PARAMETROS_GESTIONAR"
+      ],
+      "permisosGestion": [
+        "PARAMETROS_GESTIONAR"
+      ],
+      "eliminacion": "delete",
+      "validacionesCondicionales": [],
+      "etiquetas": {
+        "es": "Idioma",
+        "en": "Language"
+      },
+      "campos": [
+        {
+          "nombre": "id",
+          "apiName": "id",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificador",
+            "en": "Identifier"
+          }
+        },
+        {
+          "nombre": "codigo_bcp47",
+          "apiName": "codigoBcp47",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Código BCP 47",
+            "en": "BCP 47 code"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "apiName": "nombre",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Nombre",
+            "en": "Name"
+          }
+        },
+        {
+          "nombre": "habilitado",
+          "apiName": "habilitado",
+          "tipo": "booleano",
+          "typescript": "boolean",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": true,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Habilitado",
+            "en": "Enabled"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "tipo_cambio",
+      "modulo": "settings",
+      "rutaApi": "/api/v1/configuracion/tipos-cambio",
+      "permisosConsulta": [
+        "TIPOS_CAMBIO_GESTIONAR"
+      ],
+      "permisosGestion": [
+        "TIPOS_CAMBIO_GESTIONAR"
+      ],
+      "eliminacion": "delete",
+      "validacionesCondicionales": [],
+      "etiquetas": {
+        "es": "Tipo de cambio",
+        "en": "Exchange rate"
+      },
+      "campos": [
+        {
+          "nombre": "id",
+          "apiName": "id",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificador",
+            "en": "Identifier"
+          }
+        },
+        {
+          "nombre": "moneda_origen_id",
+          "apiName": "monedaOrigenId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "moneda",
+          "etiquetas": {
+            "es": "Moneda origen",
+            "en": "Source currency"
+          }
+        },
+        {
+          "nombre": "moneda_destino_id",
+          "apiName": "monedaDestinoId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "moneda",
+          "etiquetas": {
+            "es": "Moneda destino",
+            "en": "Target currency"
+          }
+        },
+        {
+          "nombre": "tasa",
+          "apiName": "tasa",
+          "tipo": "decimal",
+          "typescript": "number",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": 0,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Tasa",
+            "en": "Rate"
+          }
+        },
+        {
+          "nombre": "vigente_desde_utc",
+          "apiName": "vigenteDesdeUtc",
+          "tipo": "fecha_hora_utc",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Vigente desde (UTC)",
+            "en": "Valid from (UTC)"
+          }
+        },
+        {
+          "nombre": "origen",
+          "apiName": "origen",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [
+            "MANUAL",
+            "SERVICIO"
+          ],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Origen",
+            "en": "Source"
+          }
+        },
+        {
+          "nombre": "actualizado_por_id",
+          "apiName": "actualizadoPorId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "usuario",
+          "etiquetas": {
+            "es": "Actualizado por",
+            "en": "Updated by"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "impuesto",
+      "modulo": "settings",
+      "rutaApi": "/api/v1/configuracion/impuestos",
+      "permisosConsulta": [
+        "PARAMETROS_GESTIONAR"
+      ],
+      "permisosGestion": [
+        "PARAMETROS_GESTIONAR"
+      ],
+      "eliminacion": "delete",
+      "validacionesCondicionales": [],
+      "etiquetas": {
+        "es": "Impuesto",
+        "en": "Tax"
+      },
+      "campos": [
+        {
+          "nombre": "id",
+          "apiName": "id",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificador",
+            "en": "Identifier"
+          }
+        },
+        {
+          "nombre": "pais_id",
+          "apiName": "paisId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "pais",
+          "etiquetas": {
+            "es": "País",
+            "en": "Country"
+          }
+        },
+        {
+          "nombre": "categoria_id",
+          "apiName": "categoriaId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "categoria",
+          "etiquetas": {
+            "es": "Categoría",
+            "en": "Category"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "apiName": "nombre",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Nombre",
+            "en": "Name"
+          }
+        },
+        {
+          "nombre": "tasa",
+          "apiName": "tasa",
+          "tipo": "decimal",
+          "typescript": "number",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": 0,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Tasa",
+            "en": "Rate"
+          }
+        },
+        {
+          "nombre": "incluido_en_precio",
+          "apiName": "incluidoEnPrecio",
+          "tipo": "booleano",
+          "typescript": "boolean",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Incluido en el precio",
+            "en": "Included in price"
+          }
+        },
+        {
+          "nombre": "vigente_desde",
+          "apiName": "vigenteDesde",
+          "tipo": "fecha",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Vigente desde",
+            "en": "Valid from"
+          }
+        },
+        {
+          "nombre": "vigente_hasta",
+          "apiName": "vigenteHasta",
+          "tipo": "fecha",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Vigente hasta",
+            "en": "Valid until"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "categoria",
+      "modulo": "catalog",
+      "rutaApi": "/api/v1/catalogo/categorias",
+      "permisosConsulta": [
+        "CATALOGO_CONSULTAR"
+      ],
+      "permisosGestion": [
+        "PRODUCTOS_GESTIONAR"
+      ],
+      "eliminacion": "delete",
+      "validacionesCondicionales": [],
+      "etiquetas": {
+        "es": "Categoría",
+        "en": "Category"
+      },
+      "campos": [
+        {
+          "nombre": "id",
+          "apiName": "id",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificador",
+            "en": "Identifier"
+          }
+        },
+        {
+          "nombre": "codigo",
+          "apiName": "codigo",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Código",
+            "en": "Code"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "apiName": "nombre",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Nombre",
+            "en": "Name"
+          }
+        },
+        {
+          "nombre": "padre_id",
+          "apiName": "padreId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "categoria",
+          "etiquetas": {
+            "es": "Categoría superior",
+            "en": "Parent category"
+          }
+        },
+        {
+          "nombre": "activo",
+          "apiName": "activo",
+          "tipo": "booleano",
+          "typescript": "boolean",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": true,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Activo",
+            "en": "Active"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "bodega",
+      "modulo": "inventory",
+      "rutaApi": "/api/v1/inventario/bodegas",
+      "permisosConsulta": [
+        "INVENTARIO_CONSULTAR"
+      ],
+      "permisosGestion": [
+        "COMPRAS_GESTIONAR"
+      ],
+      "eliminacion": "deactivate",
+      "validacionesCondicionales": [],
+      "etiquetas": {
+        "es": "Bodega",
+        "en": "Warehouse"
+      },
+      "campos": [
+        {
+          "nombre": "id",
+          "apiName": "id",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificador",
+            "en": "Identifier"
+          }
+        },
+        {
+          "nombre": "codigo",
+          "apiName": "codigo",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Código",
+            "en": "Code"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "apiName": "nombre",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Nombre",
+            "en": "Name"
+          }
+        },
+        {
+          "nombre": "categoria_id",
+          "apiName": "categoriaId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "categoria",
+          "etiquetas": {
+            "es": "Categoría",
+            "en": "Category"
+          }
+        },
+        {
+          "nombre": "pais_id",
+          "apiName": "paisId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "pais",
+          "etiquetas": {
+            "es": "País",
+            "en": "Country"
+          }
+        },
+        {
+          "nombre": "activo",
+          "apiName": "activo",
+          "tipo": "booleano",
+          "typescript": "boolean",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": true,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Activo",
+            "en": "Active"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "proveedor",
+      "modulo": "suppliers",
+      "rutaApi": "/api/v1/proveedores",
+      "permisosConsulta": [
+        "PROVEEDORES_CONSULTAR",
+        "PROVEEDORES_GESTIONAR"
+      ],
+      "permisosGestion": [
+        "PROVEEDORES_GESTIONAR"
+      ],
+      "eliminacion": "deactivate",
+      "validacionesCondicionales": [],
+      "etiquetas": {
+        "es": "Proveedor",
+        "en": "Supplier"
+      },
+      "campos": [
+        {
+          "nombre": "id",
+          "apiName": "id",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificador",
+            "en": "Identifier"
+          }
+        },
+        {
+          "nombre": "razon_social",
+          "apiName": "razonSocial",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Razón social",
+            "en": "Business name"
+          }
+        },
+        {
+          "nombre": "pais_id",
+          "apiName": "paisId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "pais",
+          "etiquetas": {
+            "es": "País",
+            "en": "Country"
+          }
+        },
+        {
+          "nombre": "identificacion_tributaria",
+          "apiName": "identificacionTributaria",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificación tributaria",
+            "en": "Tax ID"
+          }
+        },
+        {
+          "nombre": "persona_contacto",
+          "apiName": "personaContacto",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Persona de contacto",
+            "en": "Contact person"
+          }
+        },
+        {
+          "nombre": "correo",
+          "apiName": "correo",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Correo electrónico",
+            "en": "Email"
+          }
+        },
+        {
+          "nombre": "telefono",
+          "apiName": "telefono",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Teléfono",
+            "en": "Phone"
+          }
+        },
+        {
+          "nombre": "moneda_compra_id",
+          "apiName": "monedaCompraId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "moneda",
+          "etiquetas": {
+            "es": "Moneda de compra",
+            "en": "Purchase currency"
+          }
+        },
+        {
+          "nombre": "condiciones_pago",
+          "apiName": "condicionesPago",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Condiciones de pago",
+            "en": "Payment terms"
+          }
+        },
+        {
+          "nombre": "activo",
+          "apiName": "activo",
+          "tipo": "booleano",
+          "typescript": "boolean",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": true,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Activo",
+            "en": "Active"
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "cliente",
+      "modulo": "sales",
+      "rutaApi": "/api/v1/clientes",
+      "permisosConsulta": [
+        "CLIENTES_GESTIONAR"
+      ],
+      "permisosGestion": [
+        "CLIENTES_GESTIONAR"
+      ],
+      "eliminacion": "deactivate",
+      "validacionesCondicionales": [
+        {
+          "campo": "consentimientoRegistrado",
+          "valor": null,
+          "camposRequeridos": [],
+          "requiereVerdadero": true,
+          "soloCrear": true
+        },
+        {
+          "campo": "clasificacion",
+          "valor": "FRECUENTE",
+          "camposRequeridos": [
+            "apellidos",
+            "codigoPostal",
+            "direccion",
+            "telefono"
+          ],
+          "requiereVerdadero": false,
+          "soloCrear": false
+        },
+        {
+          "campo": "clasificacion",
+          "valor": "INFRECUENTE",
+          "camposRequeridos": [
+            "documento"
+          ],
+          "requiereVerdadero": false,
+          "soloCrear": false
+        }
+      ],
+      "etiquetas": {
+        "es": "Cliente",
+        "en": "Customer"
+      },
+      "campos": [
+        {
+          "nombre": "id",
+          "apiName": "id",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Identificador",
+            "en": "Identifier"
+          }
+        },
+        {
+          "nombre": "pais_id",
+          "apiName": "paisId",
+          "tipo": "uuid",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": "pais",
+          "etiquetas": {
+            "es": "País",
+            "en": "Country"
+          }
+        },
+        {
+          "nombre": "clasificacion",
+          "apiName": "clasificacion",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [
+            "INFRECUENTE",
+            "FRECUENTE"
+          ],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Clasificación",
+            "en": "Classification"
+          }
+        },
+        {
+          "nombre": "nombre",
+          "apiName": "nombre",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Nombre",
+            "en": "Name"
+          }
+        },
+        {
+          "nombre": "apellidos",
+          "apiName": "apellidos",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Apellidos",
+            "en": "Last name"
+          }
+        },
+        {
+          "nombre": "tipo_documento",
+          "apiName": "tipoDocumento",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Tipo de documento",
+            "en": "Document type"
+          }
+        },
+        {
+          "nombre": "documento",
+          "apiName": "documento",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Documento",
+            "en": "Document"
+          }
+        },
+        {
+          "nombre": "codigo_postal",
+          "apiName": "codigoPostal",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Código postal",
+            "en": "Postal code"
+          }
+        },
+        {
+          "nombre": "direccion",
+          "apiName": "direccion",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Dirección",
+            "en": "Address"
+          }
+        },
+        {
+          "nombre": "telefono",
+          "apiName": "telefono",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": false,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Teléfono",
+            "en": "Phone"
+          }
+        },
+        {
+          "nombre": "correo",
+          "apiName": "correo",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Correo electrónico",
+            "en": "Email"
+          }
+        },
+        {
+          "nombre": "base_legal",
+          "apiName": "baseLegal",
+          "tipo": "texto",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Base legal",
+            "en": "Legal basis"
+          }
+        },
+        {
+          "nombre": "consentimiento_registrado",
+          "apiName": "consentimientoRegistrado",
+          "tipo": "booleano",
+          "typescript": "boolean",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Consentimiento registrado",
+            "en": "Consent recorded"
+          }
+        },
+        {
+          "nombre": "consentimiento_en_utc",
+          "apiName": "consentimientoEnUtc",
+          "tipo": "fecha_hora_utc",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Consentimiento registrado (UTC)",
+            "en": "Consent recorded (UTC)"
+          }
+        },
+        {
+          "nombre": "ultimo_contacto_en_utc",
+          "apiName": "ultimoContactoEnUtc",
+          "tipo": "fecha_hora_utc",
+          "typescript": "string",
+          "obligatorio": true,
+          "soloLectura": true,
+          "min": null,
+          "max": null,
+          "default": null,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Último contacto (UTC)",
+            "en": "Last contact (UTC)"
+          }
+        },
+        {
+          "nombre": "activo",
+          "apiName": "activo",
+          "tipo": "booleano",
+          "typescript": "boolean",
+          "obligatorio": true,
+          "soloLectura": false,
+          "min": null,
+          "max": null,
+          "default": true,
+          "valores": [],
+          "referencia": null,
+          "etiquetas": {
+            "es": "Activo",
+            "en": "Active"
+          }
+        }
+      ]
+    }
+  ]
+}

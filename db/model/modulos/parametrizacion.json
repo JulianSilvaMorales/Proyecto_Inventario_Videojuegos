@@ -84,8 +84,8 @@
         {"nombre": "moneda_destino_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "moneda", "campo": "id"}},
         {"nombre": "tasa", "tipo": "decimal", "obligatorio": true, "precision": 19, "escala": 8, "min": 0},
         {"nombre": "vigente_desde_utc", "tipo": "fecha_hora_utc", "obligatorio": true},
-        {"nombre": "origen", "tipo": "texto", "obligatorio": true, "valores": ["MANUAL", "SERVICIO"]},
-        {"nombre": "actualizado_por_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}}
+        {"nombre": "origen", "tipo": "texto", "obligatorio": true, "valores": ["MANUAL", "SERVICIO"], "solo_lectura": true},
+        {"nombre": "actualizado_por_id", "tipo": "uuid", "obligatorio": true, "ref": {"entidad": "usuario", "campo": "id"}, "solo_lectura": true}
       ],
       "indices": [["moneda_origen_id", "moneda_destino_id", "vigente_desde_utc"]],
       "etiquetas": {"es": "Tipo de cambio", "en": "Exchange rate"}

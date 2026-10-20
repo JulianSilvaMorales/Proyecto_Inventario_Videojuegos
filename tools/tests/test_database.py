@@ -14,6 +14,7 @@ from unittest.mock import patch
 import pytest
 
 from tools.database import (
+    LEGACY_V001_CHECKSUM,
     MigrationChecksumError,
     aplicar_migraciones,
     crear_base_si_no_existe,
@@ -164,6 +165,17 @@ def test_migracion_modificada_rechaza_checksum_distinto(tmp_path: Path) -> None:
 
     with pytest.raises(MigrationChecksumError, match="no coincide"):
         aplicar_migraciones(connection, [migration])
+
+
+def test_migracion_inicial_acepta_checksum_previo_publicado(tmp_path: Path) -> None:
+    migration = tmp_path / "V001__modelo_inicial.sql"
+    migration.write_text(f"-- {GENERATED_HEADER}\nSELECT 1;\n", encoding="utf-8")
+    connection = MigrationConnection(checksum=LEGACY_V001_CHECKSUM)
+
+    applied = aplicar_migraciones(connection, [migration])
+
+    assert applied == []
+    assert connection.applied_sql == []
 
 
 def test_semillas_reflejan_configuracion_acordada() -> None:

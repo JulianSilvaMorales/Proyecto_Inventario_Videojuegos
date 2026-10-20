@@ -1,0 +1,158 @@
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.drawer-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.drawer-user {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 20px 24px;
+  overflow: hidden;
+}
+
+.drawer-footer {
+  margin-top: auto;
+  padding: 20px 24px;
+}
+
+.main-content {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.page-container {
+  width: min(100%, 1280px);
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.format-sample {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e7ebf2;
+  border-radius: 12px;
+  background: #f9fbfe;
+}
+
+.card-icon,
+.brand-mark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  color: #fff;
+  background: #1d4ed8;
+}
+
+.card-icon-blue {
+  color: #1d4ed8;
+  background: #eaf0ff;
+}
+
+.card-icon-teal {
+  color: #0f766e;
+  background: #e6f5f2;
+}
+
+.module-placeholder {
+  max-width: 760px;
+  padding: 36px;
+  border: 1px solid #e7ebf2;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.coming-soon {
+  margin-top: 28px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #edf3ff;
+}
+
+.login-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse at 15% 15%, rgba(29, 78, 216, 0.12), transparent 38%),
+    radial-gradient(ellipse at 90% 85%, rgba(15, 118, 110, 0.09), transparent 34%),
+    #f4f7fb;
+}
+
+.login-language {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+}
+
+.login-card {
+  width: min(100%, 460px);
+  border-radius: 18px !important;
+  box-shadow: 0 20px 70px rgba(35, 55, 90, 0.08) !important;
+}
+
+.global-alert {
+  position: fixed;
+  z-index: 1400;
+  top: 76px;
+  right: 20px;
+  max-width: min(520px, calc(100vw - 40px));
+}
+
+@media (max-width: 899px) {
+  .page-container {
+    padding: 24px 18px;
+  }
+
+  .module-placeholder {
+    padding: 26px;
+  }
+}
+
+@media (max-width: 599px) {
+  .dashboard-grid,
+  .format-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .login-page {
+    padding: 16px;
+  }
+
+  .login-language {
+    top: 12px;
+    right: 12px;
+  }
+
+  .login-card {
+    margin-top: 38px;
+  }
+}

@@ -27,6 +27,126 @@ TYPES = {
     "fecha_hora_utc": "TIMESTAMPTZ",
     "json": "JSONB",
 }
+FRONTEND_CRUD = {
+    "pais": {
+        "ruta_api": "/api/v1/configuracion/paises",
+        "modulo_frontend": "settings",
+        "permisos_consulta": ["PARAMETROS_GESTIONAR"],
+        "permisos_gestion": ["PARAMETROS_GESTIONAR"],
+        "eliminacion": "delete",
+    },
+    "moneda": {
+        "ruta_api": "/api/v1/configuracion/monedas",
+        "modulo_frontend": "settings",
+        "permisos_consulta": ["PARAMETROS_GESTIONAR"],
+        "permisos_gestion": ["PARAMETROS_GESTIONAR"],
+        "eliminacion": "delete",
+    },
+    "idioma": {
+        "ruta_api": "/api/v1/configuracion/idiomas",
+        "modulo_frontend": "settings",
+        "permisos_consulta": ["PARAMETROS_GESTIONAR"],
+        "permisos_gestion": ["PARAMETROS_GESTIONAR"],
+        "eliminacion": "delete",
+    },
+    "tipo_cambio": {
+        "ruta_api": "/api/v1/configuracion/tipos-cambio",
+        "modulo_frontend": "settings",
+        "permisos_consulta": ["TIPOS_CAMBIO_GESTIONAR"],
+        "permisos_gestion": ["TIPOS_CAMBIO_GESTIONAR"],
+        "eliminacion": "delete",
+    },
+    "impuesto": {
+        "ruta_api": "/api/v1/configuracion/impuestos",
+        "modulo_frontend": "settings",
+        "permisos_consulta": ["PARAMETROS_GESTIONAR"],
+        "permisos_gestion": ["PARAMETROS_GESTIONAR"],
+        "eliminacion": "delete",
+    },
+    "categoria": {
+        "ruta_api": "/api/v1/catalogo/categorias",
+        "modulo_frontend": "catalog",
+        "permisos_consulta": ["CATALOGO_CONSULTAR"],
+        "permisos_gestion": ["PRODUCTOS_GESTIONAR"],
+        "eliminacion": "delete",
+    },
+    "bodega": {
+        "ruta_api": "/api/v1/inventario/bodegas",
+        "modulo_frontend": "inventory",
+        "permisos_consulta": ["INVENTARIO_CONSULTAR"],
+        "permisos_gestion": ["COMPRAS_GESTIONAR"],
+        "eliminacion": "deactivate",
+    },
+    "proveedor": {
+        "ruta_api": "/api/v1/proveedores",
+        "modulo_frontend": "suppliers",
+        "permisos_consulta": ["PROVEEDORES_CONSULTAR", "PROVEEDORES_GESTIONAR"],
+        "permisos_gestion": ["PROVEEDORES_GESTIONAR"],
+        "eliminacion": "deactivate",
+    },
+    "cliente": {
+        "ruta_api": "/api/v1/clientes",
+        "modulo_frontend": "sales",
+        "permisos_consulta": ["CLIENTES_GESTIONAR"],
+        "permisos_gestion": ["CLIENTES_GESTIONAR"],
+        "eliminacion": "deactivate",
+    },
+}
+FIELD_LABELS = {
+    "activo": ("Activo", "Active"),
+    "apellidos": ("Apellidos", "Last name"),
+    "actualizado_por_id": ("Actualizado por", "Updated by"),
+    "base_legal": ("Base legal", "Legal basis"),
+    "categoria_id": ("Categoría", "Category"),
+    "clasificacion": ("Clasificación", "Classification"),
+    "codigo": ("Código", "Code"),
+    "codigo_bcp47": ("Código BCP 47", "BCP 47 code"),
+    "codigo_iso": ("Código ISO", "ISO code"),
+    "codigo_postal": ("Código postal", "Postal code"),
+    "condiciones_pago": ("Condiciones de pago", "Payment terms"),
+    "consentimiento_en_utc": ("Consentimiento registrado (UTC)", "Consent recorded (UTC)"),
+    "consentimiento_registrado": ("Consentimiento registrado", "Consent recorded"),
+    "correo": ("Correo electrónico", "Email"),
+    "decimales": ("Decimales", "Decimal places"),
+    "direccion": ("Dirección", "Address"),
+    "documento": ("Documento", "Document"),
+    "formato": ("Formato", "Format"),
+    "habilitado": ("Habilitado", "Enabled"),
+    "idioma_predeterminado_id": ("Idioma predeterminado", "Default language"),
+    "id": ("Identificador", "Identifier"),
+    "identificacion_tributaria": ("Identificación tributaria", "Tax ID"),
+    "incluido_en_precio": ("Incluido en el precio", "Included in price"),
+    "moneda_compra_id": ("Moneda de compra", "Purchase currency"),
+    "moneda_destino_id": ("Moneda destino", "Target currency"),
+    "moneda_local_id": ("Moneda local", "Local currency"),
+    "moneda_origen_id": ("Moneda origen", "Source currency"),
+    "nombre": ("Nombre", "Name"),
+    "origen": ("Origen", "Source"),
+    "pais_id": ("País", "Country"),
+    "padre_id": ("Categoría superior", "Parent category"),
+    "persona_contacto": ("Persona de contacto", "Contact person"),
+    "razon_social": ("Razón social", "Business name"),
+    "regla_redondeo": ("Regla de redondeo", "Rounding rule"),
+    "simbolo": ("Símbolo", "Symbol"),
+    "tasa": ("Tasa", "Rate"),
+    "telefono": ("Teléfono", "Phone"),
+    "tipo_documento": ("Tipo de documento", "Document type"),
+    "vigente_desde": ("Vigente desde", "Valid from"),
+    "vigente_desde_utc": ("Vigente desde (UTC)", "Valid from (UTC)"),
+    "vigente_hasta": ("Vigente hasta", "Valid until"),
+    "zona_horaria": ("Zona horaria", "Time zone"),
+    "ultimo_contacto_en_utc": ("Último contacto (UTC)", "Last contact (UTC)"),
+}
+FRONTEND_TS_TYPES = {
+    "booleano": "boolean",
+    "decimal": "number",
+    "entero": "number",
+    "fecha": "string",
+    "fecha_hora_utc": "string",
+    "json": "unknown",
+    "texto": "string",
+    "uuid": "string",
+}
 
 
 class GeneratedFileError(ValueError):
@@ -283,6 +403,94 @@ def crear_schema_resuelto(modules: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def generar_entidades_frontend(modules: list[dict[str, Any]]) -> dict[str, Any]:
+    """Construye el contrato del CRUD web para las entidades simples."""
+    entities = {entity["nombre"]: entity for module in modules for entity in module["entidades"]}
+    metadata = []
+    for name, config in FRONTEND_CRUD.items():
+        entity = entities.get(name)
+        if entity is None or not entity.get("generar_crud"):
+            raise ValueError(
+                f"El CRUD frontend requiere la entidad '{name}' con generar_crud=true."
+            )
+        fields = []
+        for field in entity["campos"]:
+            field_name = field["nombre"]
+            labels = FIELD_LABELS.get(field_name)
+            if labels is None:
+                words = field_name.replace("_", " ").split()
+                fallback_label = " ".join(word.capitalize() for word in words)
+                labels = (fallback_label, fallback_label)
+            read_only = field.get("pk", False) or field.get("solo_lectura", False)
+            fields.append(
+                {
+                    "nombre": field_name,
+                    "apiName": _camel_case(field_name),
+                    "tipo": field["tipo"],
+                    "typescript": FRONTEND_TS_TYPES[field["tipo"]],
+                    "obligatorio": field.get("obligatorio", False) or field.get("pk", False),
+                    "soloLectura": read_only,
+                    "min": field.get("min"),
+                    "max": field.get("max"),
+                    "default": field.get("default"),
+                    "valores": field.get("valores", []),
+                    "referencia": field.get("ref", {}).get("entidad"),
+                    "etiquetas": {"es": labels[0], "en": labels[1]},
+                }
+            )
+        metadata.append(
+            {
+                "nombre": name,
+                "modulo": config["modulo_frontend"],
+                "rutaApi": config["ruta_api"],
+                "permisosConsulta": config["permisos_consulta"],
+                "permisosGestion": config["permisos_gestion"],
+                "eliminacion": (
+                    "deactivate" if entity.get("solo_desactivar") else config["eliminacion"]
+                ),
+                "validacionesCondicionales": [
+                    {
+                        "campo": _camel_case(rule["campo"]),
+                        "valor": rule.get("valor"),
+                        "camposRequeridos": [
+                            _camel_case(field) for field in rule.get("requeridos", [])
+                        ],
+                        "requiereVerdadero": rule.get("requiere_verdadero", False),
+                        "soloCrear": rule.get("solo_creacion", False),
+                    }
+                    for rule in entity.get("validaciones_frontend", [])
+                ],
+                "etiquetas": entity["etiquetas"],
+                "campos": fields,
+            }
+        )
+    return {"_cabecera": GENERATED_HEADER, "entidades": metadata}
+
+
+def _camel_case(name: str) -> str:
+    parts = name.split("_")
+    return parts[0] + "".join(part.capitalize() for part in parts[1:])
+
+
+def generar_tipos_frontend(metadata: dict[str, Any]) -> str:
+    """Genera interfaces TypeScript para las entidades del CRUD."""
+    lines = [f"// {GENERATED_HEADER}", ""]
+    for entity in metadata["entidades"]:
+        interface_name = "".join(part.capitalize() for part in entity["nombre"].split("_"))
+        lines.append(f"export interface {interface_name} {{")
+        for field in entity["campos"]:
+            optional = "" if field["obligatorio"] else "?"
+            nullable = "" if field["obligatorio"] else " | null"
+            lines.append(f"  {field['apiName']}{optional}: {field['typescript']}{nullable}")
+        lines.extend(["}", ""])
+    lines.append(
+        "export type CrudEntityName = "
+        + " | ".join(f"'{entity['nombre']}'" for entity in metadata["entidades"])
+        + "\n"
+    )
+    return "\n".join(lines)
+
+
 def generar_crud_java(modules: list[dict[str, Any]]) -> str:
     """Genera las sentencias CRUD JDBC para los catálogos de parametrización."""
     required_entities = ("pais", "moneda", "idioma", "tipo_cambio", "impuesto")
@@ -415,7 +623,7 @@ def _java_string_constant(name: str, value: str) -> list[str]:
 def verificar_cabecera(path: Path, file_type: str) -> None:
     if not path.exists():
         return
-    if file_type in {"sql", "java"}:
+    if file_type in {"sql", "java", "ts"}:
         first_line = path.read_text(encoding="utf-8").splitlines()[:1]
         if not first_line or GENERATED_HEADER not in first_line[0]:
             raise GeneratedFileError(
@@ -445,6 +653,10 @@ def generar_archivos(root: Path, dry_run: bool = False) -> list[Path]:
 
     modules = cargar_modulos(model_dir)
     sql_content = generar_sql(modules, template_dir)
+    initial_migration = root / "db" / "migrations" / "V001__modelo_inicial.sql"
+    if initial_migration.exists():
+        verificar_cabecera(initial_migration, "sql")
+        sql_content = initial_migration.read_text(encoding="utf-8")
     resolved_content = (
         json.dumps(
             crear_schema_resuelto(modules),
@@ -456,6 +668,9 @@ def generar_archivos(root: Path, dry_run: bool = False) -> list[Path]:
     crud_java_content = generar_crud_java(modules)
     catalog_crud_java_content = generar_catalogo_crud_java(modules)
     inventory_crud_java_content = generar_inventario_crud_java(modules)
+    frontend_entities = generar_entidades_frontend(modules)
+    frontend_entities_content = json.dumps(frontend_entities, ensure_ascii=False, indent=2) + "\n"
+    frontend_types_content = generar_tipos_frontend(frontend_entities)
     outputs = [
         (root / "db" / "migrations" / "V001__modelo_inicial.sql", sql_content, "sql"),
         (root / "db" / "model" / "schema-resuelto.json", resolved_content, "json"),
@@ -497,6 +712,16 @@ def generar_archivos(root: Path, dry_run: bool = False) -> list[Path]:
             / "InventarioCrudSql.java",
             inventory_crud_java_content,
             "java",
+        ),
+        (
+            root / "frontend" / "src" / "generated" / "entidades.json",
+            frontend_entities_content,
+            "json",
+        ),
+        (
+            root / "frontend" / "src" / "generated" / "entidades.ts",
+            frontend_types_content,
+            "ts",
         ),
     ]
 

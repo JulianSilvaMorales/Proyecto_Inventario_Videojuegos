@@ -20,18 +20,25 @@ siguiente:
 | E5.1 | Autenticación, JWT, permisos por rol, bloqueo de cuentas, sesiones y parametrización internacional. |
 | E5.2 | Países, monedas, idiomas, tipos de cambio, conversiones e impuestos con vigencia y auditoría. |
 | E5.3 | Catálogo de productos, categorías, tipos, atributos, traducciones y precios; productos desactivables, no borrables. |
-| E5.4 | Inventario: bodegas, proveedores oficiales, órdenes, recepciones parciales, salidas, saldos, movimientos y ajustes. Implementada y pendiente de aprobación. |
-| Pendiente | E5.5 ventas y reportes; luego interfaz web, pruebas E2E y despliegue según la guía. |
+| E5.4 | Inventario: bodegas, proveedores oficiales, órdenes, recepciones parciales, salidas, saldos, movimientos y ajustes. Implementada y aprobada. |
+| E5.5 | Ventas básicas con confirmación de pago, impuestos y moneda; reportes paginados de existencias y movimientos con exportación CSV. Implementada y aprobada. |
+| E6.1 | Base web con React, TypeScript, Material UI, inicio de sesión, navegación por permisos, idiomas es/en y formatos localizados. Implementada y aprobada. |
+| E6.2 | CRUD genérico generado desde metadatos para parametrización, catálogo, bodegas, proveedores y clientes; API básica de clientes y referencias. Implementada y pendiente de revisión. |
+| Pendiente | Pantallas operativas de catálogo/inventario/ventas, pruebas E2E y despliegue según E6.3–E12 de la guía. |
 
-El alcance implementado hasta E5.4 es principalmente el backend y la base de
-datos. Las etapas de frontend y despliegue siguen pendientes.
+E6.2 incluye listados paginados con búsqueda, formularios y validación por
+metadatos, opciones de referencia y controles de permisos. La API de clientes
+filtra por país, registra el consentimiento, permite su revocación en
+actualizaciones y desactiva los registros en vez de borrarlos. La reclasificación
+automática y la política de retención/eliminación a 12 meses aún no están
+implementadas; deberán abordarse en una etapa posterior.
 
 ## Requisitos previos
 
 - Java 17 (LTS) y Maven 3.9+
 - Python 3.12 o superior
 - PostgreSQL 16+
-- Node.js LTS para el frontend (etapas posteriores)
+- Node.js LTS y npm para el frontend
 - Docker y Docker Compose para la ejecución contenerizada (etapas posteriores)
 - Git
 
@@ -64,12 +71,15 @@ python tools/cli.py generar --help
 JSON. `crear-bd` crea la base si falta, aplica migraciones, carga semillas y
 verifica el esquema. `sembrar` carga únicamente los datos iniciales. Todos
 aceptan `--dry-run` y escriben sus logs en `logs/tools/`.
+`V001` es inmutable después de aplicarse para conservar su checksum; los cambios
+de esquema posteriores se agregan en una nueva migración versionada. `generar`
+actualiza el modelo resuelto y el CRUD sin reescribir esa migración.
 
 `reiniciar-bd` es destructivo: solo permite hosts de loopback y exige confirmar
 el nombre exacto de la base con `--confirm-db`. No lo ejecutes contra datos que
 necesites conservar. `probar` y `todo` se habilitarán en etapas posteriores.
 
-## Backend (E5.1)
+## Backend (E5.1–E5.5)
 
 El backend Spring Boot está en `backend/`, usa Java 17, valida el esquema al
 arrancar y no modifica la base (`ddl-auto=validate`). Spring Boot no carga
@@ -210,14 +220,17 @@ proveedores y su relación oficial con productos requieren
 `PROVEEDORES_GESTIONAR` (la consulta admite `PROVEEDORES_CONSULTAR`). Las
 salidas documentadas requieren `SALIDAS_INVENTARIO_GESTIONAR`, asignado al
 administrador y al encargado de inventario.
+Las solicitudes de bodega incluyen `paisId`; usuarios con países asignados solo
+consultan y operan bodegas de esos países. Un usuario sin países asignados
+conserva el alcance global.
 
 | Recurso | Operaciones |
 |---|---|
-| `/api/v1/inventario/bodegas` | Consultar, crear y actualizar; no se eliminan físicamente y no se desactivan si conservan saldo positivo o ajustes abiertos. |
+| `/api/v1/inventario/bodegas` | Consultar, crear y actualizar bodegas con país; la asignación no se cambia una vez establecida. No se eliminan físicamente ni se desactivan si conservan saldo positivo o ajustes abiertos. |
 | `/api/v1/proveedores` | Consultar, crear y actualizar proveedores; vincular un producto con un proveedor oficial. |
 | `/api/v1/compras/ordenes` | Crear borrador, enviar al proveedor, consultar y cancelar antes de recibir. |
 | `/api/v1/compras/entradas` | Registrar y consultar recepciones parciales o completas con documento, tasa aplicada y costos. |
-| `/api/v1/inventario/saldos` | Consultar por producto o bodega y filtrar saldos positivos. |
+| `/api/v1/inventario/saldos` | Consultar por producto, bodega o país y filtrar saldos positivos. |
 | `/api/v1/inventario/salidas` | Registrar pérdidas, daños, robos o defectos con reporte al proveedor oficial. |
 | `/api/v1/inventario/movimientos` | Consultar historial por producto, bodega, usuario, tipo y periodo; los movimientos son inmutables. |
 | `/api/v1/inventario/ajustes` | Solicitar conteos operativos/técnicos, aprobar y aplicar ajustes; solo el administrador puede aprobar/aplicar. |
@@ -248,6 +261,130 @@ genera una operación de borrado.
 En una base existente, ejecuta `python tools/cli.py sembrar` para agregar el
 permiso nuevo y su asignación de roles; la carga es idempotente y usa las
 credenciales configuradas localmente en `.env`.
+La migración `V002__pais_bodega.sql` agrega el país a las bodegas y conserva la
+restricción de no borrar bodegas. En instalaciones previas, asigna un país a
+cada bodega existente antes de restringir usuarios por país; la migración deja
+ese dato pendiente para no asumir a qué país pertenece una bodega.
+El alcance por país también se aplica a proveedores, órdenes de compra,
+recepciones, ajustes, ventas y reportes. Una recepción debe usar una bodega del
+mismo país que la orden; el país de un proveedor ya asignado no se puede cambiar.
+
+#### E5.5 — Ventas y reportes
+
+Las ventas se administran bajo `/api/v1/ventas`. `POST /api/v1/ventas` crea una
+venta pendiente con país, moneda local, cliente opcional y líneas de producto,
+bodega y cantidad. Cada bodega debe pertenecer al mismo país de la venta. El
+precio vigente, el impuesto del país, el tipo de cambio
+hacia la moneda base y los importes calculados se guardan como datos de esa
+operación. El borrador comprueba existencias pero no modifica saldos ni crea
+movimientos.
+
+`POST /api/v1/ventas/{id}/confirmar` recibe `medioPago`; en una sola transacción
+marca el pago y confirma la venta, descuenta todas las líneas, registra los
+movimientos `SALIDA_VENTA` y escribe auditoría. Si una bodega ya no está activa
+o no hay saldo suficiente, la transacción completa se revierte. Una venta solo
+se anula mediante `POST /api/v1/ventas/{id}/anular` mientras siga pendiente y
+sin pago recibido. El vendedor requiere `VENTAS_GESTIONAR`; anular requiere
+además `VENTAS_ANULAR_PENDIENTES`.
+
+`GET /api/v1/ventas/{id}` consulta la operación y
+`GET /api/v1/ventas/{id}/recibo` devuelve el recibo simulado después de
+confirmarla. No se conecta a una pasarela de pagos ni se genera facturación
+fiscal electrónica.
+
+Los reportes requieren `REPORTES_INVENTARIO` o `REPORTES_TODOS`. Los países
+asignados al usuario limitan las existencias, movimientos y ventas visibles;
+los filtros `paisId` refinan el reporte dentro de ese alcance:
+
+| Recurso | Filtros y exportación |
+|---|---|
+| `GET /api/v1/reportes/inventario/existencias` | Paginado; `productoId`, `bodegaId`, `paisId`, `soloConExistencia`. |
+| `GET /api/v1/reportes/inventario/existencias.csv` | Exporta todas las existencias que coincidan con esos filtros. |
+| `GET /api/v1/reportes/inventario/movimientos` | Paginado; `productoId`, `bodegaId`, `usuarioId`, `tipo`, `desde`, `hasta`; para movimientos de venta, también `paisId` y `monedaId`. |
+| `GET /api/v1/reportes/inventario/movimientos.csv` | Exporta los movimientos que coincidan con los mismos filtros. |
+
+Las exportaciones se transmiten como CSV UTF-8, entrecomillan y escapan los
+campos, y neutralizan valores de texto que podrían interpretarse como fórmulas
+al abrir el archivo en una hoja de cálculo.
+
+## Frontend (E6.1–E6.2)
+
+El cliente React + TypeScript está en `frontend/`. Con el backend iniciado en
+`http://localhost:8080`, desde PowerShell ejecuta:
+
+```powershell
+Push-Location frontend
+npm ci
+npm run dev
+```
+
+El servidor de desarrollo usa `http://localhost:5173`; el backend permite ese
+origen por defecto. Si la API está en otra dirección, configura
+`VITE_API_URL` en `frontend/.env.local` (por ejemplo,
+`VITE_API_URL=http://localhost:8080`). No incluyas credenciales en variables
+`VITE_*`: se incorporan al bundle del navegador.
+
+### E6.1 — Base web
+
+La aplicación usa React, TypeScript, Vite y Material UI. La pantalla de acceso
+se conecta al backend y la sesión controla la navegación según los permisos
+del usuario. La interfaz admite español e inglés, localiza fechas y números, y
+centraliza las solicitudes, los errores de API y la renovación del token de
+sesión. Las credenciales se envían únicamente al backend; no deben almacenarse
+en variables `VITE_*`.
+
+### E6.2 — CRUD genérico dirigido por metadatos
+
+`python tools/cli.py generar` produce `frontend/src/generated/entidades.json`
+y `entidades.ts` desde el modelo modular de `db/model/`. Los metadatos incluyen
+las rutas y permisos de cada entidad, etiquetas en español e inglés, campos y
+tipos, valores iniciales, campos de solo lectura, referencias y validaciones.
+`CrudPage` consume esa salida para presentar tablas paginadas, búsqueda,
+formularios de creación y edición, validación y confirmación antes de eliminar
+o desactivar. Así, las reglas comunes se mantienen en el modelo y las reglas
+operativas particulares siguen en los servicios tipados del backend.
+
+La interfaz cubre estas entidades y API:
+
+| Entidad | API |
+|---|---|
+| Países, monedas, idiomas, tipos de cambio e impuestos | `/api/v1/configuracion/{paises,monedas,idiomas,tipos-cambio,impuestos}` |
+| Categorías | `/api/v1/catalogo/categorias` |
+| Bodegas | `/api/v1/inventario/bodegas` |
+| Proveedores | `/api/v1/proveedores` |
+| Clientes | `/api/v1/clientes` |
+
+Las opciones de referencia para formularios se consultan en
+`/api/v1/referencias/{entidad}`. El backend verifica permisos en cada recurso y
+limita los países disponibles al alcance asignado al usuario. Los registros
+que no deben borrarse físicamente se desactivan mediante el flujo de edición;
+el comportamiento de borrado se define por entidad.
+
+#### API y reglas de clientes
+
+`/api/v1/clientes` ofrece consulta paginada (`page`, `size` y `buscar`),
+consulta por identificador, creación, actualización y desactivación lógica.
+Todas las operaciones exigen `CLIENTES_GESTIONAR` y respetan el alcance por
+país del usuario; el país de un cliente existente no se puede cambiar. La
+creación exige registrar el consentimiento. En una actualización se permite
+registrar su revocación. Los clientes frecuentes requieren apellidos, código
+postal, dirección y teléfono; los infrecuentes requieren documento. La
+auditoría almacena un resumen del cambio, no los datos personales completos.
+
+La reclasificación automática de clientes y la política de retención o
+eliminación de datos infrecuentes a los 12 meses no están implementadas en esta
+etapa. Deben resolverse antes de considerar completo ese ciclo de vida de
+datos.
+
+Para comprobar los archivos de producción y ejecutar los controles:
+
+```powershell
+npm run lint
+npm run typecheck
+npm test
+npm run build
+Pop-Location
+```
 
 ## Verificaciones
 
@@ -303,7 +440,7 @@ publican en `docs/evidencias/`.
 │   ├── src/main/resources/       # Configuración y mensajes es/en
 │   ├── src/test/java/            # Pruebas unitarias e integración PostgreSQL
 │   └── pom.xml
-├── frontend/                     # Pendiente de E6
+├── frontend/                     # React + TypeScript (E6.1–E6.2)
 ├── e2e/                          # Pendiente de integración E2E
 ├── docker/                       # Contenedores, pendiente de completar
 └── docs/evidencias/              # Evidencias finales versionables

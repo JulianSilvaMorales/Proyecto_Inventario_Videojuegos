@@ -40,13 +40,16 @@ public class InventarioController {
     @GetMapping("/bodegas")
     public Page<Bodega> listarBodegas(
             @RequestParam(required = false) String buscar,
-            Pageable pageable) {
-        return inventarioService.listarBodegas(buscar, pageable);
+            Pageable pageable,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
+        return inventarioService.listarBodegas(buscar, actor.paises(), pageable);
     }
 
     @GetMapping("/bodegas/{id}")
-    public Bodega obtenerBodega(@PathVariable UUID id) {
-        return inventarioService.obtenerBodega(id);
+    public Bodega obtenerBodega(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
+        return inventarioService.obtenerBodega(id, actor.paises());
     }
 
     @PostMapping("/bodegas")
@@ -54,7 +57,8 @@ public class InventarioController {
     public ResponseEntity<Bodega> crearBodega(
             @Valid @RequestBody SolicitudBodega solicitud,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
-        Bodega bodega = inventarioService.crearBodega(solicitud, actor.usuarioId());
+        Bodega bodega = inventarioService.crearBodega(
+                solicitud, actor.usuarioId(), actor.paises());
         return creado("/bodegas", bodega.id(), bodega);
     }
 
@@ -64,17 +68,25 @@ public class InventarioController {
             @PathVariable UUID id,
             @Valid @RequestBody SolicitudBodega solicitud,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
-        return inventarioService.actualizarBodega(id, solicitud, actor.usuarioId());
+        return inventarioService.actualizarBodega(
+                id, solicitud, actor.usuarioId(), actor.paises());
     }
 
     @GetMapping("/saldos")
     public Page<SaldoInventario> listarSaldos(
             @RequestParam(required = false) UUID productoId,
             @RequestParam(required = false) UUID bodegaId,
+            @RequestParam(required = false) UUID paisId,
             @RequestParam(defaultValue = "false") boolean soloConExistencia,
-            Pageable pageable) {
+            Pageable pageable,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
         return inventarioService.listarSaldos(
-                productoId, bodegaId, soloConExistencia, pageable);
+                productoId,
+                bodegaId,
+                paisId,
+                actor.paises(),
+                soloConExistencia,
+                pageable);
     }
 
     @PostMapping("/salidas")
@@ -83,7 +95,8 @@ public class InventarioController {
             @Valid @RequestBody SolicitudSalidaInventario solicitud,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
         MovimientoInventario salida =
-                inventarioService.registrarSalida(solicitud, actor.usuarioId());
+                inventarioService.registrarSalida(
+                        solicitud, actor.usuarioId(), actor.paises());
         return creado("/movimientos", salida.id(), salida);
     }
 
@@ -95,14 +108,28 @@ public class InventarioController {
             @RequestParam(required = false) String tipo,
             @RequestParam(required = false) OffsetDateTime desde,
             @RequestParam(required = false) OffsetDateTime hasta,
-            Pageable pageable) {
+            @RequestParam(required = false) UUID paisId,
+            @RequestParam(required = false) UUID monedaId,
+            Pageable pageable,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
         return inventarioService.listarMovimientos(
-                productoId, bodegaId, usuarioId, tipo, desde, hasta, pageable);
+                productoId,
+                bodegaId,
+                usuarioId,
+                tipo,
+                desde,
+                hasta,
+                paisId,
+                monedaId,
+                actor.paises(),
+                pageable);
     }
 
     @GetMapping("/movimientos/{id}")
-    public MovimientoInventario obtenerMovimiento(@PathVariable UUID id) {
-        return inventarioService.obtenerMovimiento(id);
+    public MovimientoInventario obtenerMovimiento(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
+        return inventarioService.obtenerMovimiento(id, actor.paises());
     }
 
     private <T> ResponseEntity<T> creado(String path, UUID id, T body) {

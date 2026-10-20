@@ -16,8 +16,10 @@ from tools.sql_generator import (
     generar_archivos,
     generar_catalogo_crud_java,
     generar_crud_java,
+    generar_entidades_frontend,
     generar_inventario_crud_java,
     generar_sql,
+    generar_tipos_frontend,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -60,6 +62,43 @@ def test_schema_resuelto_conserva_cabecera_y_modulo_de_cada_entidad() -> None:
     assert resolved["_cabecera"] == GENERATED_HEADER
     assert len(resolved["entidades"]) == 33
     assert all("modulo" in entity for entity in resolved["entidades"])
+
+
+def test_metadatos_frontend_generan_campos_validaciones_permisos_y_tipos() -> None:
+    modules = cargar_modulos(ROOT / "db" / "model" / "modulos")
+
+    metadata = generar_entidades_frontend(modules)
+    typescript = generar_tipos_frontend(metadata)
+    entities = {entity["nombre"]: entity for entity in metadata["entidades"]}
+    country_fields = {field["nombre"]: field for field in entities["pais"]["campos"]}
+    warehouse_fields = {field["nombre"]: field for field in entities["bodega"]["campos"]}
+    customer_fields = {field["nombre"]: field for field in entities["cliente"]["campos"]}
+    supplier_fields = {field["nombre"]: field for field in entities["proveedor"]["campos"]}
+
+    assert metadata["_cabecera"] == GENERATED_HEADER
+    assert set(entities) == {
+        "pais",
+        "moneda",
+        "idioma",
+        "tipo_cambio",
+        "impuesto",
+        "categoria",
+        "bodega",
+        "proveedor",
+        "cliente",
+    }
+    assert entities["pais"]["rutaApi"] == "/api/v1/configuracion/paises"
+    assert entities["cliente"]["permisosGestion"] == ["CLIENTES_GESTIONAR"]
+    assert country_fields["codigo_iso"]["etiquetas"] == {
+        "es": "Código ISO",
+        "en": "ISO code",
+    }
+    assert country_fields["habilitado"]["tipo"] == "booleano"
+    assert warehouse_fields["pais_id"]["obligatorio"]
+    assert customer_fields["consentimiento_en_utc"]["soloLectura"]
+    assert supplier_fields["activo"]["default"] is True
+    assert "export interface TipoCambio" in typescript
+    assert "export type CrudEntityName" in typescript
 
 
 def test_crud_java_se_genera_desde_el_modelo_de_parametrizacion() -> None:
@@ -130,6 +169,29 @@ def test_generar_es_idempotente_y_escribe_archivos_con_cabecera(tmp_path: Path) 
     assert crud_java.startswith(f"// {GENERATED_HEADER}")
     assert catalog_crud_java.startswith(f"// {GENERATED_HEADER}")
     assert inventory_crud_java.startswith(f"// {GENERATED_HEADER}")
+
+
+def test_generador_conserva_migracion_inicial_al_cambiar_el_modelo(
+    tmp_path: Path,
+) -> None:
+    project = copiar_entrada_generador(tmp_path / "project")
+    model_path = project / "db" / "model" / "modulos" / "inventario.json"
+    model = json.loads(model_path.read_text(encoding="utf-8"))
+    bodega = next(entity for entity in model["entidades"] if entity["nombre"] == "bodega")
+    campo_pais = next(field for field in bodega["campos"] if field["nombre"] == "pais_id")
+    bodega["campos"].remove(campo_pais)
+    model_path.write_text(json.dumps(model, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    outputs = generar_archivos(project)
+    initial_migration = outputs[0]
+    baseline = initial_migration.read_text(encoding="utf-8")
+
+    bodega["campos"].append(campo_pais)
+    model_path.write_text(json.dumps(model, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    generar_archivos(project)
+
+    assert initial_migration.read_text(encoding="utf-8") == baseline
+    generated_inventory = outputs[4].read_text(encoding="utf-8")
+    assert '\\"pais_id\\"' in generated_inventory
 
 
 def test_dry_run_no_crea_ni_modifica_archivos(tmp_path: Path) -> None:

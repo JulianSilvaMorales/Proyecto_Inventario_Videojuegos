@@ -368,6 +368,15 @@
           }
         },
         {
+          "nombre": "pais_id",
+          "tipo": "uuid",
+          "obligatorio": true,
+          "ref": {
+            "entidad": "pais",
+            "campo": "id"
+          }
+        },
+        {
           "nombre": "activo",
           "tipo": "booleano",
           "obligatorio": true,
@@ -1261,7 +1270,8 @@
           "valores": [
             "MANUAL",
             "SERVICIO"
-          ]
+          ],
+          "solo_lectura": true
         },
         {
           "nombre": "actualizado_por_id",
@@ -1270,7 +1280,8 @@
           "ref": {
             "entidad": "usuario",
             "campo": "id"
-          }
+          },
+          "solo_lectura": true
         }
       ],
       "indices": [
@@ -1741,6 +1752,30 @@
       "descripcion": "Cliente con país, clasificación y consentimiento de datos",
       "inmutable": false,
       "generar_crud": true,
+      "validaciones_frontend": [
+        {
+          "campo": "consentimiento_registrado",
+          "requiere_verdadero": true,
+          "solo_creacion": true
+        },
+        {
+          "campo": "clasificacion",
+          "valor": "FRECUENTE",
+          "requeridos": [
+            "apellidos",
+            "codigo_postal",
+            "direccion",
+            "telefono"
+          ]
+        },
+        {
+          "campo": "clasificacion",
+          "valor": "INFRECUENTE",
+          "requeridos": [
+            "documento"
+          ]
+        }
+      ],
       "campos": [
         {
           "nombre": "id",
@@ -1812,12 +1847,14 @@
         {
           "nombre": "consentimiento_en_utc",
           "tipo": "fecha_hora_utc",
-          "obligatorio": true
+          "obligatorio": true,
+          "solo_lectura": true
         },
         {
           "nombre": "ultimo_contacto_en_utc",
           "tipo": "fecha_hora_utc",
-          "obligatorio": true
+          "obligatorio": true,
+          "solo_lectura": true
         },
         {
           "nombre": "activo",

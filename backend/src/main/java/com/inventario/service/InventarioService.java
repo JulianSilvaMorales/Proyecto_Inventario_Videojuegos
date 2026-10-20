@@ -1,6 +1,7 @@
 package com.inventario.service;
 
 import com.inventario.domain.Bodega;
+import com.inventario.domain.Pais;
 import com.inventario.domain.MovimientoInventario;
 import com.inventario.domain.Proveedor;
 import com.inventario.domain.SaldoInventario;
@@ -8,11 +9,13 @@ import com.inventario.dto.SolicitudBodega;
 import com.inventario.dto.SolicitudProveedor;
 import com.inventario.dto.SolicitudSalidaInventario;
 import com.inventario.repository.InventarioRepository;
+import com.inventario.repository.ConfiguracionRepository;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -39,21 +42,35 @@ public class InventarioService {
             "AJUSTE");
 
     private final InventarioRepository repository;
+    private final ConfiguracionRepository configuracion;
     private final AuditoriaService auditoria;
+    private final AccesoPaisService accesoPais;
     private final Clock clock;
 
     public InventarioService(
             InventarioRepository repository,
+            ConfiguracionRepository configuracion,
             AuditoriaService auditoria,
+            AccesoPaisService accesoPais,
             Clock clock) {
         this.repository = repository;
+        this.configuracion = configuracion;
         this.auditoria = auditoria;
+        this.accesoPais = accesoPais;
         this.clock = clock;
     }
 
     @Transactional(readOnly = true)
     public Page<Bodega> listarBodegas(String buscar, Pageable pageable) {
         return repository.listarBodegas(buscar, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Bodega> listarBodegas(
+            String buscar,
+            Set<String> paisesPermitidos,
+            Pageable pageable) {
+        return repository.listarBodegas(buscar, paisesPermitidos, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -64,14 +81,26 @@ public class InventarioService {
                 "error.inventory.warehouse.not-found");
     }
 
+    @Transactional(readOnly = true)
+    public Bodega obtenerBodega(UUID id, Set<String> paisesPermitidos) {
+        Bodega bodega = obtenerBodega(id);
+        validarAccesoPais(bodega, paisesPermitidos);
+        return bodega;
+    }
+
     @Transactional
-    public Bodega crearBodega(SolicitudBodega solicitud, UUID actorId) {
+    public Bodega crearBodega(
+            SolicitudBodega solicitud,
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         validarCategoria(solicitud.categoriaId());
+        Pais pais = validarPaisBodega(solicitud.paisId(), paisesPermitidos);
         Bodega nueva = new Bodega(
                 null,
                 solicitud.codigo().trim().toUpperCase(Locale.ROOT),
                 solicitud.nombre().trim(),
                 solicitud.categoriaId(),
+                pais.id(),
                 solicitud.activo());
         UUID id = repository.crearBodega(nueva);
         Bodega creada = obtenerBodega(id);
@@ -83,10 +112,16 @@ public class InventarioService {
     public Bodega actualizarBodega(
             UUID id,
             SolicitudBodega solicitud,
-            UUID actorId) {
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         repository.bloquearBodega(id);
         Bodega anterior = obtenerBodega(id);
+        validarAccesoPais(anterior, paisesPermitidos);
         validarCategoria(solicitud.categoriaId());
+        Pais pais = validarPaisBodega(solicitud.paisId(), paisesPermitidos);
+        if (anterior.paisId() != null && !anterior.paisId().equals(pais.id())) {
+            throw error(HttpStatus.CONFLICT, "error.inventory.warehouse.country.immutable");
+        }
         if (anterior.activo() && !solicitud.activo()
                 && (repository.bodegaConSaldoPositivo(id)
                         || repository.bodegaConAjustesAbiertos(id))) {
@@ -97,6 +132,7 @@ public class InventarioService {
                 solicitud.codigo().trim().toUpperCase(Locale.ROOT),
                 solicitud.nombre().trim(),
                 solicitud.categoriaId(),
+                pais.id(),
                 solicitud.activo());
         if (!repository.actualizarBodega(actualizada)) {
             throw error(HttpStatus.NOT_FOUND, "error.inventory.warehouse.not-found");
@@ -108,24 +144,33 @@ public class InventarioService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Proveedor> listarProveedores(String buscar, Pageable pageable) {
-        return repository.listarProveedores(buscar, pageable);
+    public Page<Proveedor> listarProveedores(
+            String buscar,
+            Set<String> paisesPermitidos,
+            Pageable pageable) {
+        return repository.listarProveedores(buscar, paisesPermitidos, pageable);
     }
 
     @Transactional(readOnly = true)
-    public Proveedor obtenerProveedor(UUID id) {
-        return requerir(
+    public Proveedor obtenerProveedor(UUID id, Set<String> paisesPermitidos) {
+        Proveedor proveedor = requerir(
                 repository.buscarProveedor(id),
                 HttpStatus.NOT_FOUND,
                 "error.inventory.supplier.not-found");
+        validarAccesoPais(proveedor.paisId(), paisesPermitidos);
+        return proveedor;
     }
 
     @Transactional
-    public Proveedor crearProveedor(SolicitudProveedor solicitud, UUID actorId) {
+    public Proveedor crearProveedor(
+            SolicitudProveedor solicitud,
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         validarReferenciasProveedor(solicitud);
+        validarAccesoPais(solicitud.paisId(), paisesPermitidos);
         Proveedor nuevo = proveedor(null, solicitud, solicitud.activo());
         UUID id = repository.crearProveedor(nuevo);
-        Proveedor creado = obtenerProveedor(id);
+        Proveedor creado = obtenerProveedor(id, paisesPermitidos);
         auditoria.registrar(actorId, null, "CREAR", "proveedor", id, null, creado);
         return creado;
     }
@@ -134,14 +179,19 @@ public class InventarioService {
     public Proveedor actualizarProveedor(
             UUID id,
             SolicitudProveedor solicitud,
-            UUID actorId) {
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         repository.bloquearProveedor(id);
-        Proveedor anterior = obtenerProveedor(id);
+        Proveedor anterior = obtenerProveedor(id, paisesPermitidos);
         validarReferenciasProveedor(solicitud);
+        validarAccesoPais(solicitud.paisId(), paisesPermitidos);
+        if (!Objects.equals(anterior.paisId(), solicitud.paisId())) {
+            throw error(HttpStatus.CONFLICT, "error.inventory.supplier.country.immutable");
+        }
         if (!repository.actualizarProveedor(proveedor(id, solicitud, solicitud.activo()))) {
             throw error(HttpStatus.NOT_FOUND, "error.inventory.supplier.not-found");
         }
-        Proveedor actualizado = obtenerProveedor(id);
+        Proveedor actualizado = obtenerProveedor(id, paisesPermitidos);
         auditoria.registrar(
                 actorId, null, "ACTUALIZAR", "proveedor", id, anterior, actualizado);
         return actualizado;
@@ -151,9 +201,10 @@ public class InventarioService {
     public void vincularProductoProveedor(
             UUID proveedorId,
             UUID productoId,
-            UUID actorId) {
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         repository.bloquearProveedor(proveedorId);
-        Proveedor proveedor = obtenerProveedor(proveedorId);
+        Proveedor proveedor = obtenerProveedor(proveedorId, paisesPermitidos);
         if (!proveedor.activo()) {
             throw error(HttpStatus.CONFLICT, "error.inventory.supplier.inactive");
         }
@@ -183,10 +234,29 @@ public class InventarioService {
         return repository.listarSaldos(productoId, bodegaId, soloConExistencia, pageable);
     }
 
+    @Transactional(readOnly = true)
+    public Page<SaldoInventario> listarSaldos(
+            UUID productoId,
+            UUID bodegaId,
+            UUID paisId,
+            Set<String> paisesPermitidos,
+            boolean soloConExistencia,
+            Pageable pageable) {
+        validarPaisFiltro(paisId, paisesPermitidos);
+        return repository.listarSaldos(
+                productoId,
+                bodegaId,
+                paisId,
+                paisesPermitidos,
+                soloConExistencia,
+                pageable);
+    }
+
     @Transactional
     public MovimientoInventario registrarSalida(
             SolicitudSalidaInventario solicitud,
-            UUID actorId) {
+            UUID actorId,
+            Set<String> paisesPermitidos) {
         String tipo = TIPOS_SALIDA.get(solicitud.tipo().trim().toUpperCase(Locale.ROOT));
         if (tipo == null && solicitud.tipo().trim().equalsIgnoreCase("DAÑO")) {
             tipo = TIPOS_SALIDA.get("DANO");
@@ -197,7 +267,8 @@ public class InventarioService {
         if (!repository.productoExiste(solicitud.productoId())) {
             throw error(HttpStatus.NOT_FOUND, "error.catalog.product.not-found");
         }
-        obtenerBodega(solicitud.bodegaId());
+        Bodega bodega = obtenerBodega(solicitud.bodegaId());
+        validarAccesoPais(bodega, paisesPermitidos);
         repository.bloquearProveedor(solicitud.proveedorId());
         if (!repository.proveedorProducto(solicitud.proveedorId(), solicitud.productoId())) {
             throw error(HttpStatus.BAD_REQUEST, "error.inventory.exit.supplier");
@@ -248,6 +319,47 @@ public class InventarioService {
             OffsetDateTime desde,
             OffsetDateTime hasta,
             Pageable pageable) {
+        return listarMovimientos(
+                productoId, bodegaId, usuarioId, tipo, desde, hasta, null, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MovimientoInventario> listarMovimientos(
+            UUID productoId,
+            UUID bodegaId,
+            UUID usuarioId,
+            String tipo,
+            OffsetDateTime desde,
+            OffsetDateTime hasta,
+            UUID paisId,
+            UUID monedaId,
+            Pageable pageable) {
+        return listarMovimientos(
+                productoId,
+                bodegaId,
+                usuarioId,
+                tipo,
+                desde,
+                hasta,
+                paisId,
+                monedaId,
+                Set.of(),
+                pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MovimientoInventario> listarMovimientos(
+            UUID productoId,
+            UUID bodegaId,
+            UUID usuarioId,
+            String tipo,
+            OffsetDateTime desde,
+            OffsetDateTime hasta,
+            UUID paisId,
+            UUID monedaId,
+            Set<String> paisesPermitidos,
+            Pageable pageable) {
+        validarPaisFiltro(paisId, paisesPermitidos);
         if (desde != null && hasta != null && desde.isAfter(hasta)) {
             throw error(HttpStatus.BAD_REQUEST, "error.inventory.history.dates");
         }
@@ -258,7 +370,16 @@ public class InventarioService {
             throw error(HttpStatus.BAD_REQUEST, "error.inventory.history.type");
         }
         return repository.listarMovimientos(
-                productoId, bodegaId, usuarioId, tipoNormalizado, desde, hasta, pageable);
+                productoId,
+                bodegaId,
+                usuarioId,
+                tipoNormalizado,
+                desde,
+                hasta,
+                paisId,
+                monedaId,
+                paisesPermitidos,
+                pageable);
     }
 
     @Transactional(readOnly = true)
@@ -267,6 +388,55 @@ public class InventarioService {
                 repository.buscarMovimiento(id),
                 HttpStatus.NOT_FOUND,
                 "error.inventory.history.not-found");
+    }
+
+    @Transactional(readOnly = true)
+    public MovimientoInventario obtenerMovimiento(UUID id, Set<String> paisesPermitidos) {
+        MovimientoInventario movimiento = obtenerMovimiento(id);
+        Bodega bodega = obtenerBodega(movimiento.bodegaId());
+        validarAccesoPais(bodega, paisesPermitidos);
+        return movimiento;
+    }
+
+    private Pais validarPaisBodega(UUID paisId, Set<String> paisesPermitidos) {
+        Pais pais = configuracion.buscarPais(paisId)
+                .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "error.sales.country.not-found"));
+        if (!pais.habilitado()) {
+            throw error(HttpStatus.CONFLICT, "error.sales.country.disabled");
+        }
+        accesoPais.validar(paisesPermitidos, pais.codigoIso());
+        return pais;
+    }
+
+    private void validarAccesoPais(Bodega bodega, Set<String> paisesPermitidos) {
+        if (bodega.paisId() == null) {
+            if (paisesPermitidos != null && !paisesPermitidos.isEmpty()) {
+                throw error(HttpStatus.FORBIDDEN, "error.country.access.denied");
+            }
+            return;
+        }
+        Pais pais = configuracion.buscarPais(bodega.paisId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "La bodega referencia un país que no existe."));
+        accesoPais.validar(paisesPermitidos, pais);
+    }
+
+    private void validarAccesoPais(UUID paisId, Set<String> paisesPermitidos) {
+        Pais pais = paisId == null
+                ? null
+                : configuracion.buscarPais(paisId)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "El proveedor referencia un país que no existe."));
+        accesoPais.validar(paisesPermitidos, pais);
+    }
+
+    private void validarPaisFiltro(UUID paisId, Set<String> paisesPermitidos) {
+        if (paisId == null || paisesPermitidos == null || paisesPermitidos.isEmpty()) {
+            return;
+        }
+        Pais pais = configuracion.buscarPais(paisId)
+                .orElseThrow(() -> error(HttpStatus.NOT_FOUND, "error.sales.country.not-found"));
+        accesoPais.validar(paisesPermitidos, pais.codigoIso());
     }
 
     private void validarCategoria(UUID categoriaId) {

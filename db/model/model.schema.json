@@ -40,6 +40,31 @@
         }
       }
     },
+    "validacion_frontend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["campo"],
+      "properties": {
+        "campo": {
+          "$ref": "#/$defs/nombre"
+        },
+        "valor": {
+          "type": "string"
+        },
+        "requeridos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nombre"
+          }
+        },
+        "requiere_verdadero": {
+          "type": "boolean"
+        },
+        "solo_creacion": {
+          "type": "boolean"
+        }
+      }
+    },
     "campo": {
       "type": "object",
       "additionalProperties": false,
@@ -96,7 +121,10 @@
         "ref": {
           "$ref": "#/$defs/referencia"
         },
-        "default": {}
+        "default": {},
+        "solo_lectura": {
+          "type": "boolean"
+        }
       }
     },
     "entidad": {
@@ -126,6 +154,12 @@
         },
         "solo_desactivar": {
           "type": "boolean"
+        },
+        "validaciones_frontend": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/validacion_frontend"
+          }
         },
         "campos": {
           "type": "array",

@@ -1,6 +1,7 @@
 package com.inventario.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -15,6 +16,8 @@ import com.inventario.dto.SolicitudLineaOrdenCompra;
 import com.inventario.dto.SolicitudProveedor;
 import com.inventario.dto.SolicitudSalidaInventario;
 import com.inventario.dto.SolicitudOrdenCompra;
+import com.inventario.dto.SolicitudLineaVenta;
+import com.inventario.dto.SolicitudVenta;
 import com.inventario.domain.UsuarioAutenticado;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -49,6 +52,9 @@ class InventarioPostgresIntegrationTest {
     private AjustesService ajustesService;
 
     @Autowired
+    private VentasService ventasService;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -57,9 +63,10 @@ class InventarioPostgresIntegrationTest {
     @Test
     void protegeConsultasYSalidasConPermisosSeparados() throws Exception {
         mockMvc.perform(get("/api/v1/inventario/saldos")
-                        .with(user("consulta").authorities(
-                                new org.springframework.security.core.authority.SimpleGrantedAuthority(
-                                        "INVENTARIO_CONSULTAR"))))
+                        .with(authentication(authenticationActor(
+                                UUID.randomUUID(),
+                                "ENCARGADO_INVENTARIO",
+                                "INVENTARIO_CONSULTAR"))))
                 .andExpect(status().isOk());
 
         String solicitud = """
@@ -128,17 +135,38 @@ class InventarioPostgresIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(ajuste))
                 .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/api/v1/reportes/inventario/existencias")
+                        .with(user("consulta").authorities(
+                                new SimpleGrantedAuthority("INVENTARIO_CONSULTAR"))))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/reportes/inventario/existencias")
+                        .with(authentication(authenticationActor(
+                                UUID.randomUUID(),
+                                "ENCARGADO_INVENTARIO",
+                                "REPORTES_INVENTARIO"))))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/ventas/" + UUID.randomUUID())
+                        .with(user("consulta").authorities(
+                                new SimpleGrantedAuthority("INVENTARIO_CONSULTAR"))))
+                .andExpect(status().isForbidden());
     }
 
     @Test
     @Transactional
-    void recibeParcialmenteRegistraSalidaYAplicaAjusteConAuditoria() {
+    void recibeRegistraVentaYAplicaAjusteConAuditoria() throws Exception {
         UUID actorId = jdbcTemplate.queryForObject(
                 "SELECT id FROM public.usuario ORDER BY creado_en_utc LIMIT 1",
                 UUID.class);
         UUID countryId = jdbcTemplate.queryForObject(
                 "SELECT id FROM public.pais WHERE codigo_iso = 'CO'",
                 UUID.class);
+        UUID usCountryId = jdbcTemplate.queryForObject(
+                "SELECT id FROM public.pais WHERE codigo_iso = 'US'",
+                UUID.class);
+        jdbcTemplate.update(
+                "UPDATE public.pais SET habilitado = TRUE WHERE id = ?",
+                usCountryId);
         UUID usdId = jdbcTemplate.queryForObject(
                 "SELECT id FROM public.moneda WHERE codigo_iso = 'USD'",
                 UUID.class);
@@ -185,8 +213,14 @@ class InventarioPostgresIntegrationTest {
                 now);
 
         var bodega = inventarioService.crearBodega(
-                new SolicitudBodega("E54-B-" + suffix, "Bodega integración", null, true),
-                actorId);
+                new SolicitudBodega(
+                        "E54-B-" + suffix,
+                        "Bodega integración",
+                        null,
+                        countryId,
+                        true),
+                actorId,
+                Set.of("CO"));
         assertThat(inventarioService.listarBodegas(
                         "E54-B-" + suffix, PageRequest.of(0, 10)).getContent())
                 .extracting("id")
@@ -202,13 +236,75 @@ class InventarioPostgresIntegrationTest {
                         usdId,
                         "Pago contra entrega",
                         true),
-                actorId);
+                actorId,
+                Set.of("CO"));
         assertThat(inventarioService.listarProveedores(
-                        suffix, PageRequest.of(0, 10)).getContent())
+                        suffix, Set.of("CO"), PageRequest.of(0, 10)).getContent())
                 .extracting("id")
                 .containsExactly(proveedor.id());
+        assertThat(inventarioService.listarProveedores(
+                        suffix, Set.of("US"), PageRequest.of(0, 10)).getContent())
+                .isEmpty();
+        assertThatThrownBy(() -> inventarioService.obtenerProveedor(
+                        proveedor.id(), Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        mockMvc.perform(get("/api/v1/proveedores/{id}", proveedor.id())
+                        .with(authentication(authenticationActor(
+                                actorId,
+                                "ENCARGADO_INVENTARIO",
+                                "PROVEEDORES_CONSULTAR",
+                                Set.of("US")))))
+                .andExpect(status().isForbidden());
+        assertThatThrownBy(() -> inventarioService.crearProveedor(
+                        new SolicitudProveedor(
+                                "Proveedor fuera de alcance " + suffix,
+                                countryId,
+                                null,
+                                null,
+                                null,
+                                null,
+                                usdId,
+                                null,
+                                true),
+                        actorId,
+                        Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        assertThatThrownBy(() -> inventarioService.actualizarProveedor(
+                        proveedor.id(),
+                        new SolicitudProveedor(
+                                "Proveedor integración " + suffix,
+                                usCountryId,
+                                "E54-" + suffix,
+                                "Contacto",
+                                "inventario-" + suffix + "@example.invalid",
+                                null,
+                                usdId,
+                                "Pago contra entrega",
+                                true),
+                        actorId,
+                        Set.of("CO", "US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> {
+                            assertThat(exception.status())
+                                    .isEqualTo(org.springframework.http.HttpStatus.CONFLICT);
+                            assertThat(exception.messageKey())
+                                    .isEqualTo("error.inventory.supplier.country.immutable");
+                        });
         inventarioService.vincularProductoProveedor(
-                proveedor.id(), productId, actorId);
+                proveedor.id(), productId, actorId, Set.of("CO"));
+        assertThatThrownBy(() -> inventarioService.vincularProductoProveedor(
+                        proveedor.id(), productId, actorId, Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
 
         var orden = comprasService.crearOrden(
                 new SolicitudOrdenCompra(
@@ -216,13 +312,74 @@ class InventarioPostgresIntegrationTest {
                         new BigDecimal("4000.00000000"),
                         List.of(new SolicitudLineaOrdenCompra(
                                 productId, 5, new BigDecimal("10.0000")))),
-                actorId);
+                actorId,
+                Set.of("CO"));
         assertThat(comprasService.listarOrdenes(
-                        proveedor.id(), "BORRADOR", PageRequest.of(0, 10)).getContent())
+                        proveedor.id(), "BORRADOR", Set.of("CO"), PageRequest.of(0, 10))
+                        .getContent())
                 .extracting("id")
                 .containsExactly(orden.orden().id());
+        assertThat(comprasService.listarOrdenes(
+                        null, null, Set.of("US"), PageRequest.of(0, 10)).getContent())
+                .doesNotContain(orden.orden());
+        assertThatThrownBy(() -> comprasService.obtenerOrden(
+                        orden.orden().id(), Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        mockMvc.perform(get(
+                                "/api/v1/compras/ordenes/{id}",
+                                orden.orden().id())
+                        .with(authentication(authenticationActor(
+                                actorId,
+                                "ENCARGADO_INVENTARIO",
+                                "COMPRAS_GESTIONAR",
+                                Set.of("US")))))
+                .andExpect(status().isForbidden());
+        assertThatThrownBy(() -> comprasService.enviarOrden(
+                        orden.orden().id(), actorId, Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        assertThatThrownBy(() -> comprasService.crearOrden(
+                        new SolicitudOrdenCompra(
+                                proveedor.id(),
+                                new BigDecimal("4000.00000000"),
+                                List.of(new SolicitudLineaOrdenCompra(
+                                        productId, 1, new BigDecimal("10.0000")))),
+                        actorId,
+                        Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
         var linea = orden.lineas().get(0);
-        comprasService.enviarOrden(orden.orden().id(), actorId);
+        comprasService.enviarOrden(orden.orden().id(), actorId, Set.of("CO"));
+        var bodegaUs = inventarioService.crearBodega(
+                new SolicitudBodega(
+                        "E54-US-B-" + suffix,
+                        "Warehouse integration",
+                        null,
+                        usCountryId,
+                        true),
+                actorId,
+                Set.of());
+        assertThatThrownBy(() -> comprasService.recibir(
+                        new SolicitudEntradaInventario(
+                                orden.orden().id(),
+                                bodegaUs.id(),
+                                "E54-FAC-US-" + suffix,
+                                new BigDecimal("4100.00000000"),
+                                List.of(new SolicitudLineaEntradaInventario(
+                                        orden.lineas().get(0).id(), 1))),
+                        actorId,
+                        Set.of()))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.messageKey())
+                                .isEqualTo("error.inventory.receipt.warehouse.country"));
         var primeraEntrada = comprasService.recibir(
                 new SolicitudEntradaInventario(
                         orden.orden().id(),
@@ -230,7 +387,8 @@ class InventarioPostgresIntegrationTest {
                         "E54-FAC-A-" + suffix,
                         new BigDecimal("4100.00000000"),
                         List.of(new SolicitudLineaEntradaInventario(linea.id(), 2))),
-                actorId);
+                actorId,
+                Set.of("CO"));
         assertThat(primeraEntrada.lineas().get(0).costoUnitarioMonedaBase())
                 .isEqualByComparingTo("41000.0000");
         assertThat(inventarioService.listarSaldos(
@@ -244,7 +402,14 @@ class InventarioPostgresIntegrationTest {
                         "E54-FAC-B-" + suffix,
                         new BigDecimal("4100.00000000"),
                         List.of(new SolicitudLineaEntradaInventario(linea.id(), 3))),
-                actorId);
+                actorId,
+                Set.of("CO"));
+        assertThatThrownBy(() -> comprasService.obtenerEntrada(
+                        primeraEntrada.entrada().id(), Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
 
         inventarioService.registrarSalida(
                 new SolicitudSalidaInventario(
@@ -255,19 +420,126 @@ class InventarioPostgresIntegrationTest {
                         proveedor.id(),
                         "REP-" + suffix,
                         "Prueba de salida"),
-                actorId);
+                actorId,
+                Set.of("CO"));
         var ajuste = ajustesService.solicitar(
                 "OPERATIVO",
                 new SolicitudAjusteInventario(
                         productId, bodega.id(), 3, "Conteo físico de integración"),
-                actorId);
-        ajustesService.aprobar(ajuste.id(), actorId);
-        var aplicado = ajustesService.aplicar(ajuste.id(), actorId);
+                actorId,
+                Set.of("CO"));
         assertThat(ajustesService.listar(
-                        "APLICADO", "OPERATIVO", productId, bodega.id(), PageRequest.of(0, 10))
-                        .getContent())
+                null, null, productId, bodega.id(), Set.of("US"), PageRequest.of(0, 10))
+                .getContent())
+                .isEmpty();
+        assertThatThrownBy(() -> ajustesService.obtener(ajuste.id(), Set.of("US")))
+                .isInstanceOfSatisfying(
+                ErrorAplicacionException.class,
+                exception -> assertThat(exception.status())
+                        .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        mockMvc.perform(get("/api/v1/inventario/ajustes/{id}", ajuste.id())
+                        .with(authentication(authenticationActor(
+                        actorId,
+                        "ENCARGADO_INVENTARIO",
+                        "INVENTARIO_CONSULTAR",
+                        Set.of("US")))))
+                .andExpect(status().isForbidden());
+        assertThatThrownBy(() -> ajustesService.aprobar(
+                ajuste.id(), actorId, Set.of("US")))
+                .isInstanceOfSatisfying(
+                ErrorAplicacionException.class,
+                exception -> assertThat(exception.status())
+                        .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        assertThatThrownBy(() -> ajustesService.solicitar(
+                "OPERATIVO",
+                new SolicitudAjusteInventario(
+                        productId, bodega.id(), 2, "Fuera del alcance"),
+                actorId,
+                Set.of("US")))
+                .isInstanceOfSatisfying(
+                ErrorAplicacionException.class,
+                exception -> assertThat(exception.status())
+                        .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        ajustesService.aprobar(ajuste.id(), actorId, Set.of("CO"));
+        var aplicado = ajustesService.aplicar(ajuste.id(), actorId, Set.of("CO"));
+        assertThat(ajustesService.listar(
+                "APLICADO",
+                "OPERATIVO",
+                productId,
+                bodega.id(),
+                Set.of("CO"),
+                PageRequest.of(0, 10))
+                .getContent())
                 .extracting("id")
                 .containsExactly(ajuste.id());
+        UUID copId = jdbcTemplate.queryForObject(
+                "SELECT id FROM public.moneda WHERE codigo_iso = 'COP'",
+                UUID.class);
+        jdbcTemplate.update(
+                """
+                INSERT INTO public.precio_producto
+                    (id, producto_id, moneda_id, importe, vigente_desde, vigente_hasta)
+                VALUES (?, ?, ?, ?, ?, NULL)
+                """,
+                UUID.randomUUID(),
+                productId,
+                copId,
+                new BigDecimal("100.0000"),
+                java.time.LocalDate.now());
+        SolicitudVenta solicitudVenta = new SolicitudVenta(
+                null,
+                countryId,
+                copId,
+                List.of(new SolicitudLineaVenta(productId, bodega.id(), 1)));
+        assertThatThrownBy(() -> ventasService.crear(
+                        solicitudVenta, actorId, Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        var pendiente = ventasService.crear(solicitudVenta, actorId, Set.of("CO"));
+        assertThat(pendiente.venta().estado()).isEqualTo("PENDIENTE_DE_PAGO");
+        assertThat(jdbcTemplate.queryForObject(
+                        """
+                        SELECT cantidad FROM public.saldo_inventario
+                        WHERE producto_id = ? AND bodega_id = ?
+                        """,
+                        Integer.class,
+                        productId,
+                        bodega.id()))
+                .isEqualTo(3);
+        var confirmada = ventasService.confirmar(
+                pendiente.venta().id(), "EFECTIVO", actorId, Set.of("CO"));
+        assertThat(confirmada.venta().estado()).isEqualTo("CONFIRMADA");
+        assertThatThrownBy(() -> ventasService.obtener(
+                        pendiente.venta().id(), Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        assertThat(inventarioService.listarSaldos(
+                        productId,
+                        null,
+                        null,
+                        Set.of("US"),
+                        true,
+                        PageRequest.of(0, 10))
+                        .getTotalElements())
+                .isZero();
+        assertThat(inventarioService.listarMovimientos(
+                        productId,
+                        bodega.id(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        Set.of("US"),
+                        PageRequest.of(0, 10))
+                        .getTotalElements())
+                .isZero();
+
         assertThat(inventarioService.listarMovimientos(
                         productId,
                         bodega.id(),
@@ -275,9 +547,23 @@ class InventarioPostgresIntegrationTest {
                         null,
                         null,
                         null,
+                        null,
+                        null,
                         PageRequest.of(0, 10))
                         .getTotalElements())
-                .isEqualTo(4);
+                .isEqualTo(5);
+        assertThat(inventarioService.listarMovimientos(
+                        productId,
+                        bodega.id(),
+                        actorId,
+                        null,
+                        null,
+                        null,
+                        countryId,
+                        copId,
+                        PageRequest.of(0, 10))
+                        .getTotalElements())
+                .isEqualTo(1);
 
         Integer balance = jdbcTemplate.queryForObject(
                 """
@@ -307,8 +593,8 @@ class InventarioPostgresIntegrationTest {
                 ajuste.id());
 
         assertThat(aplicado.estado()).isEqualTo("APLICADO");
-        assertThat(balance).isEqualTo(3);
-        assertThat(movimientos).isEqualTo(4);
+        assertThat(balance).isEqualTo(2);
+        assertThat(movimientos).isEqualTo(5);
         assertThat(auditorias).isGreaterThanOrEqualTo(6);
     }
 
@@ -316,6 +602,14 @@ class InventarioPostgresIntegrationTest {
             UUID actorId,
             String rol,
             String permiso) {
+        return authenticationActor(actorId, rol, permiso, Set.of("CO"));
+    }
+
+    private UsernamePasswordAuthenticationToken authenticationActor(
+            UUID actorId,
+            String rol,
+            String permiso,
+            Set<String> paises) {
         UsuarioAutenticado actor = new UsuarioAutenticado(
                 actorId,
                 "integracion@local",
@@ -323,7 +617,7 @@ class InventarioPostgresIntegrationTest {
                 "es",
                 List.of(rol),
                 Set.of(permiso),
-                Set.of("CO"),
+                paises,
                 UUID.randomUUID());
         return UsernamePasswordAuthenticationToken.authenticated(
                 actor,

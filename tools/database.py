@@ -26,6 +26,13 @@ else:
     from sql_generator import GENERATED_HEADER, _constraint_name, cargar_modulos
 
 
+LEGACY_V001_CHECKSUM = (
+    "fe2b344f8934e2dc0e3d8cfa07b2db3e"  # pragma: allowlist secret
+    + "719ce0e031a80a5baa62bb51ca652347"  # pragma: allowlist secret
+)
+MIGRATION_CHECKSUM_COMPATIBILITY = {"V001": frozenset({LEGACY_V001_CHECKSUM})}
+
+
 class MigrationChecksumError(RuntimeError):
     """Una migración aplicada cambió después de quedar registrada."""
 
@@ -170,9 +177,10 @@ def aplicar_migraciones(
                     "SELECT checksum FROM public.migracion_historial WHERE version = %s",
                     (version,),
                 ).fetchone()
-
             if applied is not None:
                 if applied[0] != checksum:
+                    if applied[0] in MIGRATION_CHECKSUM_COMPATIBILITY.get(version, frozenset()):
+                        continue
                     raise MigrationChecksumError(
                         f"El checksum de {version} no coincide con el registrado; "
                         "no se aplica una migración modificada."

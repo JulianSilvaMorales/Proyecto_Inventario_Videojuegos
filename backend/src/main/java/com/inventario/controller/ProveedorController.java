@@ -36,13 +36,16 @@ public class ProveedorController {
     @GetMapping
     public Page<Proveedor> listar(
             @RequestParam(required = false) String buscar,
+            @AuthenticationPrincipal UsuarioAutenticado actor,
             Pageable pageable) {
-        return inventarioService.listarProveedores(buscar, pageable);
+        return inventarioService.listarProveedores(buscar, actor.paises(), pageable);
     }
 
     @GetMapping("/{id}")
-    public Proveedor obtener(@PathVariable UUID id) {
-        return inventarioService.obtenerProveedor(id);
+    public Proveedor obtener(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
+        return inventarioService.obtenerProveedor(id, actor.paises());
     }
 
     @PostMapping
@@ -51,7 +54,8 @@ public class ProveedorController {
             @Valid @RequestBody SolicitudProveedor solicitud,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
         Proveedor proveedor =
-                inventarioService.crearProveedor(solicitud, actor.usuarioId());
+                    inventarioService.crearProveedor(
+                            solicitud, actor.usuarioId(), actor.paises());
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(proveedor.id())
@@ -66,7 +70,7 @@ public class ProveedorController {
             @Valid @RequestBody SolicitudProveedor solicitud,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
         return inventarioService.actualizarProveedor(
-                id, solicitud, actor.usuarioId());
+                id, solicitud, actor.usuarioId(), actor.paises());
     }
 
     @PostMapping("/{proveedorId}/productos/{productoId}")
@@ -76,7 +80,7 @@ public class ProveedorController {
             @PathVariable UUID productoId,
             @AuthenticationPrincipal UsuarioAutenticado actor) {
         inventarioService.vincularProductoProveedor(
-                proveedorId, productoId, actor.usuarioId());
+                proveedorId, productoId, actor.usuarioId(), actor.paises());
         return ResponseEntity.noContent().build();
     }
 }
