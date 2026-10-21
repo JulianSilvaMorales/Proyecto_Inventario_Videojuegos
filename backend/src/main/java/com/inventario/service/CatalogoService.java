@@ -457,6 +457,10 @@ public class CatalogoService {
             throw error(HttpStatus.BAD_REQUEST, "error.catalog.attribute.type");
         }
         JsonNode options = solicitud.opciones();
+        // "opciones": null en el JSON llega como nodo nulo: equivale a no indicar opciones.
+        if (options != null && options.isNull()) {
+            options = null;
+        }
         if (options != null && !options.isArray()) {
             throw error(HttpStatus.BAD_REQUEST, "error.catalog.attribute.options");
         }

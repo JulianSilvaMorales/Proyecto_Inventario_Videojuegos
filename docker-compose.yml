@@ -35,6 +35,8 @@ services:
       <<: *db-env
       ADMIN_EMAIL: ${ADMIN_EMAIL:?Defina ADMIN_EMAIL en .env}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD en .env}
+      # Solo la usa la carga manual de datos de demostración (sembrar-demo).
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy

@@ -1,0 +1,242 @@
+{
+  "descripcion": "Datos de demostración de PixelVault. Se cargan a mano con 'python tools/cli.py sembrar-demo'. Empresas, personas y correos son ficticios; los valores marcados como ejemplo son editables.",
+  "usuarios": [
+    {"correo": "encargado.inventario@pixelvault.example", "nombre": "Laura Gómez", "rol": "ENCARGADO_INVENTARIO", "paises": []},
+    {"correo": "experto.tecnico@pixelvault.example", "nombre": "Andrés Rojas", "rol": "EXPERTO_TECNICO", "paises": []},
+    {"correo": "vendedor.bogota@pixelvault.example", "nombre": "Camila Torres", "rol": "VENDEDOR_CAJERO", "paises": ["CO"]},
+    {"correo": "ventas.miami@pixelvault.example", "nombre": "Emily Carter", "rol": "VENDEDOR_CAJERO", "paises": ["US"], "idioma": "en"},
+    {"correo": "gerente@pixelvault.example", "nombre": "Ricardo Mejía", "rol": "GERENTE_PROPIETARIO", "paises": []}
+  ],
+  "estados_unidos": {
+    "impuesto": {"nombre": "Sales tax Florida (ejemplo)", "tasa": "0.06", "incluido_en_precio": false},
+    "tipo_cambio_usd_cop": "4100.00000000"
+  },
+  "tipos_producto": [
+    {"codigo": "VIDEOCONSOLA", "nombre": "Videoconsola", "atributos": [
+      {"nombre": "marca", "tipo": "TEXTO", "obligatorio": true, "opciones": ["Sony", "Nintendo", "Microsoft"]},
+      {"nombre": "modelo", "tipo": "TEXTO", "obligatorio": true},
+      {"nombre": "estado", "tipo": "TEXTO", "obligatorio": true, "opciones": ["Nuevo", "Usado"]}
+    ]},
+    {"codigo": "VIDEOJUEGO", "nombre": "Videojuego", "atributos": [
+      {"nombre": "plataforma", "tipo": "TEXTO", "obligatorio": true, "opciones": ["PlayStation 5", "Nintendo Switch", "Xbox Series X|S", "PC"]},
+      {"nombre": "formato", "tipo": "TEXTO", "obligatorio": true, "opciones": ["Físico", "Digital"]},
+      {"nombre": "estado", "tipo": "TEXTO", "obligatorio": true, "opciones": ["Nuevo", "Usado"]},
+      {"nombre": "distribuidor", "tipo": "TEXTO", "obligatorio": true}
+    ]},
+    {"codigo": "TARJETA_REGALO", "nombre": "Tarjeta de regalo", "atributos": [
+      {"nombre": "plataforma_tienda", "tipo": "TEXTO", "obligatorio": true, "opciones": ["PlayStation Store", "Nintendo eShop", "Xbox Store", "Steam"]},
+      {"nombre": "valor_nominal", "tipo": "DECIMAL", "obligatorio": true},
+      {"nombre": "formato", "tipo": "TEXTO", "obligatorio": true, "opciones": ["Digital", "Física"]}
+    ]},
+    {"codigo": "TARJETA_SUSCRIPCION", "nombre": "Tarjeta de suscripción", "atributos": [
+      {"nombre": "servicio", "tipo": "TEXTO", "obligatorio": true},
+      {"nombre": "plataforma", "tipo": "TEXTO", "obligatorio": true},
+      {"nombre": "duracion_meses", "tipo": "ENTERO", "obligatorio": true}
+    ]},
+    {"codigo": "ACCESORIO", "nombre": "Accesorio", "atributos": [
+      {"nombre": "marca", "tipo": "TEXTO", "obligatorio": true},
+      {"nombre": "tipo", "tipo": "TEXTO", "obligatorio": true, "opciones": ["Control", "Audífonos", "Almacenamiento", "Cargador"]},
+      {"nombre": "plataforma_compatible", "tipo": "TEXTO", "obligatorio": true}
+    ]},
+    {"codigo": "RETRO", "nombre": "Producto retro", "atributos": [
+      {"nombre": "plataforma", "tipo": "TEXTO", "obligatorio": true},
+      {"nombre": "anio", "tipo": "ENTERO", "obligatorio": true},
+      {"nombre": "estado", "tipo": "TEXTO", "obligatorio": true, "opciones": ["Usado - excelente", "Usado - bueno", "Usado - aceptable"]}
+    ]},
+    {"codigo": "EDICION_ESPECIAL", "nombre": "Edición especial", "atributos": [
+      {"nombre": "plataforma", "tipo": "TEXTO", "obligatorio": true},
+      {"nombre": "tipo_edicion", "tipo": "TEXTO", "obligatorio": true},
+      {"nombre": "formato", "tipo": "TEXTO", "obligatorio": true, "opciones": ["Físico", "Digital"]},
+      {"nombre": "estado", "tipo": "TEXTO", "obligatorio": true, "opciones": ["Nuevo", "Usado"]},
+      {"nombre": "distribuidor", "tipo": "TEXTO", "obligatorio": true}
+    ]}
+  ],
+  "categorias": [
+    {"codigo": "CONSOLAS", "nombre": "Consolas", "subcategorias": [
+      {"codigo": "CONSOLAS_SOBREMESA", "nombre": "Consolas de sobremesa"},
+      {"codigo": "CONSOLAS_PORTATILES", "nombre": "Consolas portátiles e híbridas"}
+    ]},
+    {"codigo": "VIDEOJUEGOS", "nombre": "Videojuegos", "subcategorias": [
+      {"codigo": "JUEGOS_ACCION", "nombre": "Acción y aventura"},
+      {"codigo": "JUEGOS_DEPORTES", "nombre": "Deportes y carreras"},
+      {"codigo": "JUEGOS_ROL", "nombre": "Rol (RPG)"}
+    ]},
+    {"codigo": "ACCESORIOS", "nombre": "Accesorios", "subcategorias": [
+      {"codigo": "ACC_CONTROLES", "nombre": "Controles"},
+      {"codigo": "ACC_AUDIO", "nombre": "Audio"}
+    ]},
+    {"codigo": "TARJETAS", "nombre": "Tarjetas digitales", "subcategorias": [
+      {"codigo": "TARJ_REGALO", "nombre": "Tarjetas de regalo"},
+      {"codigo": "TARJ_SUSCRIPCION", "nombre": "Suscripciones"}
+    ]},
+    {"codigo": "RETRO", "nombre": "Retro", "subcategorias": [
+      {"codigo": "RETRO_CONSOLAS", "nombre": "Consolas retro"}
+    ]},
+    {"codigo": "COLECCION", "nombre": "Coleccionables", "subcategorias": [
+      {"codigo": "COLECCION_EDICIONES", "nombre": "Ediciones especiales"}
+    ]}
+  ],
+  "productos": [
+    {"clave": "PS5_SLIM", "tipo": "VIDEOCONSOLA", "categoria": "CONSOLAS", "subcategoria": "CONSOLAS_SOBREMESA",
+     "atributos": {"marca": "Sony", "modelo": "PlayStation 5 Slim CFI-2015 1 TB", "estado": "Nuevo"},
+     "es": {"nombre": "PlayStation 5 Slim 1 TB (lectora de discos)", "descripcion": "Consola PS5 modelo Slim con unidad de disco, 1 TB de almacenamiento y control DualSense."},
+     "en": {"nombre": "PlayStation 5 Slim 1 TB (disc edition)", "descripcion": "PS5 Slim console with disc drive, 1 TB storage and DualSense controller."},
+     "precios": {"COP": "2799900.00", "USD": "499.99"}},
+    {"clave": "SWITCH_OLED", "tipo": "VIDEOCONSOLA", "categoria": "CONSOLAS", "subcategoria": "CONSOLAS_PORTATILES",
+     "atributos": {"marca": "Nintendo", "modelo": "Nintendo Switch OLED HEG-001", "estado": "Nuevo"},
+     "es": {"nombre": "Nintendo Switch OLED blanca", "descripcion": "Consola híbrida con pantalla OLED de 7 pulgadas, 64 GB y base con puerto LAN."},
+     "en": {"nombre": "Nintendo Switch OLED white", "descripcion": "Hybrid console with 7-inch OLED screen, 64 GB and dock with LAN port."},
+     "precios": {"COP": "1699900.00", "USD": "349.99"}},
+    {"clave": "XBOX_SERIES_X", "tipo": "VIDEOCONSOLA", "categoria": "CONSOLAS", "subcategoria": "CONSOLAS_SOBREMESA",
+     "atributos": {"marca": "Microsoft", "modelo": "Xbox Series X 1 TB", "estado": "Nuevo"},
+     "es": {"nombre": "Xbox Series X 1 TB", "descripcion": "Consola Xbox Series X con 1 TB SSD, 4K a 120 FPS y lectora de discos."},
+     "en": {"nombre": "Xbox Series X 1 TB", "descripcion": "Xbox Series X console with 1 TB SSD, 4K at 120 FPS and disc drive."},
+     "precios": {"COP": "2899900.00", "USD": "499.99"}},
+    {"clave": "SWITCH_LITE_USADA", "tipo": "VIDEOCONSOLA", "categoria": "CONSOLAS", "subcategoria": "CONSOLAS_PORTATILES",
+     "atributos": {"marca": "Nintendo", "modelo": "Nintendo Switch Lite HDH-001", "estado": "Usado"},
+     "es": {"nombre": "Nintendo Switch Lite turquesa (usada)", "descripcion": "Consola portátil usada, revisada por el equipo técnico, con cargador original."},
+     "en": {"nombre": "Nintendo Switch Lite turquoise (used)", "descripcion": "Used handheld console, checked by the technical team, with original charger."},
+     "precios": {"COP": "799900.00"}},
+    {"clave": "ZELDA_TOTK", "tipo": "VIDEOJUEGO", "categoria": "VIDEOJUEGOS", "subcategoria": "JUEGOS_ACCION",
+     "atributos": {"plataforma": "Nintendo Switch", "formato": "Físico", "estado": "Nuevo", "distribuidor": "Nintendo"},
+     "es": {"nombre": "The Legend of Zelda: Tears of the Kingdom", "descripcion": "Aventura de mundo abierto en Hyrule. Edición física para Nintendo Switch."},
+     "en": {"nombre": "The Legend of Zelda: Tears of the Kingdom", "descripcion": "Open-world adventure in Hyrule. Physical edition for Nintendo Switch."},
+     "precios": {"COP": "289900.00", "USD": "69.99"}},
+    {"clave": "EA_FC25", "tipo": "VIDEOJUEGO", "categoria": "VIDEOJUEGOS", "subcategoria": "JUEGOS_DEPORTES",
+     "atributos": {"plataforma": "PlayStation 5", "formato": "Físico", "estado": "Nuevo", "distribuidor": "Electronic Arts"},
+     "es": {"nombre": "EA Sports FC 25 (PS5)", "descripcion": "Fútbol con licencias oficiales de ligas y clubes. Edición estándar física."},
+     "en": {"nombre": "EA Sports FC 25 (PS5)", "descripcion": "Football with official league and club licenses. Standard physical edition."},
+     "precios": {"COP": "279900.00", "USD": "69.99"}},
+    {"clave": "ELDEN_RING", "tipo": "VIDEOJUEGO", "categoria": "VIDEOJUEGOS", "subcategoria": "JUEGOS_ROL",
+     "atributos": {"plataforma": "PlayStation 5", "formato": "Físico", "estado": "Nuevo", "distribuidor": "Bandai Namco"},
+     "es": {"nombre": "Elden Ring (PS5)", "descripcion": "Rol de acción en las Tierras Intermedias. Edición estándar física."},
+     "en": {"nombre": "Elden Ring (PS5)", "descripcion": "Action RPG set in the Lands Between. Standard physical edition."},
+     "precios": {"COP": "199900.00", "USD": "39.99"}},
+    {"clave": "FF7_REBIRTH", "tipo": "VIDEOJUEGO", "categoria": "VIDEOJUEGOS", "subcategoria": "JUEGOS_ROL",
+     "atributos": {"plataforma": "PlayStation 5", "formato": "Físico", "estado": "Nuevo", "distribuidor": "Square Enix"},
+     "es": {"nombre": "Final Fantasy VII Rebirth (PS5)", "descripcion": "Segunda parte del remake de Final Fantasy VII. Edición física de dos discos."},
+     "en": {"nombre": "Final Fantasy VII Rebirth (PS5)", "descripcion": "Second part of the Final Fantasy VII remake. Two-disc physical edition."},
+     "precios": {"COP": "259900.00", "USD": "49.99"}},
+    {"clave": "MARIO_KART_8", "tipo": "VIDEOJUEGO", "categoria": "VIDEOJUEGOS", "subcategoria": "JUEGOS_DEPORTES",
+     "atributos": {"plataforma": "Nintendo Switch", "formato": "Físico", "estado": "Nuevo", "distribuidor": "Nintendo"},
+     "es": {"nombre": "Mario Kart 8 Deluxe", "descripcion": "Carreras para hasta cuatro jugadores en la misma consola. Edición física."},
+     "en": {"nombre": "Mario Kart 8 Deluxe", "descripcion": "Racing for up to four players on the same console. Physical edition."},
+     "precios": {"COP": "239900.00", "USD": "59.99"}},
+    {"clave": "DUALSENSE", "tipo": "ACCESORIO", "categoria": "ACCESORIOS", "subcategoria": "ACC_CONTROLES",
+     "atributos": {"marca": "Sony", "tipo": "Control", "plataforma_compatible": "PlayStation 5"},
+     "es": {"nombre": "Control inalámbrico DualSense blanco", "descripcion": "Control para PS5 con respuesta háptica y gatillos adaptativos."},
+     "en": {"nombre": "DualSense wireless controller white", "descripcion": "PS5 controller with haptic feedback and adaptive triggers."},
+     "precios": {"COP": "349900.00", "USD": "74.99"}},
+    {"clave": "AUDIFONOS_GAMER", "tipo": "ACCESORIO", "categoria": "ACCESORIOS", "subcategoria": "ACC_AUDIO",
+     "atributos": {"marca": "HyperX", "tipo": "Audífonos", "plataforma_compatible": "PC, PlayStation 5, Nintendo Switch"},
+     "es": {"nombre": "Audífonos gamer HyperX Cloud Stinger 2", "descripcion": "Audífonos con cable, micrófono abatible y sonido envolvente."},
+     "en": {"nombre": "HyperX Cloud Stinger 2 gaming headset", "descripcion": "Wired headset with flip-to-mute microphone and surround sound."},
+     "precios": {"COP": "229900.00", "USD": "49.99"}},
+    {"clave": "PSN_100K", "tipo": "TARJETA_REGALO", "categoria": "TARJETAS", "subcategoria": "TARJ_REGALO",
+     "atributos": {"plataforma_tienda": "PlayStation Store", "valor_nominal": 100000, "formato": "Digital"},
+     "es": {"nombre": "Tarjeta PlayStation Store $100.000", "descripcion": "Código digital para la PlayStation Store de Colombia."},
+     "en": {"nombre": "PlayStation Store card COP 100,000", "descripcion": "Digital code for the Colombian PlayStation Store."},
+     "precios": {"COP": "100000.00"}},
+    {"clave": "GAME_PASS_3M", "tipo": "TARJETA_SUSCRIPCION", "categoria": "TARJETAS", "subcategoria": "TARJ_SUSCRIPCION",
+     "atributos": {"servicio": "Xbox Game Pass Ultimate", "plataforma": "Xbox / PC", "duracion_meses": 3},
+     "es": {"nombre": "Xbox Game Pass Ultimate 3 meses", "descripcion": "Suscripción de tres meses con catálogo de juegos y juego en línea."},
+     "en": {"nombre": "Xbox Game Pass Ultimate 3 months", "descripcion": "Three-month subscription with game library and online play."},
+     "precios": {"COP": "179900.00", "USD": "59.99"}},
+    {"clave": "SNES_CLASICA", "tipo": "RETRO", "categoria": "RETRO", "subcategoria": "RETRO_CONSOLAS",
+     "atributos": {"plataforma": "Super Nintendo (SNES)", "anio": 1991, "estado": "Usado - bueno"},
+     "es": {"nombre": "Super Nintendo original con dos controles", "descripcion": "Consola SNES de 1991 restaurada, con dos controles y cables originales."},
+     "en": {"nombre": "Original Super Nintendo with two controllers", "descripcion": "Restored 1991 SNES console with two controllers and original cables."},
+     "precios": {"COP": "899900.00"}},
+    {"clave": "ZELDA_COLECCIONISTA", "tipo": "EDICION_ESPECIAL", "categoria": "COLECCION", "subcategoria": "COLECCION_EDICIONES",
+     "atributos": {"plataforma": "Nintendo Switch", "tipo_edicion": "Edición coleccionista", "formato": "Físico", "estado": "Nuevo", "distribuidor": "Nintendo"},
+     "es": {"nombre": "Zelda: Tears of the Kingdom – Edición coleccionista", "descripcion": "Incluye juego, libro de arte, steelbook, póster y medallones."},
+     "en": {"nombre": "Zelda: Tears of the Kingdom – Collector's Edition", "descripcion": "Includes game, art book, steelbook, poster and medallions."},
+     "precios": {"COP": "649900.00", "USD": "129.99"}}
+  ],
+  "bodegas": [
+    {"codigo": "MED-01", "nombre": "Bodega Medellín", "pais": "CO"},
+    {"codigo": "MIA-01", "nombre": "Bodega Miami", "pais": "US"}
+  ],
+  "proveedores": [
+    {"clave": "ANDINA", "razon_social": "Distribuidora Andina de Videojuegos S.A.S.", "pais": "CO", "identificacion": "901456789-3",
+     "contacto": "Mariana López", "correo": "compras@andinagames.example", "telefono": "+57 601 555 0101", "moneda": "COP",
+     "condiciones": "Crédito a 30 días", "productos": ["PS5_SLIM", "SWITCH_OLED", "XBOX_SERIES_X", "ZELDA_TOTK", "EA_FC25", "ELDEN_RING", "FF7_REBIRTH", "MARIO_KART_8", "DUALSENSE", "AUDIFONOS_GAMER", "PSN_100K", "GAME_PASS_3M"]},
+    {"clave": "RETRO_CO", "razon_social": "Coleccionables Retro de Colombia S.A.S.", "pais": "CO", "identificacion": "901987654-1",
+     "contacto": "Felipe Arango", "correo": "ventas@retrocolombia.example", "telefono": "+57 604 555 0177", "moneda": "COP",
+     "condiciones": "Pago contra entrega", "productos": ["SNES_CLASICA", "SWITCH_LITE_USADA", "ZELDA_COLECCIONISTA"]},
+    {"clave": "ATLANTIC", "razon_social": "Atlantic Gaming Supply LLC", "pais": "US", "identificacion": "86-1234567",
+     "contacto": "Daniel Brooks", "correo": "orders@atlanticgaming.example", "telefono": "+1 305 555 0144", "moneda": "USD",
+     "condiciones": "Net 30", "productos": ["PS5_SLIM", "SWITCH_OLED", "ZELDA_TOTK", "EA_FC25", "DUALSENSE", "ZELDA_COLECCIONISTA"]}
+  ],
+  "compras": [
+    {"proveedor": "ANDINA", "tipo_cambio": "1", "bodega": "GENERAL", "documento": "FAC-ANDINA-10234",
+     "lineas": [
+       {"producto": "PS5_SLIM", "cantidad": 10, "costo": "2150000.00"},
+       {"producto": "SWITCH_OLED", "cantidad": 8, "costo": "1300000.00"},
+       {"producto": "XBOX_SERIES_X", "cantidad": 6, "costo": "2250000.00"},
+       {"producto": "ZELDA_TOTK", "cantidad": 20, "costo": "205000.00"},
+       {"producto": "EA_FC25", "cantidad": 25, "costo": "195000.00"},
+       {"producto": "ELDEN_RING", "cantidad": 15, "costo": "130000.00"},
+       {"producto": "FF7_REBIRTH", "cantidad": 12, "costo": "175000.00"},
+       {"producto": "MARIO_KART_8", "cantidad": 15, "costo": "165000.00"},
+       {"producto": "DUALSENSE", "cantidad": 20, "costo": "245000.00"},
+       {"producto": "AUDIFONOS_GAMER", "cantidad": 10, "costo": "150000.00"},
+       {"producto": "PSN_100K", "cantidad": 40, "costo": "92000.00"},
+       {"producto": "GAME_PASS_3M", "cantidad": 30, "costo": "128000.00"}
+     ]},
+    {"proveedor": "RETRO_CO", "tipo_cambio": "1", "bodega": "MED-01", "documento": "FAC-RETRO-0458",
+     "lineas": [
+       {"producto": "SNES_CLASICA", "cantidad": 3, "costo": "600000.00", "recibir": 3},
+       {"producto": "SWITCH_LITE_USADA", "cantidad": 4, "costo": "520000.00", "recibir": 2},
+       {"producto": "ZELDA_COLECCIONISTA", "cantidad": 5, "costo": "470000.00", "recibir": 0}
+     ]},
+    {"proveedor": "ATLANTIC", "tipo_cambio": "4100.00000000", "bodega": "MIA-01", "documento": "INV-ATL-5521",
+     "lineas": [
+       {"producto": "PS5_SLIM", "cantidad": 6, "costo": "395.00"},
+       {"producto": "SWITCH_OLED", "cantidad": 5, "costo": "272.00"},
+       {"producto": "ZELDA_TOTK", "cantidad": 10, "costo": "49.00"},
+       {"producto": "EA_FC25", "cantidad": 10, "costo": "47.00"},
+       {"producto": "DUALSENSE", "cantidad": 8, "costo": "53.00"},
+       {"producto": "ZELDA_COLECCIONISTA", "cantidad": 3, "costo": "95.00"}
+     ]}
+  ],
+  "clientes": [
+    {"clave": "SANTIAGO", "pais": "CO", "clasificacion": "FRECUENTE", "nombre": "Santiago", "apellidos": "Ramírez Díaz",
+     "tipo_documento": "CC", "documento": "1020304050", "codigo_postal": "110221", "direccion": "Calle 85 # 15-32, Bogotá",
+     "telefono": "+57 310 555 0142", "correo": "santiago.ramirez@correo.example", "base_legal": "Autorización de tratamiento de datos personales (Ley 1581 de 2012)"},
+    {"clave": "VALENTINA", "pais": "CO", "clasificacion": "FRECUENTE", "nombre": "Valentina", "apellidos": "Ospina Restrepo",
+     "tipo_documento": "CC", "documento": "1037654321", "codigo_postal": "050021", "direccion": "Carrera 43A # 7-50, Medellín",
+     "telefono": "+57 315 555 0198", "correo": "valentina.ospina@correo.example", "base_legal": "Autorización de tratamiento de datos personales (Ley 1581 de 2012)"},
+    {"clave": "JUAN", "pais": "CO", "clasificacion": "INFRECUENTE", "nombre": "Juan Pablo Herrera",
+     "tipo_documento": "CC", "documento": "79888777", "correo": "jp.herrera@correo.example", "base_legal": "Autorización de tratamiento de datos personales (Ley 1581 de 2012)"},
+    {"clave": "MICHAEL", "pais": "US", "clasificacion": "FRECUENTE", "nombre": "Michael", "apellidos": "Johnson",
+     "tipo_documento": "Driver license", "documento": "J525-417-88-112-0", "codigo_postal": "33131", "direccion": "1450 Brickell Ave, Miami, FL",
+     "telefono": "+1 305 555 0199", "correo": "michael.johnson@mail.example", "base_legal": "Customer consent under the store privacy notice"},
+    {"clave": "SARAH", "pais": "US", "clasificacion": "INFRECUENTE", "nombre": "Sarah Lee",
+     "tipo_documento": "Driver license", "documento": "L200-555-90-401-0", "correo": "sarah.lee@mail.example", "base_legal": "Customer consent under the store privacy notice"}
+  ],
+  "ventas": [
+    {"vendedor": "vendedor.bogota@pixelvault.example", "pais": "CO", "cliente": "SANTIAGO", "bodega": "GENERAL",
+     "lineas": [{"producto": "PS5_SLIM", "cantidad": 1}, {"producto": "DUALSENSE", "cantidad": 1}], "medio_pago": "TARJETA"},
+    {"vendedor": "vendedor.bogota@pixelvault.example", "pais": "CO", "cliente": "VALENTINA", "bodega": "GENERAL",
+     "lineas": [{"producto": "ZELDA_TOTK", "cantidad": 1}, {"producto": "MARIO_KART_8", "cantidad": 1}], "medio_pago": "NEQUI"},
+    {"vendedor": "vendedor.bogota@pixelvault.example", "pais": "CO", "cliente": null, "bodega": "GENERAL",
+     "lineas": [{"producto": "EA_FC25", "cantidad": 2}, {"producto": "PSN_100K", "cantidad": 1}], "medio_pago": "EFECTIVO"},
+    {"vendedor": "ventas.miami@pixelvault.example", "pais": "US", "cliente": "MICHAEL", "bodega": "MIA-01",
+     "lineas": [{"producto": "SWITCH_OLED", "cantidad": 1}, {"producto": "ZELDA_TOTK", "cantidad": 1}], "medio_pago": "TARJETA"},
+    {"vendedor": "vendedor.bogota@pixelvault.example", "pais": "CO", "cliente": "JUAN", "bodega": "GENERAL",
+     "lineas": [{"producto": "XBOX_SERIES_X", "cantidad": 1}], "medio_pago": null},
+    {"vendedor": "vendedor.bogota@pixelvault.example", "pais": "CO", "cliente": null, "bodega": "GENERAL",
+     "lineas": [{"producto": "ELDEN_RING", "cantidad": 1}], "medio_pago": null, "anular": true}
+  ],
+  "salidas": [
+    {"producto": "DUALSENSE", "bodega": "GENERAL", "tipo": "DANO", "cantidad": 1, "proveedor": "ANDINA",
+     "reporte": "RMA-ANDINA-0457", "observacion": "Control con falla en el gatillo derecho; se devuelve al proveedor."}
+  ],
+  "ajustes": [
+    {"usuario": "encargado.inventario@pixelvault.example", "tipo": "OPERATIVO", "producto": "MARIO_KART_8", "bodega": "GENERAL",
+     "diferencia": -1, "motivo": "Conteo cíclico de la vitrina: falta una unidad frente al sistema.", "aprobar": true},
+    {"usuario": "experto.tecnico@pixelvault.example", "tipo": "TECNICO", "producto": "SWITCH_LITE_USADA", "bodega": "MED-01",
+     "diferencia": -1, "motivo": "Revisión técnica: una unidad usada no se puede reparar y se retira de la venta.", "aprobar": false}
+  ]
+}

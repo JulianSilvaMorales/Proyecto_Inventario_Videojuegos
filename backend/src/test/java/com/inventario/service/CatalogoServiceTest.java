@@ -17,6 +17,7 @@ import com.inventario.domain.PrecioProducto;
 import com.inventario.domain.Producto;
 import com.inventario.domain.ProductoTraduccion;
 import com.inventario.domain.TipoProducto;
+import com.inventario.dto.SolicitudDefinicionAtributo;
 import com.inventario.dto.SolicitudPrecioProducto;
 import com.inventario.dto.SolicitudProducto;
 import com.inventario.dto.SolicitudProductoTraduccion;
@@ -190,6 +191,29 @@ class CatalogoServiceTest {
                                 .isEqualTo("error.catalog.product.attribute-type"));
 
         verify(repository, never()).crearProducto(any());
+    }
+
+    @Test
+    void definicionConOpcionesNulasEnElJsonSeGuardaSinOpciones() {
+        when(repository.buscarTipoProducto(typeId))
+                .thenReturn(Optional.of(new TipoProducto(typeId, "VIDEOJUEGO", "Videojuego", true)));
+        AtomicReference<DefinicionAtributo> guardada = new AtomicReference<>();
+        UUID id = UUID.randomUUID();
+        when(repository.crearDefinicion(any())).thenAnswer(invocation -> {
+            DefinicionAtributo definicion = invocation.getArgument(0);
+            guardada.set(new DefinicionAtributo(
+                    id, definicion.tipoProductoId(), definicion.nombre(), definicion.tipoDato(),
+                    definicion.obligatorio(), definicion.opciones()));
+            return id;
+        });
+        when(repository.buscarDefinicion(id)).thenAnswer(invocation -> Optional.of(guardada.get()));
+
+        DefinicionAtributo creada = service.crearDefinicion(
+                new SolicitudDefinicionAtributo(
+                        typeId, "distribuidor", "TEXTO", true, OBJECT_MAPPER.nullNode()),
+                actorId);
+
+        assertThat(creada.opciones()).isNull();
     }
 
     @Test

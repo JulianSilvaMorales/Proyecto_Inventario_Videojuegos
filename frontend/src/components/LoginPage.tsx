@@ -9,10 +9,10 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded'
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { PixelVaultLogo } from './PixelVaultLogo'
 
 interface LoginPageProps {
   onLogin: (email: string, password: string) => Promise<void>
@@ -50,10 +50,12 @@ export function LoginPage({ onLogin, error }: LoginPageProps) {
           <Stack spacing={3}>
             <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
               <Box className="brand-mark">
-                <Inventory2RoundedIcon />
+                <PixelVaultLogo size={40} />
               </Box>
               <Box>
-                <Typography variant="h5">{t('app.name')}</Typography>
+                <Typography variant="h5" className="brand-name">
+                  {t('app.name')}
+                </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {t('app.subtitle')}
                 </Typography>

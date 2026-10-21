@@ -65,7 +65,7 @@ tienda de consolas y videojuegos que vende en varios países. Hoy permite:
   moneda cambian sin recargar la página.
 
 La base de datos se describe en JSON (`db/model/`) y se crea solo con los
-scripts de Python. La calidad se comprueba con 154 pruebas automáticas en
+scripts de Python. La calidad se comprueba con 159 pruebas automáticas en
 cuatro suites (Python, backend, frontend y extremo a extremo) que se ejecutan
 con un solo comando y dejan sus logs en `logs/tests/` (ver
 [Pruebas y logs](#pruebas-y-logs-e8)).
@@ -128,7 +128,7 @@ python tools/cli.py generar --help
 `validar` comprueba esquema, tipos, nombres, claves, índices y referencias.
 `generar` produce la migración inicial y los metadatos resueltos desde el modelo
 JSON. `crear-bd` crea la base si falta, aplica migraciones, carga semillas y
-verifica el esquema. `sembrar` carga únicamente los datos iniciales. Todos
+verifica el esquema. `sembrar` carga únicamente los datos iniciales y `sembrar-demo` los datos de demostración (ver [Datos de demostración](#datos-de-demostración)). Todos
 aceptan `--dry-run` y escriben sus logs en `logs/tools/`.
 `V001` es inmutable después de aplicarse para conservar su checksum; los cambios
 de esquema posteriores se agregan en una nueva migración versionada.
@@ -142,6 +142,44 @@ actualiza el modelo resuelto y el CRUD sin reescribir esa migración.
 el nombre exacto de la base con `--confirm-db`. No lo ejecutes contra datos que
 necesites conservar. `probar` ejecuta todas las suites de prueba y `todo` encadena
 `validar` → `generar` → `crear-bd` → `probar` (ver la sección E8).
+
+## Datos de demostración
+
+Para probar o presentar el sistema con datos realistas existe una carga
+**manual** (no se ejecuta sola):
+
+```bat
+rem Con Docker Compose (la pila debe estar arriba: docker compose up -d --wait)
+docker compose run --rm db-init python tools/cli.py sembrar-demo --api http://backend:8080
+rem En desarrollo local (backend arrancado en http://localhost:8080)
+python tools/cli.py sembrar-demo
+rem Solo muestra lo que cargaría, sin conectarse
+python tools/cli.py sembrar-demo --dry-run
+```
+
+Requiere en `.env` las credenciales del administrador (`ADMIN_EMAIL`,
+`ADMIN_PASSWORD`) y `DEMO_PASSWORD`, la contraseña común de los usuarios de
+demostración (8 caracteres o más; no está en el repositorio).
+
+Los datos están en `db/seeds/demo.json` y la lógica en `tools/demo_seed.py`. Los
+usuarios se insertan directamente en la base (no hay API de usuarios); **todo lo
+demás se crea a través de la API del backend**, con sus reglas de negocio,
+movimientos de inventario y auditoría, exactamente como si se hiciera desde la
+interfaz.
+
+| Qué se carga | Detalle |
+|---|---|
+| Usuarios (contraseña `DEMO_PASSWORD`) | `encargado.inventario@pixelvault.example` (encargado de inventario), `experto.tecnico@pixelvault.example` (experto técnico), `vendedor.bogota@pixelvault.example` (vendedor, solo Colombia), `ventas.miami@pixelvault.example` (vendedora, solo Estados Unidos, en inglés) y `gerente@pixelvault.example` (gerente). |
+| Estados Unidos | Se habilita con un impuesto de ejemplo (*Sales tax Florida*, 6 %) y un tipo de cambio de ejemplo USD→COP (4.100); ambos se editan en Configuración. |
+| Catálogo | 7 tipos de producto con los atributos de RF-001 (videoconsola, videojuego, tarjeta de regalo, de suscripción, accesorio, retro y edición especial), 6 categorías con 11 subcategorías y 15 productos con nombre y descripción en español e inglés y precios en COP y USD. |
+| Inventario | Bodegas Bodega general (Colombia), Medellín (Colombia) y Miami (Estados Unidos); 3 proveedores con sus productos oficiales; 3 órdenes de compra recibidas (una parcialmente); una salida por daño; un ajuste aprobado y otro pendiente. |
+| Clientes y ventas | 5 clientes (frecuentes e infrecuentes, Colombia y Estados Unidos); 6 ventas: 3 confirmadas en COP, 1 confirmada en USD, 1 pendiente de pago y 1 anulada. |
+
+Las empresas, personas y correos son ficticios (dominio reservado
+`.example`); los productos y precios son realistas. La carga es idempotente:
+usuarios y datos maestros se buscan antes de crearlos, y las operaciones
+(compras, ventas, salidas y ajustes) solo se cargan si la base aún no tiene
+órdenes de compra, así que repetirla no duplica nada.
 
 ## Backend (E5.1–E5.5)
 
@@ -403,6 +441,15 @@ origen por defecto. Si la API está en otra dirección, configura
 `VITE_API_URL` en `frontend/.env.local` (por ejemplo,
 `VITE_API_URL=http://localhost:8080`). No incluyas credenciales en variables
 `VITE_*`: se incorporan al bundle del navegador.
+
+### Identidad visual
+
+La interfaz usa un tema oscuro propio (`src/theme.ts`, `src/App.css`): fondo
+azul noche (`#0B0D17`), superficies `#141829`, acentos violeta neón (`#8B5CF6`)
+y cian (`#22D3EE`), con contraste suficiente para el texto. El logo
+(`PixelVaultLogo`) es la puerta de una bóveda (*vault*) dibujada en *pixel art*
+de 16 × 16, en coherencia con el nombre **PixelVault**; la misma figura es el
+favicon (`public/favicon.svg`). El recibo simulado se imprime en blanco y negro.
 
 ### E6.1 — Base web
 
@@ -744,15 +791,15 @@ el recibo → comprobar existencia 3 y el movimiento "Salida por venta". El tipo
 de producto, las categorías, el proveedor y la orden de compra se preparan por
 API porque aún no tienen pantalla propia.
 
-### Resultado de la última corrida completa (`logs/tests/20261021-165546/`, E2E sobre Docker Compose)
+### Resultado de la última corrida completa (`logs/tests/20261021-173740/`, E2E sobre Docker Compose)
 
 | Suite | Pruebas |
 |---|---:|
-| python | 49 |
-| backend | 73 |
+| python | 53 |
+| backend | 74 |
 | frontend | 31 |
 | e2e | 1 |
-| **Total** | **154, todas en verde** |
+| **Total** | **159, todas en verde** |
 
 ## Contenedores (E10)
 
@@ -806,6 +853,29 @@ y `VITE_API_URL` del frontend se derivan de `FRONTEND_PORT` y `BACKEND_PORT`, de
 modo que no chocan con los valores de desarrollo (`5173`). Si falta una variable
 obligatoria, `docker compose` se detiene con un mensaje que la nombra.
 
+### ¿Para qué sirve `db-init`? ¿Es necesario?
+
+Sí. El proyecto exige que **la base se cree solo con los scripts de Python**
+(sin Flyway ni que el backend modifique el esquema). `db-init` es ese script
+empaquetado: un contenedor de un solo uso que ejecuta `python tools/cli.py
+crear-bd` contra la base de Docker (crea la base si falta, aplica las
+migraciones pendientes, carga las semillas iniciales y verifica el esquema) y
+termina. El backend no arranca hasta que `db-init` termina bien, porque al
+iniciar valida que el esquema coincida con el modelo. Por eso en Docker Desktop
+aparece como **detenido (exited 0)**: es lo esperado. También se reutiliza para
+la carga manual de datos de demostración (`docker compose run --rm db-init …`).
+
+### Cuándo reconstruir o borrar los contenedores
+
+- **Después de cambiar el código** (o de traer cambios con `git pull`):
+  `docker compose up --build -d --wait`. Reconstruye las imágenes y recrea solo
+  los contenedores que cambiaron; los datos se conservan. No hace falta borrar
+  nada.
+- **Para empezar con una base limpia** (por ejemplo, antes de una
+  demostración): `docker compose down -v` y luego `up --build`; después, si se
+  quieren, los datos de demostración.
+- **Para liberar espacio** de imágenes antiguas: `docker compose down --rmi local`.
+
 ### Reinicios y datos
 
 `db-init` se ejecuta en cada arranque y es idempotente: en un segundo arranque
@@ -846,6 +916,7 @@ correcciones:
 | Detección de secretos | detect-secrets marcaba la URL de conexión con credenciales que armaba la base de pruebas de Testcontainers. | La conexión se pasa con variables `DB_*` y `DATABASE_URL` vacía. |
 | Código sin uso | `ParametroService.invalidar(clave)` no se usaba (la caché se invalida completa con `invalidarTodo()`); 7 claves de traducción ya no las usaba ninguna pantalla. | Eliminados. Se comprobó además que todas las clases y métodos públicos del backend, todas las funciones de `tools/`, todas las exportaciones y clases CSS del front y todos los mensajes del backend se usan. |
 | Archivos sin uso | Copias duplicadas de la especificación en la raíz (`GUIDE.md` desactualizada y `REQUIREMENTS.md`); restos de la plantilla de Vite (`frontend/README.md`, `public/favicon.svg` y `public/icons.svg` con el logo de Vite, sin enlazar; `src/assets/hero.png`); 13 archivos `.gitkeep` en carpetas que ya tienen contenido o que el código crea solo (`logs/`). | Eliminados. `INSTRUCTIONS.md` se movió a `spec/`, junto a los demás documentos de referencia. `logs/` queda ignorado por completo en `.gitignore`. |
+| Definiciones de atributos | Al preparar los datos de demostración apareció un error de E5.3: una definición sin opciones enviada con `"opciones": null` se rechazaba como "no es una lista" (Jackson lo recibe como nodo JSON nulo). | `null` explícito equivale a no indicar opciones; prueba unitaria añadida. |
 | Documentación | El CI se describía "sobre Ubuntu" sin explicar por qué. | Nueva sección [¿Por qué aparece Linux en el CI?](#por-qué-aparece-linux-en-el-ci). |
 
 ## Integración continua (E9)
@@ -1005,11 +1076,14 @@ compilación):
 │   │   ├── V001__modelo_inicial.sql          # Generada desde el modelo
 │   │   ├── V002__pais_bodega.sql             # País de la bodega
 │   │   └── V003__bodega_pais_obligatorio.sql # País obligatorio en bodegas
-│   └── seeds/inicial.json        # Países, monedas, idiomas, impuestos, roles,
-│                                 # permisos, bodega y parámetros
+│   └── seeds/
+│       ├── inicial.json          # Países, monedas, idiomas, impuestos, roles,
+│       │                         # permisos, bodega y parámetros (crear-bd)
+│       └── demo.json             # Datos de demostración (sembrar-demo, manual)
 ├── tools/
 │   ├── cli.py                    # validar, generar, crear-bd, reiniciar-bd, sembrar,
-│   │                             # probar y todo
+│   │                             # sembrar-demo, probar y todo
+│   ├── demo_seed.py              # Carga de datos de demostración vía API
 │   ├── env_config.py             # Carga de .env sin reemplazar el entorno
 │   ├── model_validator.py        # Validación del modelo JSON
 │   ├── sql_generator.py          # SQL y metadatos del back y del front
@@ -1042,7 +1116,8 @@ compilación):
 │       └── test/resources/       # docker-java.properties (API de Docker)
 ├── frontend/
 │   ├── package.json, package-lock.json, vite.config.ts, tsconfig*.json, .oxlintrc.json
-│   ├── index.html                # Página base de Vite (título y metadatos)
+│   ├── index.html                # Página base de Vite (título, metadatos y favicon)
+│   ├── public/favicon.svg        # Logo de PixelVault (bóveda en pixel art)
 │   └── src/
 │       ├── main.tsx, App.tsx, theme.ts, navigation.ts, index.css
 │       ├── api/                  # apiClient (peticiones y CSV), useApiQuery,
@@ -1054,7 +1129,7 @@ compilación):
 │       ├── components/
 │       │   ├── AppShell, Dashboard, LoginPage, LanguageSwitcher
 │       │   ├── CrudPage          # CRUD genérico (E6.2)
-│       │   ├── PageHeader, CrudEntityLinks
+│       │   ├── PageHeader, CrudEntityLinks, PixelVaultLogo
 │       │   ├── catalog/          # Productos y formulario dinámico (E6.3)
 │       │   ├── inventory/        # Existencias, entradas, salidas, ajustes y
 │       │   │                     # movimientos (E6.3)
