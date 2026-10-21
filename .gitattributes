@@ -1,0 +1,7 @@
+# Archivos que se ejecutan dentro de contenedores Linux: siempre con saltos LF,
+# aunque se clonen en Windows con core.autocrlf=true.
+backend/mvnw text eol=lf
+*.sh text eol=lf
+docker/*.Dockerfile text eol=lf
+docker/*.conf text eol=lf
+docker-compose.yml text eol=lf
