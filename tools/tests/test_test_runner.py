@@ -36,6 +36,18 @@ def test_resumen_lista_cada_suite_y_marca_los_fallos(tmp_path: Path) -> None:
     assert "- playwright: ❌ (código 1)" in resumen
 
 
+def test_resumen_se_publica_en_github_actions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    resumen_ci = tmp_path / "step-summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(resumen_ci))
+    correcta = ResultadoSuite("backend", [Paso("mvn", 0, 1.0)], pruebas=73)
+
+    escribir_resumen(tmp_path, [correcta], tmp_path)
+
+    assert "| backend | ✅ correcto | 73 |" in resumen_ci.read_text(encoding="utf-8")
+
+
 def test_una_suite_sin_pasos_no_cuenta_como_correcta() -> None:
     assert not ResultadoSuite("e2e").correcta
 

@@ -395,6 +395,11 @@ def escribir_resumen(carpeta: Path, resultados: list[ResultadoSuite], root: Path
     filas.append("Los reportes JUnit XML de cada suite están en su subcarpeta.")
     resumen = carpeta / "resumen.md"
     resumen.write_text("\n".join(filas) + "\n", encoding="utf-8")
+    # En GitHub Actions el resumen también se muestra en la página de la ejecución.
+    resumen_ci = os.environ.get("GITHUB_STEP_SUMMARY")
+    if resumen_ci:
+        with Path(resumen_ci).open("a", encoding="utf-8") as salida:
+            salida.write("\n".join(filas) + "\n")
     return resumen
 
 
