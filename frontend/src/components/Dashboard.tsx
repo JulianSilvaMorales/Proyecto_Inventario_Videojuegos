@@ -16,18 +16,22 @@ import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded'
 import { useTranslation } from 'react-i18next'
 import type { ReactNode } from 'react'
 import type { AuthIdentity } from '../auth/identity'
-import { formatCurrency, formatDate, formatNumber } from '../utils/formatters'
+import type { ReferenceOption } from '../api/types'
+import { useApiQuery } from '../api/useApiQuery'
+import { formatDate, formatMoney, formatNumber } from '../utils/formatters'
 
 interface DashboardProps {
   user: AuthIdentity
 }
 
-const currencyOptions = ['COP', 'USD', 'EUR']
 const sampleDate = new Date('2026-10-20T14:30:00.000Z')
 
 export function Dashboard({ user }: DashboardProps) {
   const { t, i18n } = useTranslation()
-  const [currency, setCurrency] = useState('COP')
+  // Las monedas de ejemplo son las configuradas en el sistema, no una lista fija.
+  const monedas = useApiQuery<ReferenceOption[]>('/api/v1/referencias/moneda').data ?? []
+  const [selectedCurrency, setCurrency] = useState('')
+  const currency = selectedCurrency || monedas[0]?.codigo || ''
   const language = i18n.resolvedLanguage ?? user.idioma
 
   return (
@@ -115,26 +119,32 @@ export function Dashboard({ user }: DashboardProps) {
                 {t('dashboard.formatDescription')}
               </Typography>
             </Box>
-            <FormControl size="small" sx={{ minWidth: 130 }}>
-              <Select
-                value={currency}
-                onChange={(event) => setCurrency(event.target.value)}
-                inputProps={{ 'aria-label': t('common.currency') }}
-              >
-                {currencyOptions.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {monedas.length > 0 && (
+              <FormControl size="small" sx={{ minWidth: 130 }}>
+                <Select
+                  value={currency}
+                  onChange={(event) => setCurrency(event.target.value)}
+                  inputProps={{ 'aria-label': t('common.currency') }}
+                >
+                  {monedas.map((moneda) => (
+                    <MenuItem key={moneda.id} value={moneda.codigo}>
+                      {moneda.codigo}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
           </Stack>
 
           <Box className="format-grid">
             <FormatSample
               label={t('dashboard.amount')}
               icon={<PaymentsRoundedIcon fontSize="small" />}
-              value={formatCurrency(1250000.5, currency, language)}
+              value={
+                currency
+                  ? formatMoney('1250000.50', currency, language)
+                  : formatNumber(1250000.5, language)
+              }
             />
             <FormatSample
               label={t('dashboard.number')}

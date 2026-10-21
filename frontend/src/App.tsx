@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Alert } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from './api/apiClient'
+import { apiErrorMessage } from './api/errors'
 import { useSession } from './auth/useSession'
 import { AppShell } from './components/AppShell'
 import { LoginPage } from './components/LoginPage'
@@ -23,13 +24,7 @@ function App() {
       await i18n.changeLanguage(language)
       localStorage.setItem('inventario:language', language)
     } catch (error) {
-      setLoginError(
-        error instanceof ApiError && error.status === 0
-          ? t('errors.network')
-          : error instanceof Error
-            ? error.message
-            : t('errors.unexpected'),
-      )
+      setLoginError(apiErrorMessage(error, t))
     }
   }
 
@@ -41,9 +36,7 @@ function App() {
       setLogoutError(
         error instanceof ApiError && error.status === 0
           ? t('errors.logoutNetwork')
-          : error instanceof Error
-            ? error.message
-            : t('errors.unexpected'),
+          : apiErrorMessage(error, t),
       )
     }
   }

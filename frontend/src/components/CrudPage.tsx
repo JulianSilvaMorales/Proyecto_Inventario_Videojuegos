@@ -34,6 +34,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
 import { useTranslation } from 'react-i18next'
 import { ApiError, apiRequest } from '../api/apiClient'
+import { apiErrorMessage } from '../api/errors'
 import {
   userCanManageCrudEntity,
   type CrudEntityMetadata,
@@ -193,7 +194,7 @@ export function CrudPage({ entity, permissions, onBack }: CrudPageProps) {
       })
       .catch((reason: unknown) => {
         if (mounted) {
-          setError(reason instanceof Error ? reason.message : t('errors.unexpected'))
+          setError(apiErrorMessage(reason, t))
           setLoading(false)
         }
       })
@@ -224,7 +225,7 @@ export function CrudPage({ entity, permissions, onBack }: CrudPageProps) {
       )
       setReferences(Object.fromEntries(loadedReferences))
     } catch (reason) {
-      setFormError(reason instanceof Error ? reason.message : t('errors.unexpected'))
+      setFormError(apiErrorMessage(reason, t))
     } finally {
       setReferencesLoading(false)
     }
@@ -298,7 +299,10 @@ export function CrudPage({ entity, permissions, onBack }: CrudPageProps) {
       const value = formValues[field.apiName]
       if (value === '' || value == null) {
         body[field.apiName] = null
-      } else if (field.tipo === 'decimal' || field.tipo === 'entero') {
+      } else if (field.tipo === 'decimal') {
+        // Texto decimal: la API no recibe importes ni tasas como float.
+        body[field.apiName] = String(value).trim().replace(',', '.')
+      } else if (field.tipo === 'entero') {
         body[field.apiName] = Number(value)
       } else if (field.tipo === 'json' && typeof value === 'string') {
         body[field.apiName] = JSON.parse(value) as unknown
@@ -330,7 +334,7 @@ export function CrudPage({ entity, permissions, onBack }: CrudPageProps) {
       setLoading(true)
       setRefresh((value) => value + 1)
     } catch (reason) {
-      setFormError(reason instanceof Error ? reason.message : t('errors.unexpected'))
+      setFormError(apiErrorMessage(reason, t))
     }
   }
 
@@ -355,7 +359,7 @@ export function CrudPage({ entity, permissions, onBack }: CrudPageProps) {
       setLoading(true)
       setRefresh((value) => value + 1)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('errors.unexpected'))
+      setError(apiErrorMessage(reason, t))
       setConfirming(null)
     }
   }
