@@ -1,0 +1,163 @@
+# Integración continua (E9). Cada trabajo ejecuta su suite con
+# `python tools/cli.py probar --suites <suite>`, igual que en local, y sube
+# `logs/tests/` (resumen.md, consola y JUnit XML) como artefacto descargable.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  JAVA_VERSION: "17"
+  NODE_VERSION: "22"
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  python:
+    name: Python (ruff, pytest, validar y generado)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Instalar dependencias
+        run: python -m pip install -r requirements-dev.txt
+      - name: Validar el modelo JSON
+        run: python tools/cli.py validar
+      - name: Comprobar que lo generado coincide con lo versionado
+        run: |
+          python tools/cli.py generar
+          rutas=(db/model/schema-resuelto.json db/migrations
+                 backend/src/main/java/com/inventario/generated frontend/src/generated)
+          if [ -n "$(git status --porcelain -- "${rutas[@]}")" ]; then
+            echo "::error::'generar' produce diferencias: ejecútalo y versiona el resultado."
+            git status --porcelain -- "${rutas[@]}"
+            git diff -- "${rutas[@]}"
+            exit 1
+          fi
+      - name: Pruebas (ruff, formato y pytest con PostgreSQL desechable)
+        run: python tools/cli.py probar --suites python
+      - name: Subir logs y reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-python
+          path: |
+            logs/tests/
+            logs/tools/
+          if-no-files-found: warn
+
+  backend:
+    name: Backend (mvn verify con Testcontainers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Instalar dependencias de Python (crear-bd para Testcontainers)
+        run: python -m pip install -r requirements-dev.txt
+      - name: Pruebas unitarias e integración
+        env:
+          PYTHON: python
+        run: python tools/cli.py probar --suites backend
+      - name: Subir logs y reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-backend
+          path: |
+            logs/tests/
+            logs/tools/
+          if-no-files-found: warn
+
+  frontend:
+    name: Frontend (lint, typecheck, test y build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Instalar dependencias de Python (CLI)
+        run: python -m pip install -r requirements-dev.txt
+      - name: Lint, typecheck, Vitest y build
+        run: python tools/cli.py probar --suites frontend
+      - name: Subir logs y reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-frontend
+          path: logs/tests/
+          if-no-files-found: warn
+
+  e2e:
+    name: Extremo a extremo (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Instalar dependencias
+        run: |
+          python -m pip install -r requirements-dev.txt
+          npm ci --prefix frontend --no-audit --no-fund
+          npm ci --prefix e2e --no-audit --no-fund
+      - name: Instalar Chromium y sus dependencias del sistema
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+      - name: Flujo producto → entrada → venta
+        run: python tools/cli.py probar --suites e2e
+      - name: Subir logs, reportes, capturas y trazas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-e2e
+          path: |
+            logs/tests/
+            logs/tools/
+          if-no-files-found: warn

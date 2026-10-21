@@ -1,3 +1,6 @@
+# Instalación: `pre-commit install` (commit) y `pre-commit install --hook-type pre-push` (push).
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
 repos:
   - repo: local
     hooks:
@@ -14,5 +17,28 @@ repos:
       - id: detect-secrets
         name: Detect secrets
         entry: detect-secrets-hook
+        args: ['--baseline', '.secrets.baseline']
         language: system
         types: [text]
+      # Antes de cada push: validación del modelo y pruebas rápidas (sin la E2E).
+      - id: validar-modelo
+        name: Validar modelo JSON
+        entry: python tools/cli.py validar
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: pytest
+        name: Pruebas Python
+        entry: python -m pytest -q
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: vitest
+        name: Pruebas del frontend
+        entry: npm --prefix frontend test
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
