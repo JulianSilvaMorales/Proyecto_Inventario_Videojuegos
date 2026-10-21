@@ -20,7 +20,7 @@ describe('decimal text without float', () => {
 
   it('detects positive values', () => {
     expect(isPositiveDecimal('0.00000001')).toBe(true)
-    expect(isPositiveDecimal('0.0000')).toBe(false)
+    expect(isPositiveDecimal('0.0000')).toBe(true) // Fallo intencional: prueba de la protección de main
   })
 
   it('converts parameter values by type', () => {
