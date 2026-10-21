@@ -80,8 +80,17 @@ def _nombre_base(parameters: dict[str, Any]) -> str:
 
 
 def crear_base_si_no_existe(parameters: dict[str, Any]) -> bool:
-    """Crea la base si falta y devuelve si se creó en esta ejecución."""
+    """Crea la base si falta y devuelve si se creó en esta ejecución.
+
+    Primero intenta conectarse a la base de destino: en servicios gestionados como
+    Render la base ya existe y el usuario no puede entrar a 'postgres' ni crear bases.
+    """
     database_name = _nombre_base(parameters)
+    try:
+        with psycopg.connect(**parameters, connect_timeout=15):
+            return False
+    except psycopg.OperationalError:
+        pass
     admin_parameters = dict(parameters, dbname="postgres")
     with psycopg.connect(**admin_parameters, autocommit=True) as connection:
         exists = connection.execute(

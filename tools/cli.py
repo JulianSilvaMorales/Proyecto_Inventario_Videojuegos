@@ -15,27 +15,45 @@ from jinja2.exceptions import TemplateError
 if __package__:
     from .database import (
         _migrations,
+        conexion_base,
         crear_base_y_sembrar,
         parametros_conexion,
         reiniciar_base_local,
         sembrar_base,
+        verificar_base,
     )
     from .demo_seed import DemoError, cargar_datos, sembrar_demo, validar_datos
     from .env_config import cargar_env_file
     from .model_validator import validar_modelo
+    from .respaldo import (
+        RespaldoError,
+        listar_respaldos,
+        respaldar,
+        respaldos_a_eliminar,
+        restaurar,
+    )
     from .sql_generator import generar_archivos
     from .test_runner import ENTORNOS_E2E, SUITES, probar
 else:
     from database import (
         _migrations,
+        conexion_base,
         crear_base_y_sembrar,
         parametros_conexion,
         reiniciar_base_local,
         sembrar_base,
+        verificar_base,
     )
     from demo_seed import DemoError, cargar_datos, sembrar_demo, validar_datos
     from env_config import cargar_env_file
     from model_validator import validar_modelo
+    from respaldo import (
+        RespaldoError,
+        listar_respaldos,
+        respaldar,
+        respaldos_a_eliminar,
+        restaurar,
+    )
     from sql_generator import generar_archivos
     from test_runner import ENTORNOS_E2E, SUITES, probar
 
@@ -46,6 +64,8 @@ COMANDOS = (
     "reiniciar-bd",
     "sembrar",
     "sembrar-demo",
+    "respaldar",
+    "restaurar",
     "probar",
     "todo",
 )
@@ -68,6 +88,11 @@ def crear_parser() -> argparse.ArgumentParser:
             "Cargar datos de demostración realistas (usuarios por rol, catálogo, compras, "
             "ventas en COP y USD) a través de la API del backend en ejecución."
         ),
+        "respaldar": (
+            "Respaldar la base con pg_dump (imagen Docker postgres:16-alpine) y, con "
+            "--podar, aplicar la retención de 35 días y 12 meses."
+        ),
+        "restaurar": "Reemplazar el contenido de la base con un respaldo (pg_restore).",
         "probar": "Ejecutar las pruebas del proyecto.",
         "todo": "Validar, generar, crear la base de datos y ejecutar las pruebas.",
     }
@@ -110,8 +135,10 @@ def crear_parser() -> argparse.ArgumentParser:
                 choices=ENTORNOS_E2E,
                 default="local",
                 help=(
-                    "Dónde se ejecuta la E2E: 'local' (backend JAR y vite preview) o "
-                    "'compose' (docker-compose.yml en un proyecto aislado)."
+                    "Dónde se ejecuta la E2E: 'local' (backend JAR y vite preview), "
+                    "'compose' (docker-compose.yml en un proyecto aislado) o 'remoto' "
+                    "(un despliegue publicado, como Render, indicado con E2E_BASE_URL, "
+                    "E2E_API_URL, E2E_ADMIN_EMAIL y E2E_ADMIN_PASSWORD)."
                 ),
             )
         if comando == "sembrar-demo":
@@ -119,6 +146,32 @@ def crear_parser() -> argparse.ArgumentParser:
                 "--api",
                 default="http://localhost:8080",
                 help="URL del backend en ejecución (por defecto http://localhost:8080).",
+            )
+        if comando == "respaldar":
+            subparser.add_argument(
+                "--directorio",
+                type=Path,
+                default=Path("backups"),
+                help="Carpeta de los respaldos (por defecto backups/, ignorada por Git).",
+            )
+            subparser.add_argument(
+                "--podar",
+                action="store_true",
+                help=(
+                    "Después de respaldar, borrar las copias que la política de RNF-011 ya "
+                    "no exige conservar (diarias 35 días, una mensual 12 meses)."
+                ),
+            )
+        if comando == "restaurar":
+            subparser.add_argument(
+                "--archivo",
+                type=Path,
+                required=True,
+                help="Respaldo .dump generado por 'respaldar'.",
+            )
+            subparser.add_argument(
+                "--confirm-db",
+                help="Nombre exacto de la base cuyo contenido se autoriza reemplazar.",
             )
         if comando == "reiniciar-bd":
             subparser.add_argument(
@@ -283,6 +336,70 @@ def _ejecutar_bd(args: argparse.Namespace, root: Path) -> int:
     return 0
 
 
+def _descripcion_destino(connection: dict[str, object]) -> str:
+    return f"'{connection.get('dbname')}' en {connection.get('host', 'localhost')}"
+
+
+def _ejecutar_respaldo(args: argparse.Namespace, root: Path) -> int:
+    command = args.comando
+    try:
+        cargar_env_file(root / ".env")
+        connection = parametros_conexion()
+        destino = _descripcion_destino(connection)
+        if command == "respaldar":
+            directorio = args.directorio
+            if not directorio.is_absolute():
+                directorio = root / directorio
+            if args.dry_run:
+                message = f"Se respaldaría la base {destino} en {directorio}; no se conectó."
+            else:
+                archivo = respaldar(connection, directorio)
+                message = f"Respaldo de la base {destino}: {archivo}."
+                if args.podar:
+                    eliminados = respaldos_a_eliminar(
+                        listar_respaldos(directorio), datetime.now(UTC)
+                    )
+                    for respaldo in eliminados:
+                        respaldo.ruta.unlink()
+                    message += (
+                        f" Copias eliminadas por la política de retención: {len(eliminados)}."
+                    )
+        else:
+            archivo = args.archivo if args.archivo.is_absolute() else Path.cwd() / args.archivo
+            if not archivo.is_file():
+                raise FileNotFoundError(f"No existe el respaldo {archivo}.")
+            if args.dry_run:
+                message = (
+                    f"Se reemplazaría el contenido de la base {destino} con {archivo}; "
+                    "no se conectó ni se modificó nada."
+                )
+            else:
+                if args.confirm_db != connection["dbname"]:
+                    raise ValueError(
+                        "Restaurar reemplaza todos los datos de la base "
+                        f"{destino}. Confirme con --confirm-db {connection['dbname']}."
+                    )
+                restaurar(connection, archivo)
+                with conexion_base(connection, create_if_missing=False) as conexion:
+                    verificado = verificar_base(conexion, root)
+                message = f"Base {destino} restaurada desde {archivo} y verificada: " + json.dumps(
+                    verificado, ensure_ascii=False, sort_keys=True
+                )
+    except (OSError, ValueError, KeyError, RuntimeError, RespaldoError, psycopg.Error) as exc:
+        log_path = _escribir_log(root, command, "ERROR", str(exc))
+        print(f"ERROR: {exc}", file=sys.stderr)
+        if log_path is not None:
+            print(f"Log: {log_path}", file=sys.stderr)
+        return 1
+
+    status = "DRY-RUN" if args.dry_run else "OK"
+    log_path = _escribir_log(root, command, status, message)
+    if log_path is None:
+        return 1
+    print(f"{message} Log: {log_path}")
+    return 0
+
+
 def _ejecutar_sembrar_demo(args: argparse.Namespace, root: Path) -> int:
     mensajes: list[str] = []
 
@@ -385,6 +502,8 @@ def main(argv: list[str] | None = None) -> int:
         return _ejecutar_bd(args, root)
     if args.comando == "sembrar-demo":
         return _ejecutar_sembrar_demo(args, root)
+    if args.comando in {"respaldar", "restaurar"}:
+        return _ejecutar_respaldo(args, root)
     if args.comando == "probar":
         return _ejecutar_probar(args, root)
     return _ejecutar_todo(args, root)

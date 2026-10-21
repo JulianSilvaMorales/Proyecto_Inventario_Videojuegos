@@ -428,6 +428,51 @@ def _suite_e2e_compose(root: Path, carpeta: Path, log: Path, resultado: Resultad
         )
 
 
+def _despertar(url: str, segundos: int = 300) -> None:
+    """Los servicios gratuitos de Render se suspenden sin tráfico y tardan en despertar."""
+    limite = time.monotonic() + segundos
+    while time.monotonic() < limite:
+        try:
+            with urllib.request.urlopen(url, timeout=30) as respuesta:
+                if respuesta.status == 200:
+                    return
+        except (urllib.error.URLError, ConnectionError, TimeoutError):
+            pass
+        time.sleep(5)
+    raise EntornoError(f"Sin respuesta de {url} tras {segundos} s.")
+
+
+def _suite_e2e_remoto(root: Path, carpeta: Path, log: Path, resultado: ResultadoSuite) -> None:
+    """E2E contra un despliegue ya publicado (por ejemplo, Render). No levanta nada:
+    toma las URL y el administrador de E2E_BASE_URL, E2E_API_URL, E2E_ADMIN_EMAIL y
+    E2E_ADMIN_PASSWORD. Crea datos de prueba (tipo, categorías, proveedor, producto,
+    orden, entrada y una venta) en esa base."""
+    url_web = os.environ.get("E2E_BASE_URL", "").rstrip("/")
+    url_api = os.environ.get("E2E_API_URL", "").rstrip("/")
+    admin = (os.environ.get("E2E_ADMIN_EMAIL", ""), os.environ.get("E2E_ADMIN_PASSWORD", ""))
+    faltan = [
+        nombre
+        for nombre, valor in (
+            ("E2E_BASE_URL", url_web),
+            ("E2E_API_URL", url_api),
+            ("E2E_ADMIN_EMAIL", admin[0]),
+            ("E2E_ADMIN_PASSWORD", admin[1]),
+        )
+        if not valor
+    ]
+    if faltan:
+        raise EntornoError("Para la E2E remota defina: " + ", ".join(faltan) + ".")
+    reportes = carpeta / "e2e"
+    reportes.mkdir(parents=True, exist_ok=True)
+    with log.open("a", encoding="utf-8") as salida:
+        salida.write(f"E2E remota: web {url_web}, API {url_api}\n")
+    _despertar(f"{url_api}/actuator/health")
+    _despertar(url_web)
+    if not _preparar_playwright(root, log, resultado):
+        return
+    _playwright(root, log, resultado, reportes, url_web, url_api, admin)
+
+
 EJECUTORES = {
     "python": _suite_python,
     "backend": _suite_backend,
@@ -483,7 +528,7 @@ def escribir_resumen(carpeta: Path, resultados: list[ResultadoSuite], root: Path
     return resumen
 
 
-ENTORNOS_E2E = ("local", "compose")
+ENTORNOS_E2E = ("local", "compose", "remoto")
 
 
 def probar(
@@ -508,11 +553,11 @@ def probar(
         print(f"[{suite}] en ejecución… (log: {log})", flush=True)
         inicio = time.monotonic()
         try:
-            ejecutor = (
-                _suite_e2e_compose
-                if suite == "e2e" and e2e_entorno == "compose"
-                else EJECUTORES[suite]
-            )
+            ejecutor = EJECUTORES[suite]
+            if suite == "e2e" and e2e_entorno == "compose":
+                ejecutor = _suite_e2e_compose
+            elif suite == "e2e" and e2e_entorno == "remoto":
+                ejecutor = _suite_e2e_remoto
             ejecutor(root, carpeta, log, resultado)
         except (EntornoError, OSError, subprocess.SubprocessError, TimeoutError) as exc:
             resultado.nota = str(exc)
