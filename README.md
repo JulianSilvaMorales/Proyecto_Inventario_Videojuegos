@@ -750,8 +750,15 @@ aunque falle.
 
 Cada artefacto contiene `logs/tests/<fecha-hora>/` (`resumen.md`, `<suite>.log`
 y JUnit XML) y, cuando aplica, `logs/tools/`. Se descargan desde la pestaña
-**Actions** del repositorio → ejecución → sección **Artifacts**. Si se envía
-otro `push` a la misma rama, la ejecución anterior se cancela.
+**Actions** del repositorio → ejecución → sección **Artifacts**. El
+`resumen.md` de cada trabajo también se muestra en la página de la ejecución
+(resumen del trabajo). Si se envía otro `push` a la misma rama, la ejecución
+anterior se cancela.
+
+Verificación de la etapa: el CI pasó en verde con los cuatro trabajos y sus
+artefactos, y en una rama temporal con una prueba rota a propósito el trabajo
+`python` falló (la ejecución quedó en rojo y el artefacto con el log se subió
+igual); esa rama se eliminó después.
 
 La prueba E2E levanta el backend (JAR) y el front (`vite preview`) desde
 `probar`; cuando exista Docker Compose (E10) podrá ejecutarse sobre esos
