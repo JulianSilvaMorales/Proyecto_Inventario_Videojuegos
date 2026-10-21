@@ -109,3 +109,9 @@ export function userCanManageCrudEntity(
 ) {
   return entity.permisosGestion.some((permission) => permissions.includes(permission))
 }
+
+export function accessibleCrudEntities(module: string, permissions: readonly string[]) {
+  return crudEntities.filter(
+    (entity) => entity.modulo === module && userCanAccessCrudEntity(entity, permissions),
+  )
+}

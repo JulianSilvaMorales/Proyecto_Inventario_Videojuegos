@@ -31,13 +31,20 @@ import { useTranslation } from 'react-i18next'
 import type { AuthIdentity } from '../auth/identity'
 import {
   crudEntities,
+  crudEntityByName,
   userCanAccessCrudEntity,
   type CrudEntityMetadata,
 } from '../crud/metadata'
+import type { CrudEntityName } from '../generated/entidades'
 import { navigationItems, visibleNavigation, type NavigationId } from '../navigation'
+import { CatalogPage } from './catalog/CatalogPage'
 import { CrudPage } from './CrudPage'
 import { Dashboard } from './Dashboard'
+import { InventoryPage } from './inventory/InventoryPage'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { ReportsPage } from './reports/ReportsPage'
+import { SalesPage } from './sales/SalesPage'
+import { SettingsPage } from './settings/SettingsPage'
 
 const drawerWidth = 256
 
@@ -83,6 +90,17 @@ export function AppShell({ user, onLogout }: AppShellProps) {
   function selectEntity(entity: CrudEntityMetadata) {
     setActiveEntity(entity)
     setMobileOpen(false)
+  }
+
+  function canOpenCrud(name: CrudEntityName) {
+    return userCanAccessCrudEntity(crudEntityByName(name), user.permisos)
+  }
+
+  function openCrudByName(name: CrudEntityName) {
+    const entity = crudEntityByName(name)
+    if (userCanAccessCrudEntity(entity, user.permisos)) {
+      setActiveEntity(entity)
+    }
   }
 
   const drawer = (
@@ -141,7 +159,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
           {!desktop && (
             <IconButton
               edge="start"
-              aria-label={t('common.openMenu', { defaultValue: 'Open menu' })}
+              aria-label={t('common.openMenu')}
               onClick={() => setMobileOpen(true)}
             >
               <MenuRoundedIcon />
@@ -200,6 +218,25 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             />
           ) : visibleActiveModule === 'home' ? (
             <Dashboard user={user} />
+          ) : visibleActiveModule === 'catalog' ? (
+            <CatalogPage
+              permissions={user.permisos}
+              canOpenCategories={canOpenCrud('categoria')}
+              onOpenCrudEntity={openCrudByName}
+            />
+          ) : visibleActiveModule === 'inventory' ? (
+            <InventoryPage
+              permissions={user.permisos}
+              roles={user.roles}
+              canOpenWarehouses={canOpenCrud('bodega')}
+              onOpenCrudEntity={openCrudByName}
+            />
+          ) : visibleActiveModule === 'sales' ? (
+            <SalesPage permissions={user.permisos} onSelectEntity={selectEntity} />
+          ) : visibleActiveModule === 'reports' ? (
+            <ReportsPage />
+          ) : visibleActiveModule === 'settings' ? (
+            <SettingsPage permissions={user.permisos} onSelectEntity={selectEntity} />
           ) : (
             <ModulePlaceholder
               module={visibleActiveModule}
@@ -214,7 +251,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
 }
 
 interface ModulePlaceholderProps {
-  module: Exclude<NavigationId, 'home'>
+  module: Exclude<NavigationId, 'home' | 'catalog' | 'inventory' | 'sales' | 'reports' | 'settings'>
   permissions: readonly string[]
   onSelectEntity: (entity: CrudEntityMetadata) => void
 }

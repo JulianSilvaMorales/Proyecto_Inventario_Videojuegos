@@ -200,6 +200,30 @@ def test_semillas_rechazan_campos_faltantes_con_error_legible(tmp_path: Path) ->
         _load_seed_data(seed_path)
 
 
+def test_semillas_rechazan_bodega_con_pais_inexistente(tmp_path: Path) -> None:
+    seed_path = tmp_path / "inicial.json"
+    data = _load_seed_data(ROOT / "db" / "seeds" / "inicial.json")
+    data["bodegas"][0]["pais_codigo"] = "ZZ"
+    seed_path.write_text(json.dumps(data), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="bodega 'GENERAL' referencia un país inexistente"):
+        _load_seed_data(seed_path)
+
+
+def test_semillas_admiten_parametro_por_pais_y_rechazan_duplicado_de_ambito(
+    tmp_path: Path,
+) -> None:
+    data = _load_seed_data(ROOT / "db" / "seeds" / "inicial.json")
+    medios = [p for p in data["parametros"] if p["clave"] == "ventas.medios_pago"]
+    assert {p.get("pais_codigo") for p in medios} == {None, "CO"}
+
+    seed_path = tmp_path / "inicial.json"
+    data["parametros"].append(dict(medios[1]))
+    seed_path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicado para su ámbito"):
+        _load_seed_data(seed_path)
+
+
 def test_sembrar_almacena_contrasena_administrativa_con_hash_bcrypt() -> None:
     connection = SeedConnection()
 
@@ -242,10 +266,10 @@ def test_cli_crear_bd_dry_run_no_conecta_a_postgresql() -> None:
             "--dry-run",
         ],
         cwd=ROOT,
-        env=environment,
+        env={**environment, "PYTHONIOENCODING": "utf-8"},
         capture_output=True,
+        encoding="utf-8",
         check=False,
-        text=True,
     )
 
     assert result.returncode == 0, result.stderr

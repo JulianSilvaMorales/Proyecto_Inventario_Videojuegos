@@ -8,6 +8,7 @@ import com.inventario.domain.PrecioProducto;
 import com.inventario.domain.Producto;
 import com.inventario.domain.ProductoTraduccion;
 import com.inventario.domain.TipoProducto;
+import com.inventario.dto.ReferenciaOpcion;
 import com.inventario.dto.SolicitudActualizacionProducto;
 import com.inventario.dto.SolicitudCategoria;
 import com.inventario.dto.SolicitudDefinicionAtributo;
@@ -221,6 +222,11 @@ public class CatalogoService {
     @Transactional(readOnly = true)
     public Page<Producto> listarProductos(String buscar, Pageable pageable) {
         return repository.listarProductos(buscar, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReferenciaOpcion> listarReferenciasProducto(String idioma, int limite) {
+        return repository.listarReferenciasProducto(idioma, limite);
     }
 
     @Transactional(readOnly = true)

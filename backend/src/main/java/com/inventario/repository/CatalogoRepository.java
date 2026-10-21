@@ -9,6 +9,7 @@ import com.inventario.domain.PrecioProducto;
 import com.inventario.domain.Producto;
 import com.inventario.domain.ProductoTraduccion;
 import com.inventario.domain.TipoProducto;
+import com.inventario.dto.ReferenciaOpcion;
 import com.inventario.generated.CatalogoCrudSql;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -270,6 +271,35 @@ public class CatalogoRepository {
                 "p.codigo_interno",
                 buscar,
                 "p.codigo_interno");
+    }
+
+    public List<ReferenciaOpcion> listarReferenciasProducto(String idioma, int limite) {
+        return jdbcTemplate.query(
+                """
+                SELECT p.id, p.codigo_interno,
+                       COALESCE(
+                           (SELECT pt.nombre
+                            FROM public.producto_traduccion pt
+                            JOIN public.idioma i ON i.id = pt.idioma_id
+                            WHERE pt.producto_id = p.id AND lower(i.codigo_bcp47) = lower(?)),
+                           (SELECT pt.nombre
+                            FROM public.producto_traduccion pt
+                            JOIN public.idioma i ON i.id = pt.idioma_id
+                            WHERE pt.producto_id = p.id
+                            ORDER BY i.codigo_bcp47
+                            LIMIT 1),
+                           p.codigo_interno) AS nombre
+                FROM public.producto p
+                WHERE p.activo
+                ORDER BY nombre, p.codigo_interno
+                LIMIT ?
+                """,
+                (rs, row) -> new ReferenciaOpcion(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("codigo_interno"),
+                        rs.getString("nombre")),
+                idioma,
+                limite);
     }
 
     public List<Producto> listarProductosActivosPorTipo(UUID tipoProductoId) {

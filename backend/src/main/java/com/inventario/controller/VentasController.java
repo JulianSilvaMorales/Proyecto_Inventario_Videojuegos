@@ -1,13 +1,18 @@
 package com.inventario.controller;
 
 import com.inventario.domain.UsuarioAutenticado;
+import com.inventario.domain.Venta;
+import com.inventario.dto.PaisVenta;
 import com.inventario.dto.RespuestaVenta;
 import com.inventario.dto.SolicitudConfirmacionVenta;
 import com.inventario.dto.SolicitudVenta;
 import com.inventario.service.VentasService;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -41,6 +47,19 @@ public class VentasController {
                 .buildAndExpand(venta.venta().id())
                 .toUri();
         return ResponseEntity.created(location).body(venta);
+    }
+
+    @GetMapping("/paises")
+    public List<PaisVenta> paisesDisponibles(@AuthenticationPrincipal UsuarioAutenticado actor) {
+        return ventasService.paisesDisponibles(actor.paises());
+    }
+
+    @GetMapping
+    public Page<Venta> listar(
+            @RequestParam(required = false) String estado,
+            @AuthenticationPrincipal UsuarioAutenticado actor,
+            Pageable pageable) {
+        return ventasService.listar(estado, actor.paises(), pageable);
     }
 
     @GetMapping("/{id}")

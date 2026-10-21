@@ -6,14 +6,18 @@ import static org.mockito.Mockito.when;
 
 import com.inventario.domain.Pais;
 import com.inventario.domain.UsuarioAutenticado;
-import com.inventario.repository.ConfiguracionRepository;
+import com.inventario.dto.ReferenciaOpcion;
+import com.inventario.repository.UsuarioRepository;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -27,13 +31,16 @@ class ReferenciasServiceTest {
     @Mock
     private CatalogoService catalogo;
 
+    @Mock
+    private UsuarioRepository usuarios;
+
     @Test
     void limitaLasReferenciasDePaisAlAlcanceDelUsuario() {
         Pais colombia = new Pais(UUID.randomUUID(), "CO", "Colombia", null, null, null, true);
         Pais estadosUnidos = new Pais(UUID.randomUUID(), "US", "United States", null, null, null, true);
         when(configuracion.listarPaises(null, PageRequest.of(0, 500)))
                 .thenReturn(new PageImpl<>(List.of(colombia, estadosUnidos)));
-        ReferenciasService service = new ReferenciasService(configuracion, catalogo);
+        ReferenciasService service = new ReferenciasService(configuracion, catalogo, usuarios);
 
         var options = service.listar(
                 "pais",
@@ -54,7 +61,7 @@ class ReferenciasServiceTest {
 
     @Test
     void rechazaReferenciasDesconocidasOSinPermiso() {
-        ReferenciasService service = new ReferenciasService(configuracion, catalogo);
+        ReferenciasService service = new ReferenciasService(configuracion, catalogo, usuarios);
         UsuarioAutenticado user = new UsuarioAutenticado(
                 UUID.randomUUID(),
                 "user@example.com",
@@ -83,5 +90,47 @@ class ReferenciasServiceTest {
                 .isInstanceOfSatisfying(
                         ErrorAplicacionException.class,
                         error -> assertThat(error.status()).isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    @AfterEach
+    void limpiarLocale() {
+        LocaleContextHolder.resetLocaleContext();
+    }
+
+    @Test
+    void listaProductosConNombreEnElIdiomaDeLaSolicitud() {
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
+        ReferenciaOpcion consola = new ReferenciaOpcion(UUID.randomUUID(), "PRD-1", "Console");
+        when(catalogo.listarReferenciasProducto("en", 500)).thenReturn(List.of(consola));
+        ReferenciasService service = new ReferenciasService(configuracion, catalogo, usuarios);
+
+        assertThat(service.listar("producto", actor(Set.of("CATALOGO_CONSULTAR"))))
+                .containsExactly(consola);
+    }
+
+    @Test
+    void usuariosSoloParaQuienConsultaReportes() {
+        ReferenciaOpcion vendedor = new ReferenciaOpcion(UUID.randomUUID(), "v@example.com", "Vendedor");
+        when(usuarios.listarReferencias(500)).thenReturn(List.of(vendedor));
+        ReferenciasService service = new ReferenciasService(configuracion, catalogo, usuarios);
+
+        assertThat(service.listar("usuario", actor(Set.of("REPORTES_TODOS"))))
+                .containsExactly(vendedor);
+        assertThatThrownBy(() -> service.listar("usuario", actor(Set.of("VENTAS_GESTIONAR"))))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        error -> assertThat(error.status()).isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    private UsuarioAutenticado actor(Set<String> permisos) {
+        return new UsuarioAutenticado(
+                UUID.randomUUID(),
+                "user@example.com",
+                "User",
+                "es",
+                List.of(),
+                permisos,
+                Set.of(),
+                UUID.randomUUID());
     }
 }

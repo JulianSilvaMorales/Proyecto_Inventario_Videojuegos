@@ -52,6 +52,7 @@
     {
       "codigo": "GENERAL",
       "nombre": "Bodega general",
+      "pais_codigo": "CO",
       "activo": true
     }
   ],
@@ -196,6 +197,17 @@
       "clave": "pais.origen_codigo_iso",
       "valor": "CO",
       "tipo": "TEXTO"
+    },
+    {
+      "clave": "ventas.medios_pago",
+      "valor": ["EFECTIVO", "TARJETA", "TRANSFERENCIA_BANCARIA"],
+      "tipo": "JSON"
+    },
+    {
+      "clave": "ventas.medios_pago",
+      "pais_codigo": "CO",
+      "valor": ["EFECTIVO", "TARJETA", "TRANSFERENCIA_BANCARIA", "PSE", "NEQUI", "DAVIPLATA"],
+      "tipo": "JSON"
     }
   ]
 }

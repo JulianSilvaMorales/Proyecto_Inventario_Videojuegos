@@ -25,10 +25,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T | undefined> {
+async function send(path: string, init: RequestInit): Promise<Response> {
   const headers = new Headers(init.headers)
   const token = sessionStorage.getItem(AUTH_TOKEN_KEY)
   const language =
@@ -48,7 +45,7 @@ export async function apiRequest<T>(
   try {
     response = await fetch(`${apiBaseUrl}${path}`, { ...init, headers })
   } catch {
-    throw new ApiError(0, 'The server could not be reached.')
+    throw new ApiError(0, '')
   }
 
   const refreshedToken = response.headers.get('X-Auth-Token')
@@ -67,15 +64,24 @@ export async function apiRequest<T>(
       try {
         problem = JSON.parse(body) as ProblemDetails
       } catch {
-        problem = { detail: body }
+        // Un cuerpo que no es Problem Details (por ejemplo, HTML de un proxy) no se muestra.
+        problem = {}
       }
     }
     throw new ApiError(
       response.status,
-      problem.detail ?? response.statusText ?? 'The request failed.',
+      problem.detail ?? '',
       problem.title,
     )
   }
+  return response
+}
+
+export async function apiRequest<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T | undefined> {
+  const response = await send(path, init)
 
   if (response.status === 204) {
     return undefined
@@ -83,10 +89,23 @@ export async function apiRequest<T>(
 
   const contentType = response.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) {
-    throw new ApiError(
-      response.status,
-      'The server returned an unexpected response format.',
-    )
+    throw new ApiError(response.status, '')
   }
   return (await response.json()) as T
+}
+
+/** Descarga un archivo autenticado (por ejemplo, un CSV) y lo entrega al navegador. */
+export async function apiDownload(path: string, fallbackFileName: string): Promise<void> {
+  const response = await send(path, {})
+  const disposition = response.headers.get('content-disposition') ?? ''
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition)
+  const fileName = match ? decodeURIComponent(match[1]) : fallbackFileName
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }

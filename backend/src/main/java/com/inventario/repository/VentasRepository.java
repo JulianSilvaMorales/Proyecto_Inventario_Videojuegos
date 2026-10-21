@@ -8,9 +8,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -27,6 +34,16 @@ public class VentasRepository {
 
     private static final RowMapper<Venta> VENTA_MAPPER = VentasRepository::mapVenta;
     private static final RowMapper<VentaLinea> LINEA_MAPPER = VentasRepository::mapLinea;
+
+    private static final String VENTA_COLUMNS = """
+            SELECT v.id, v.numero, v.cliente_id, v.pais_id,
+                   p.codigo_iso AS pais_codigo, v.moneda_id,
+                   m.codigo_iso AS moneda_codigo, v.tipo_cambio_aplicado,
+                   v.subtotal, v.total_impuestos, v.total,
+                   v.total_moneda_base, v.estado, v.estado_pago,
+                   v.medio_pago, v.registrada_por_id, v.creada_en_utc,
+                   v.pagada_en_utc, v.confirmada_en_utc, v.anulada_en_utc
+            """;
 
     private final JdbcTemplate jdbc;
 
@@ -145,16 +162,46 @@ public class VentasRepository {
         }
     }
 
+    public Page<Venta> listar(String estado, Set<String> paisesPermitidos, Pageable pageable) {
+        StringBuilder from = new StringBuilder(
+                """
+                FROM public.venta v
+                JOIN public.pais p ON p.id = v.pais_id
+                JOIN public.moneda m ON m.id = v.moneda_id
+                WHERE 1 = 1
+                """);
+        List<Object> args = new ArrayList<>();
+        if (estado != null && !estado.isBlank()) {
+            from.append(" AND v.estado = ?");
+            args.add(estado.trim());
+        }
+        if (paisesPermitidos != null && !paisesPermitidos.isEmpty()) {
+            List<String> paises = new TreeSet<>(paisesPermitidos).stream().toList();
+            String placeholders = paises.stream().map(ignored -> "?").collect(Collectors.joining(","));
+            from.append(" AND p.codigo_iso IN (").append(placeholders).append(")");
+            args.addAll(paises);
+        }
+
+        Long total = jdbc.queryForObject(
+                "SELECT COUNT(*) " + from,
+                Long.class,
+                args.toArray());
+        List<Object> pageArgs = new ArrayList<>(args);
+        pageArgs.add(pageable.getPageSize());
+        pageArgs.add(pageable.getOffset());
+        List<Venta> ventas = jdbc.query(
+                VENTA_COLUMNS + " " + from
+                        + " ORDER BY v.creada_en_utc DESC, v.numero DESC"
+                        + " LIMIT ? OFFSET ?",
+                VENTA_MAPPER,
+                pageArgs.toArray());
+        return new PageImpl<>(ventas, pageable, total == null ? 0 : total);
+    }
+
     public Optional<Venta> buscarVenta(UUID id) {
         return jdbc.query(
-                        """
-                        SELECT v.id, v.numero, v.cliente_id, v.pais_id,
-                               p.codigo_iso AS pais_codigo, v.moneda_id,
-                               m.codigo_iso AS moneda_codigo, v.tipo_cambio_aplicado,
-                               v.subtotal, v.total_impuestos, v.total,
-                               v.total_moneda_base, v.estado, v.estado_pago,
-                               v.medio_pago, v.registrada_por_id, v.creada_en_utc,
-                               v.pagada_en_utc, v.confirmada_en_utc, v.anulada_en_utc
+                        VENTA_COLUMNS
+                        + """
                         FROM public.venta v
                         JOIN public.pais p ON p.id = v.pais_id
                         JOIN public.moneda m ON m.id = v.moneda_id

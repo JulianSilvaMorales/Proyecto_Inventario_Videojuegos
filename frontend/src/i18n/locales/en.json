@@ -1,11 +1,11 @@
 {
   "app": {
-    "name": "Inventory",
-    "subtitle": "Clear inventory and sales control"
+    "name": "PixelVault",
+    "subtitle": "Console & Video Game Inventory and Sales Platform"
   },
   "auth": {
     "title": "Sign in",
-    "subtitle": "Access your inventory account",
+    "subtitle": "Access your PixelVault account",
     "email": "Email address",
     "password": "Password",
     "submit": "Sign in",
@@ -22,7 +22,15 @@
     "currency": "Sample currency",
     "role": "Role",
     "countries": "Allowed countries",
-    "allCountries": "All countries"
+    "allCountries": "All countries",
+    "filter": "Filter",
+    "all": "All",
+    "country": "Country",
+    "from": "From",
+    "to": "To",
+    "yes": "Yes",
+    "no": "No",
+    "openMenu": "Open menu"
   },
   "crud": {
     "back": "Back",
@@ -50,9 +58,10 @@
       "minimum": "The value must be at least {{value}}.",
       "maximum": "The value must be at most {{value}}.",
       "json": "Enter valid JSON.",
-      "option": "Choose a valid option.",
-      "consent": "The customer's authorization must be recorded."
-    }
+      "option": "Select a valid option.",
+      "consent": "You must record customer consent."
+    },
+    "saving": "Saving…"
   },
   "nav": {
     "home": "Home",
@@ -66,24 +75,312 @@
   },
   "dashboard": {
     "eyebrow": "Dashboard",
-    "welcome": "Hello, {{name}}",
-    "subtitle": "Your workspace is ready.",
-    "accessTitle": "Access for this session",
+    "welcome": "Welcome, {{name}}",
+    "subtitle": "Your PixelVault workspace is ready.",
+    "accessTitle": "Current session access",
     "permissions": "Assigned permissions",
-    "formatTitle": "Formats for your language and currency",
-    "formatDescription": "Selections update instantly without reloading the page.",
+    "formatTitle": "Formats based on your language and currency",
+    "formatDescription": "Changes apply instantly without reloading the page.",
     "amount": "Sample amount",
     "number": "Quantity",
     "date": "Date and time"
   },
+  "catalog": {
+    "title": "Product catalog",
+    "subtitle": "Manage products, attributes by type, translations and prices.",
+    "tabProducts": "Products",
+    "tabCategories": "Categories",
+    "categoriesDescription": "Manage the store's main categories and subcategories.",
+    "openCategories": "Manage categories",
+    "createProduct": "New product",
+    "editProduct": "Edit product",
+    "searchByCode": "Search by internal code",
+    "name": "Name",
+    "description": "Description",
+    "type": "Product type",
+    "category": "Category",
+    "subcategory": "Subcategory",
+    "noSubcategories": "This category has no active subcategories.",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "sections": {
+      "classification": "Classification",
+      "attributes": "Product type attributes"
+    },
+    "selectTypeFirst": "Select a product type to see its attributes.",
+    "noAttributes": "This type has no configured attributes.",
+    "attributeRequired": "The attribute “{{name}}” is required.",
+    "attributeInvalid": "The value of attribute “{{name}}” is not valid for its data type.",
+    "translations": "Name and description by language",
+    "nameRequired": "Enter the product name in at least one language.",
+    "prices": "Prices",
+    "registeredPrices": "Registered prices",
+    "priceHistoryHelp": "Registered prices are not edited; to change a price, add a new validity period.",
+    "addPrice": "Add price",
+    "removePrice": "Remove price",
+    "priceRequired": "Add at least one price.",
+    "priceInvalid": "Each price needs a currency, start date and a valid decimal amount (up to 4 decimals).",
+    "currency": "Currency",
+    "amount": "Amount",
+    "validFrom": "Valid from",
+    "validTo": "Valid to",
+    "deactivateTitle": "Deactivate product?",
+    "deactivateMessage": "Product {{code}} will be deactivated and can no longer be sold. It is not deleted.",
+    "empty": "No products in the catalog.",
+    "savedSuccess": "Product saved.",
+    "deactivatedSuccess": "Product deactivated."
+  },
+  "inventory": {
+    "title": "Inventory management",
+    "subtitle": "Stock, purchase receipts, exits, approved adjustments and history.",
+    "tabs": {
+      "balances": "Stock",
+      "entries": "Purchase receipts",
+      "exits": "Exits",
+      "adjustments": "Adjustments",
+      "movements": "Movements",
+      "warehouses": "Warehouses"
+    },
+    "warehousesDescription": "Manage warehouses and the country they belong to.",
+    "openWarehouses": "Manage warehouses",
+    "warehouse": "Warehouse",
+    "product": "Product",
+    "quantity": "Stock",
+    "allWarehouses": "All warehouses",
+    "onlyWithStock": "Only with stock",
+    "lastUpdated": "Last updated",
+    "emptyBalances": "No stock balances to show.",
+    "purchaseOrders": "Purchase orders",
+    "orderNumber": "Order no.",
+    "emptyOrders": "No purchase orders registered.",
+    "orderStates": {
+      "BORRADOR": "Draft",
+      "ENVIADA_AL_PROVEEDOR": "Sent to supplier",
+      "RECIBIDA_PARCIAL": "Partially received",
+      "RECIBIDA_COMPLETA": "Received",
+      "CANCELADA": "Cancelled"
+    },
+    "registerEntry": "Receive stock",
+    "purchaseOrder": "Purchase order (sent or partial)",
+    "documentNumber": "Document or invoice",
+    "exchangeRateApplied": "Exchange rate applied",
+    "exchangeRateHelp": "Rate to the base currency; use 1 if the order is in the base currency.",
+    "linesToReceive": "Lines to receive",
+    "orderedQty": "Ordered",
+    "previouslyReceivedQty": "Previously received",
+    "pendingQty": "Pending",
+    "receivedQty": "Received quantity",
+    "invalidReceivedQuantity": "The received quantity for “{{product}}” must be a whole number between 0 and the pending amount.",
+    "receiveAtLeastOne": "Receive at least one unit on some line.",
+    "entrySuccess": "Stock receipt registered.",
+    "exitsDescription": "Record losses, damage, theft or defects with the report number sent to the official supplier.",
+    "exitType": "Exit type",
+    "exitTypes": {
+      "PERDIDA": "Loss",
+      "DANO": "Damage",
+      "ROBO": "Theft",
+      "DEFECTO": "Defect"
+    },
+    "exitQuantity": "Quantity",
+    "supplier": "Official supplier",
+    "supplierReport": "Supplier report no.",
+    "notes": "Notes",
+    "registerExit": "Register exit",
+    "exitSuccess": "Exit registered.",
+    "requestAdjustment": "Request adjustment",
+    "adjustmentType": "Adjustment type",
+    "adjustmentTypes": {
+      "OPERATIVO": "Operational",
+      "TECNICO": "Technical"
+    },
+    "adjustmentStates": {
+      "PENDIENTE_DE_APROBACION": "Pending approval",
+      "APROBADO": "Approved",
+      "APLICADO": "Applied"
+    },
+    "countedQuantity": "Counted quantity",
+    "systemQuantity": "System quantity",
+    "difference": "Difference",
+    "reason": "Reason",
+    "status": "Status",
+    "approve": "Approve",
+    "apply": "Apply to stock",
+    "revalidate": "Revalidate",
+    "adjustmentSuccess": "Adjustment request sent for approval.",
+    "adjustmentActions": {
+      "aprobar": "Adjustment approved.",
+      "aplicar": "Adjustment applied to stock.",
+      "revalidar": "Adjustment revalidated against current stock; it is pending approval again."
+    },
+    "emptyAdjustments": "No adjustment requests.",
+    "movementType": "Movement type",
+    "movementTypes": {
+      "ENTRADA": "Receipt",
+      "SALIDA_VENTA": "Sale",
+      "SALIDA_PERDIDA": "Loss",
+      "SALIDA_DANO": "Damage",
+      "SALIDA_ROBO": "Theft",
+      "SALIDA_DEFECTO": "Defect",
+      "AJUSTE": "Adjustment"
+    },
+    "movementQuantity": "Quantity",
+    "date": "Date",
+    "emptyMovements": "No movements to show."
+  },
+  "validation": {
+    "requiredFields": "Fill in all required fields.",
+    "dateRange": "The start date cannot be after the end date.",
+    "positiveInteger": "{{field}} must be a whole number greater than zero.",
+    "nonNegativeInteger": "{{field}} must be a whole number of zero or more.",
+    "positiveDecimal": "{{field}} must be a decimal number greater than zero (use a decimal point or comma)."
+  },
+  "sales": {
+    "title": "Sales",
+    "subtitle": "Record sales in the country's currency, confirm payment and issue the simulated receipt.",
+    "newSale": "New sale",
+    "empty": "No sales to show.",
+    "number": "Number",
+    "date": "Date",
+    "status": "Status",
+    "paymentStatus": "Payment",
+    "view": "View",
+    "states": {
+      "PENDIENTE_DE_PAGO": "Pending payment",
+      "CONFIRMADA": "Confirmed",
+      "ANULADA": "Cancelled"
+    },
+    "paymentStates": {
+      "SIN_PAGO": "Unpaid",
+      "PAGADO": "Paid"
+    },
+    "noCountries": "There are no countries enabled for sales within your scope.",
+    "currency": "Currency",
+    "currencyHelp": "Local currency of the sale's country.",
+    "client": "Customer",
+    "clientOptional": "Optional. Search by name, surname or email (min. 2 letters).",
+    "clientSearchHelp": "Type to search customers of the country.",
+    "noClient": "No registered customer",
+    "lines": "Products",
+    "product": "Product",
+    "warehouse": "Warehouse",
+    "quantity": "Quantity",
+    "addLine": "Add product",
+    "removeLine": "Remove product",
+    "lineIncomplete": "Each product needs a warehouse in the sale's country.",
+    "linesRequired": "Add at least one product.",
+    "pendingHelp": "The sale is created pending payment: current price, tax and exchange rate are calculated, and stock is not deducted until payment is confirmed.",
+    "calculate": "Calculate sale",
+    "saleDetail": "Sale details",
+    "saleNumber": "Sale {{number}}",
+    "unitPrice": "Unit price",
+    "tax": "Tax",
+    "taxAmount": "Tax amount",
+    "lineTotal": "Line total",
+    "subtotal": "Subtotal",
+    "taxes": "Taxes",
+    "total": "Total",
+    "exchangeRate": "Exchange rate applied",
+    "baseCurrencyTotal": "Total in base currency",
+    "paymentMethod": "Payment method",
+    "paymentMethodFreeText": "This country has no configured payment methods; enter the one used.",
+    "paymentMethodRequired": "Select the payment method.",
+    "paymentMethods": {
+      "EFECTIVO": "Cash",
+      "TARJETA": "Card",
+      "TRANSFERENCIA_BANCARIA": "Bank transfer",
+      "PSE": "PSE",
+      "NEQUI": "Nequi",
+      "DAVIPLATA": "Daviplata"
+    },
+    "confirmPayment": "Confirm payment",
+    "confirmedSuccess": "Payment confirmed: stock was deducted and the sale is confirmed.",
+    "cancelSale": "Cancel sale",
+    "cancelTitle": "Cancel this sale?",
+    "cancelMessage": "Only sales pending payment can be cancelled. Stock is not changed.",
+    "cancelledSuccess": "Sale cancelled.",
+    "viewReceipt": "View receipt",
+    "receiptTitle": "Sales receipt",
+    "simulatedReceipt": "Simulated receipt: this is not an invoice or a tax document.",
+    "print": "Print"
+  },
+  "reports": {
+    "title": "Inventory reports",
+    "subtitle": "Stock and movements with filters, exportable to CSV.",
+    "stockTab": "Stock",
+    "movementsTab": "Movements",
+    "product": "Product",
+    "warehouse": "Warehouse",
+    "user": "User",
+    "currency": "Currency",
+    "saleFiltersHelp": "Country and currency filters apply to sale movements.",
+    "results": "{{count}} results",
+    "empty": "No data for the selected filters.",
+    "exportCsv": "Export CSV",
+    "exporting": "Exporting…"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Business parameters with scope and validity, and international configuration data.",
+    "tabs": {
+      "parameters": "Parameters",
+      "catalogs": "Countries, currencies and taxes"
+    },
+    "parametersHelp": "A country parameter takes precedence over the business one when both are in force. Changes apply within 5 minutes at most.",
+    "catalogsHelp": "Manage countries, currencies, languages, exchange rates and taxes.",
+    "newParameter": "New parameter",
+    "editParameter": "Edit parameter",
+    "key": "Key",
+    "keyHelp": "For example, ventas.medios_pago.",
+    "keyLocked": "Key and type cannot change; create another parameter if you need different ones.",
+    "type": "Type",
+    "types": {
+      "TEXTO": "Text",
+      "ENTERO": "Integer",
+      "DECIMAL": "Decimal",
+      "BOOLEANO": "Yes/No",
+      "JSON": "JSON"
+    },
+    "value": "Value",
+    "valueHelp": {
+      "TEXTO": "Non-empty text.",
+      "ENTERO": "Whole number.",
+      "DECIMAL": "Decimal number; use a point or comma.",
+      "BOOLEANO": "",
+      "JSON": "Valid JSON, for example [\"EFECTIVO\", \"TARJETA\"]."
+    },
+    "invalidValue": {
+      "TEXTO": "Enter some text.",
+      "ENTERO": "Enter a whole number.",
+      "DECIMAL": "Enter a valid decimal number.",
+      "BOOLEANO": "Select a value.",
+      "JSON": "Enter valid JSON."
+    },
+    "minimum": "Minimum",
+    "maximum": "Maximum",
+    "limits": "Limits",
+    "invalidLimits": "Limits must be decimal numbers with up to 4 decimals.",
+    "scope": "Scope",
+    "scopes": {
+      "NEGOCIO": "Whole business",
+      "PAIS": "Country"
+    },
+    "validity": "Validity",
+    "validFrom": "Valid from",
+    "validTo": "Valid to",
+    "validToHelp": "Empty: no end date.",
+    "openEnded": "open-ended",
+    "empty": "No parameters for the selected filters.",
+    "savedSuccess": "Parameter saved."
+  },
   "modules": {
     "catalog": {
       "title": "Catalog",
-      "description": "Browse and manage products and categories. Management screens will be enabled in the next substage."
+      "description": "Browse and manage products, attributes, and categories."
     },
     "inventory": {
       "title": "Inventory",
-      "description": "Review stock, movements, and adjustments in your authorized countries."
+      "description": "View balances, movements, and adjustments for your authorized countries."
     },
     "purchases": {
       "title": "Purchases",
@@ -91,25 +388,25 @@
     },
     "suppliers": {
       "title": "Suppliers",
-      "description": "Browse suppliers within your country scope."
+      "description": "View authorized suppliers within your assigned countries."
     },
     "sales": {
       "title": "Sales",
-      "description": "Register sales and confirm payments in the transaction currency."
+      "description": "Process sales and confirm payments in the transaction currency."
     },
     "reports": {
       "title": "Reports",
-      "description": "Review stock and movements with country filters."
+      "description": "View stock and movement reports with country filters."
     },
     "settings": {
       "title": "Settings",
-      "description": "Manage parameters and configuration data."
+      "description": "Manage parameters and international configuration."
     },
-    "availableSoon": "This section will be implemented in the upcoming E6 substages."
+    "availableSoon": "This section will be available in the next sub-stage."
   },
   "errors": {
-    "network": "Could not connect to the server. Check that it is running and try again.",
-    "logoutNetwork": "This device signed out, but the server could not confirm the sign-out.",
+    "network": "Could not connect to the server. Please ensure it is running and try again.",
+    "logoutNetwork": "The session was closed on this device, but sign-out could not be confirmed on the server.",
     "unexpected": "An unexpected error occurred."
   }
 }

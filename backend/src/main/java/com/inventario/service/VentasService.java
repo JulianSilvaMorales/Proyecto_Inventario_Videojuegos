@@ -1,5 +1,6 @@
 package com.inventario.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.inventario.domain.CalculoImpuesto;
 import com.inventario.domain.ConversionMoneda;
 import com.inventario.domain.Bodega;
@@ -8,6 +9,7 @@ import com.inventario.domain.Pais;
 import com.inventario.domain.ProductoVenta;
 import com.inventario.domain.Venta;
 import com.inventario.domain.VentaLinea;
+import com.inventario.dto.PaisVenta;
 import com.inventario.dto.RespuestaVenta;
 import com.inventario.dto.SolicitudLineaVenta;
 import com.inventario.dto.SolicitudVenta;
@@ -29,6 +31,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +42,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class VentasService {
 
     private static final int RATE_SCALE = 8;
+    private static final Set<String> ESTADOS =
+            Set.of("PENDIENTE_DE_PAGO", "CONFIRMADA", "ANULADA");
+    private static final String MEDIOS_PAGO_KEY = "ventas.medios_pago";
+    private static final int MAX_PAISES = 500;
 
     private final VentasRepository repository;
     private final ConfiguracionRepository configuracion;
@@ -282,6 +291,58 @@ public class VentasService {
                 venta,
                 repository.listarLineas(id),
                 venta.estado().equals("CONFIRMADA"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaisVenta> paisesDisponibles(Set<String> paisesPermitidos) {
+        List<PaisVenta> disponibles = new ArrayList<>();
+        for (Pais pais : configuracion.listarPaises(null, PageRequest.of(0, MAX_PAISES))) {
+            boolean enAlcance = paisesPermitidos == null
+                    || paisesPermitidos.isEmpty()
+                    || paisesPermitidos.contains(pais.codigoIso());
+            if (!pais.habilitado() || !enAlcance || pais.monedaLocalId() == null) {
+                continue;
+            }
+            configuracion.buscarMoneda(pais.monedaLocalId()).ifPresent(moneda ->
+                    disponibles.add(new PaisVenta(
+                            pais.id(),
+                            pais.codigoIso(),
+                            pais.nombre(),
+                            moneda.id(),
+                            moneda.codigoIso(),
+                            moneda.decimales(),
+                            mediosPago(pais.codigoIso()))));
+        }
+        return disponibles;
+    }
+
+    private List<String> mediosPago(String paisCodigo) {
+        JsonNode valor;
+        try {
+            valor = parametros.resolver(MEDIOS_PAGO_KEY, paisCodigo).valor();
+        } catch (ParametroNoEncontradoException exception) {
+            return List.of();
+        }
+        List<String> medios = new ArrayList<>();
+        if (valor != null && valor.isArray()) {
+            valor.forEach(medio -> {
+                if (medio.isTextual() && !medio.asText().isBlank()) {
+                    medios.add(medio.asText().trim().toUpperCase(Locale.ROOT));
+                }
+            });
+        }
+        return medios;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Venta> listar(String estado, Set<String> paisesPermitidos, Pageable pageable) {
+        String estadoNormalizado = estado == null || estado.isBlank()
+                ? null
+                : estado.trim().toUpperCase(Locale.ROOT);
+        if (estadoNormalizado != null && !ESTADOS.contains(estadoNormalizado)) {
+            throw error(HttpStatus.BAD_REQUEST, "error.sales.state");
+        }
+        return repository.listar(estadoNormalizado, paisesPermitidos, pageable);
     }
 
     @Transactional(readOnly = true)

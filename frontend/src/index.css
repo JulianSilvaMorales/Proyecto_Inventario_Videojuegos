@@ -27,3 +27,21 @@ input,
 select {
   font: inherit;
 }
+
+/* Al imprimir un recibo simulado solo se muestra su contenido. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .receipt-print,
+  .receipt-print * {
+    visibility: visible;
+  }
+
+  .receipt-print {
+    position: absolute;
+    inset: 0 0 auto;
+    padding: 16px;
+  }
+}

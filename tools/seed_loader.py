@@ -83,7 +83,6 @@ def _validar_semillas(data: dict[str, Any], seed_path: Path) -> None:
         ("roles", "codigo"),
         ("permisos", "codigo"),
         ("bodegas", "codigo"),
-        ("parametros", "clave"),
     )
     for key, identity in identities:
         records = data[key]
@@ -115,7 +114,7 @@ def _validar_semillas(data: dict[str, Any], seed_path: Path) -> None:
             "incluido_en_precio",
             "vigente_desde",
         ),
-        "bodegas": ("nombre", "activo"),
+        "bodegas": ("nombre", "pais_codigo", "activo"),
         "roles": ("nombre",),
         "permisos": ("descripcion",),
         "parametros": ("valor", "tipo"),
@@ -131,7 +130,7 @@ def _validar_semillas(data: dict[str, Any], seed_path: Path) -> None:
             "zona_horaria",
         ),
         "impuestos": ("pais_codigo", "nombre", "vigente_desde"),
-        "bodegas": ("codigo", "nombre"),
+        "bodegas": ("codigo", "nombre", "pais_codigo"),
         "roles": ("codigo", "nombre"),
         "permisos": ("codigo", "descripcion"),
         "parametros": ("clave", "tipo"),
@@ -179,6 +178,8 @@ def _validar_semillas(data: dict[str, Any], seed_path: Path) -> None:
     for warehouse in data["bodegas"]:
         if not isinstance(warehouse["activo"], bool):
             raise ValueError(f"El estado de la bodega '{warehouse['codigo']}' debe ser booleano.")
+        if warehouse["pais_codigo"] not in country_codes:
+            raise ValueError(f"La bodega '{warehouse['codigo']}' referencia un país inexistente.")
     for tax in data["impuestos"]:
         if tax.get("pais_codigo") not in country_codes:
             raise ValueError("Una tarifa inicial referencia un país inexistente.")
@@ -205,6 +206,17 @@ def _validar_semillas(data: dict[str, Any], seed_path: Path) -> None:
             raise ValueError("Los códigos de permiso deben ser texto.")
         if set(assigned_permissions) - permission_codes:
             raise ValueError("El mapa de roles referencia permisos no definidos.")
+    parameter_identities = set()
+    for parameter in data["parametros"]:
+        if not isinstance(parameter, dict) or not str(parameter.get("clave", "")).strip():
+            raise ValueError("Cada elemento de 'parametros' debe incluir 'clave'.")
+        country = parameter.get("pais_codigo")
+        if country is not None and country not in country_codes:
+            raise ValueError(f"El parámetro '{parameter['clave']}' referencia un país inexistente.")
+        identity = (parameter["clave"], country)
+        if identity in parameter_identities:
+            raise ValueError(f"El parámetro '{parameter['clave']}' está duplicado para su ámbito.")
+        parameter_identities.add(identity)
     for parameter in data["parametros"]:
         parameter_type = parameter["tipo"]
         if parameter_type not in {"TEXTO", "ENTERO", "DECIMAL", "BOOLEANO", "JSON"}:
@@ -367,8 +379,11 @@ def sembrar_datos(
             "bodega",
             {
                 "id": _id("bodega", warehouse["codigo"]),
-                **warehouse,
+                "codigo": warehouse["codigo"],
+                "nombre": warehouse["nombre"],
+                "activo": warehouse["activo"],
                 "categoria_id": None,
+                "pais_id": ref_ids["pais"][warehouse["pais_codigo"]],
             },
         )
 
@@ -388,18 +403,22 @@ def sembrar_datos(
 
     for parameter in data["parametros"]:
         value = parameter["valor"]
+        country = parameter.get("pais_codigo")
         add(
             "parametro",
             {
-                "id": _id("parametro", parameter["clave"]),
+                "id": _id(
+                    "parametro",
+                    parameter["clave"] if country is None else f"{parameter['clave']}:{country}",
+                ),
                 "clave": parameter["clave"],
                 "valor": value,
                 "tipo": parameter["tipo"],
                 "minimo": (Decimal(str(parameter["minimo"])) if "minimo" in parameter else None),
                 "maximo": (Decimal(str(parameter["maximo"])) if "maximo" in parameter else None),
                 "valor_por_defecto": value,
-                "ambito": "NEGOCIO",
-                "pais_id": None,
+                "ambito": "NEGOCIO" if country is None else "PAIS",
+                "pais_id": None if country is None else ref_ids["pais"][country],
                 "vigente_desde": "2026-01-01",
                 "vigente_hasta": None,
                 "actualizado_por_id": administrator_id,

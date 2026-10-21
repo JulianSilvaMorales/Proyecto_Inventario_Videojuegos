@@ -2,6 +2,7 @@ package com.inventario.repository;
 
 import com.inventario.domain.IdentidadAutenticada;
 import com.inventario.domain.UsuarioCuenta;
+import com.inventario.dto.ReferenciaOpcion;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -24,6 +25,21 @@ public class UsuarioRepository {
 
     public UsuarioRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public List<ReferenciaOpcion> listarReferencias(int limite) {
+        return jdbcTemplate.query(
+                """
+                SELECT id, correo, nombre
+                FROM public.usuario
+                ORDER BY nombre, correo
+                LIMIT ?
+                """,
+                (rs, row) -> new ReferenciaOpcion(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("correo"),
+                        rs.getString("nombre")),
+                limite);
     }
 
     public Optional<UsuarioCuenta> buscarPorCorreoParaAutenticar(String correo) {

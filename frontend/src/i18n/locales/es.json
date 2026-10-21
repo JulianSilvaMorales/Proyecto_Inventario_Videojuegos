@@ -1,11 +1,11 @@
 {
   "app": {
-    "name": "Inventario",
-    "subtitle": "Control claro de inventario y ventas"
+    "name": "PixelVault",
+    "subtitle": "Plataforma de gestión para consolas, videojuegos y ventas"
   },
   "auth": {
     "title": "Inicia sesión",
-    "subtitle": "Accede con tu cuenta de inventario",
+    "subtitle": "Accede a tu cuenta de PixelVault",
     "email": "Correo electrónico",
     "password": "Contraseña",
     "submit": "Entrar",
@@ -22,7 +22,15 @@
     "currency": "Moneda de ejemplo",
     "role": "Rol",
     "countries": "Países permitidos",
-    "allCountries": "Todos los países"
+    "allCountries": "Todos los países",
+    "filter": "Filtrar",
+    "all": "Todos",
+    "country": "País",
+    "from": "Desde",
+    "to": "Hasta",
+    "yes": "Sí",
+    "no": "No",
+    "openMenu": "Abrir menú"
   },
   "crud": {
     "back": "Volver",
@@ -52,7 +60,8 @@
       "json": "Ingresa un JSON válido.",
       "option": "Selecciona una opción válida.",
       "consent": "Debes registrar la autorización del cliente."
-    }
+    },
+    "saving": "Guardando…"
   },
   "nav": {
     "home": "Inicio",
@@ -67,7 +76,7 @@
   "dashboard": {
     "eyebrow": "Panel de control",
     "welcome": "Hola, {{name}}",
-    "subtitle": "Tu espacio de trabajo está listo.",
+    "subtitle": "Tu espacio de trabajo en PixelVault está listo.",
     "accessTitle": "Acceso de esta sesión",
     "permissions": "Permisos asignados",
     "formatTitle": "Formatos según tu idioma y moneda",
@@ -76,10 +85,298 @@
     "number": "Cantidad",
     "date": "Fecha y hora"
   },
+  "catalog": {
+    "title": "Catálogo de productos",
+    "subtitle": "Administra productos, atributos por tipo, traducciones y precios.",
+    "tabProducts": "Productos",
+    "tabCategories": "Categorías",
+    "categoriesDescription": "Administra las categorías principales y las subcategorías de la tienda.",
+    "openCategories": "Gestionar categorías",
+    "createProduct": "Nuevo producto",
+    "editProduct": "Editar producto",
+    "searchByCode": "Buscar por código interno",
+    "name": "Nombre",
+    "description": "Descripción",
+    "type": "Tipo de producto",
+    "category": "Categoría",
+    "subcategory": "Subcategoría",
+    "noSubcategories": "Esta categoría no tiene subcategorías activas.",
+    "status": "Estado",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "sections": {
+      "classification": "Clasificación",
+      "attributes": "Atributos del tipo de producto"
+    },
+    "selectTypeFirst": "Selecciona un tipo de producto para ver sus atributos.",
+    "noAttributes": "Este tipo no tiene atributos configurados.",
+    "attributeRequired": "El atributo «{{name}}» es obligatorio.",
+    "attributeInvalid": "El valor del atributo «{{name}}» no es válido para su tipo de dato.",
+    "translations": "Nombre y descripción por idioma",
+    "nameRequired": "Indica el nombre del producto al menos en un idioma.",
+    "prices": "Precios",
+    "registeredPrices": "Precios registrados",
+    "priceHistoryHelp": "Los precios registrados no se modifican; para cambiar un precio agrega un nuevo periodo de vigencia.",
+    "addPrice": "Agregar precio",
+    "removePrice": "Quitar precio",
+    "priceRequired": "Agrega al menos un precio.",
+    "priceInvalid": "Cada precio necesita moneda, fecha de inicio e importe decimal válido (máximo 4 decimales).",
+    "currency": "Moneda",
+    "amount": "Importe",
+    "validFrom": "Vigente desde",
+    "validTo": "Vigente hasta",
+    "deactivateTitle": "¿Desactivar producto?",
+    "deactivateMessage": "El producto {{code}} se desactivará y no podrá venderse. No se elimina.",
+    "empty": "No hay productos en el catálogo.",
+    "savedSuccess": "Producto guardado.",
+    "deactivatedSuccess": "Producto desactivado."
+  },
+  "inventory": {
+    "title": "Gestión de inventario",
+    "subtitle": "Existencias, entradas de compra, salidas, ajustes con aprobación e historial.",
+    "tabs": {
+      "balances": "Existencias",
+      "entries": "Entradas de compra",
+      "exits": "Salidas",
+      "adjustments": "Ajustes",
+      "movements": "Movimientos",
+      "warehouses": "Bodegas"
+    },
+    "warehousesDescription": "Administra las bodegas y el país al que pertenecen.",
+    "openWarehouses": "Gestionar bodegas",
+    "warehouse": "Bodega",
+    "product": "Producto",
+    "quantity": "Existencia",
+    "allWarehouses": "Todas las bodegas",
+    "onlyWithStock": "Solo con existencia",
+    "lastUpdated": "Última actualización",
+    "emptyBalances": "No hay saldos para mostrar.",
+    "purchaseOrders": "Órdenes de compra",
+    "orderNumber": "N.º de orden",
+    "emptyOrders": "No hay órdenes de compra registradas.",
+    "orderStates": {
+      "BORRADOR": "Borrador",
+      "ENVIADA_AL_PROVEEDOR": "Enviada al proveedor",
+      "RECIBIDA_PARCIAL": "Recibida parcialmente",
+      "RECIBIDA_COMPLETA": "Recibida",
+      "CANCELADA": "Cancelada"
+    },
+    "registerEntry": "Registrar entrada",
+    "purchaseOrder": "Orden de compra (enviada o parcial)",
+    "documentNumber": "Documento o factura",
+    "exchangeRateApplied": "Tipo de cambio aplicado",
+    "exchangeRateHelp": "Tasa hacia la moneda base; use 1 si la orden está en la moneda base.",
+    "linesToReceive": "Líneas a recibir",
+    "orderedQty": "Pedida",
+    "previouslyReceivedQty": "Recibida antes",
+    "pendingQty": "Pendiente",
+    "receivedQty": "Cantidad recibida",
+    "invalidReceivedQuantity": "La cantidad recibida de «{{product}}» debe ser un entero entre 0 y lo pendiente.",
+    "receiveAtLeastOne": "Recibe al menos una unidad en alguna línea.",
+    "entrySuccess": "Entrada de inventario registrada.",
+    "exitsDescription": "Registra pérdidas, daños, robos o defectos con el número de reporte al proveedor oficial.",
+    "exitType": "Tipo de salida",
+    "exitTypes": {
+      "PERDIDA": "Pérdida",
+      "DANO": "Daño",
+      "ROBO": "Robo",
+      "DEFECTO": "Defecto"
+    },
+    "exitQuantity": "Cantidad",
+    "supplier": "Proveedor oficial",
+    "supplierReport": "N.º de reporte al proveedor",
+    "notes": "Observaciones",
+    "registerExit": "Registrar salida",
+    "exitSuccess": "Salida registrada.",
+    "requestAdjustment": "Solicitar ajuste",
+    "adjustmentType": "Tipo de ajuste",
+    "adjustmentTypes": {
+      "OPERATIVO": "Operativo",
+      "TECNICO": "Técnico"
+    },
+    "adjustmentStates": {
+      "PENDIENTE_DE_APROBACION": "Pendiente de aprobación",
+      "APROBADO": "Aprobado",
+      "APLICADO": "Aplicado"
+    },
+    "countedQuantity": "Cantidad contada",
+    "systemQuantity": "Cantidad en sistema",
+    "difference": "Diferencia",
+    "reason": "Motivo",
+    "status": "Estado",
+    "approve": "Aprobar",
+    "apply": "Aplicar al saldo",
+    "revalidate": "Revalidar",
+    "adjustmentSuccess": "Solicitud de ajuste enviada para aprobación.",
+    "adjustmentActions": {
+      "aprobar": "Ajuste aprobado.",
+      "aplicar": "Ajuste aplicado al saldo.",
+      "revalidar": "Ajuste revalidado con el saldo actual; vuelve a estar pendiente de aprobación."
+    },
+    "emptyAdjustments": "No hay solicitudes de ajuste.",
+    "movementType": "Tipo de movimiento",
+    "movementTypes": {
+      "ENTRADA": "Entrada",
+      "SALIDA_VENTA": "Salida por venta",
+      "SALIDA_PERDIDA": "Salida por pérdida",
+      "SALIDA_DANO": "Salida por daño",
+      "SALIDA_ROBO": "Salida por robo",
+      "SALIDA_DEFECTO": "Salida por defecto",
+      "AJUSTE": "Ajuste"
+    },
+    "movementQuantity": "Cantidad",
+    "date": "Fecha",
+    "emptyMovements": "No hay movimientos para mostrar."
+  },
+  "validation": {
+    "requiredFields": "Completa todos los campos obligatorios.",
+    "dateRange": "La fecha inicial no puede ser posterior a la final.",
+    "positiveInteger": "{{field}} debe ser un número entero mayor que cero.",
+    "nonNegativeInteger": "{{field}} debe ser un número entero igual o mayor que cero.",
+    "positiveDecimal": "{{field}} debe ser un número decimal mayor que cero (use punto o coma decimal)."
+  },
+  "sales": {
+    "title": "Ventas",
+    "subtitle": "Registra ventas en la moneda del país, confirma el pago y emite el recibo simulado.",
+    "newSale": "Nueva venta",
+    "empty": "No hay ventas para mostrar.",
+    "number": "Número",
+    "date": "Fecha",
+    "status": "Estado",
+    "paymentStatus": "Pago",
+    "view": "Ver",
+    "states": {
+      "PENDIENTE_DE_PAGO": "Pendiente de pago",
+      "CONFIRMADA": "Confirmada",
+      "ANULADA": "Anulada"
+    },
+    "paymentStates": {
+      "SIN_PAGO": "Sin pago",
+      "PAGADO": "Pagado"
+    },
+    "noCountries": "No hay países habilitados para vender dentro de tu alcance.",
+    "currency": "Moneda",
+    "currencyHelp": "Moneda local del país de la venta.",
+    "client": "Cliente",
+    "clientOptional": "Opcional. Busca por nombre, apellidos o correo (mín. 2 letras).",
+    "clientSearchHelp": "Escribe para buscar clientes del país.",
+    "noClient": "Sin cliente registrado",
+    "lines": "Productos",
+    "product": "Producto",
+    "warehouse": "Bodega",
+    "quantity": "Cantidad",
+    "addLine": "Agregar producto",
+    "removeLine": "Quitar producto",
+    "lineIncomplete": "Cada producto necesita una bodega del país de la venta.",
+    "linesRequired": "Agrega al menos un producto.",
+    "pendingHelp": "La venta se crea pendiente de pago: se calculan precio, impuesto y tipo de cambio vigentes sin descontar inventario hasta confirmar el pago.",
+    "calculate": "Calcular venta",
+    "saleDetail": "Detalle de la venta",
+    "saleNumber": "Venta {{number}}",
+    "unitPrice": "Precio unitario",
+    "tax": "Impuesto",
+    "taxAmount": "Valor impuesto",
+    "lineTotal": "Total línea",
+    "subtotal": "Subtotal",
+    "taxes": "Impuestos",
+    "total": "Total",
+    "exchangeRate": "Tipo de cambio aplicado",
+    "baseCurrencyTotal": "Total en moneda base",
+    "paymentMethod": "Medio de pago",
+    "paymentMethodFreeText": "Este país no tiene medios de pago configurados; indica el usado.",
+    "paymentMethodRequired": "Selecciona el medio de pago.",
+    "paymentMethods": {
+      "EFECTIVO": "Efectivo",
+      "TARJETA": "Tarjeta",
+      "TRANSFERENCIA_BANCARIA": "Transferencia bancaria",
+      "PSE": "PSE",
+      "NEQUI": "Nequi",
+      "DAVIPLATA": "Daviplata"
+    },
+    "confirmPayment": "Confirmar pago",
+    "confirmedSuccess": "Pago confirmado: el inventario se descontó y la venta quedó confirmada.",
+    "cancelSale": "Anular venta",
+    "cancelTitle": "¿Anular la venta?",
+    "cancelMessage": "Solo se anulan ventas pendientes de pago. El inventario no se modifica.",
+    "cancelledSuccess": "Venta anulada.",
+    "viewReceipt": "Ver recibo",
+    "receiptTitle": "Recibo de venta",
+    "simulatedReceipt": "Recibo simulado: no es una factura ni un documento fiscal.",
+    "print": "Imprimir"
+  },
+  "reports": {
+    "title": "Reportes de inventario",
+    "subtitle": "Existencias y movimientos con filtros, exportables a CSV.",
+    "stockTab": "Existencias",
+    "movementsTab": "Movimientos",
+    "product": "Producto",
+    "warehouse": "Bodega",
+    "user": "Usuario",
+    "currency": "Moneda",
+    "saleFiltersHelp": "Los filtros de país y moneda se aplican a los movimientos de venta.",
+    "results": "{{count}} resultados",
+    "empty": "No hay datos para los filtros seleccionados.",
+    "exportCsv": "Exportar CSV",
+    "exporting": "Exportando…"
+  },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Parámetros del negocio con ámbito y vigencia, y datos de configuración internacional.",
+    "tabs": {
+      "parameters": "Parámetros",
+      "catalogs": "Países, monedas e impuestos"
+    },
+    "parametersHelp": "Prevalece el parámetro del país sobre el del negocio cuando ambos están vigentes. Los cambios se aplican en un máximo de 5 minutos.",
+    "catalogsHelp": "Administra países, monedas, idiomas, tipos de cambio e impuestos.",
+    "newParameter": "Nuevo parámetro",
+    "editParameter": "Editar parámetro",
+    "key": "Clave",
+    "keyHelp": "Por ejemplo, ventas.medios_pago.",
+    "keyLocked": "La clave y el tipo no se cambian; crea otro parámetro si los necesitas distintos.",
+    "type": "Tipo",
+    "types": {
+      "TEXTO": "Texto",
+      "ENTERO": "Entero",
+      "DECIMAL": "Decimal",
+      "BOOLEANO": "Sí/No",
+      "JSON": "JSON"
+    },
+    "value": "Valor",
+    "valueHelp": {
+      "TEXTO": "Texto no vacío.",
+      "ENTERO": "Número entero.",
+      "DECIMAL": "Número decimal; use punto o coma.",
+      "BOOLEANO": "",
+      "JSON": "JSON válido, por ejemplo [\"EFECTIVO\", \"TARJETA\"]."
+    },
+    "invalidValue": {
+      "TEXTO": "Ingresa un texto.",
+      "ENTERO": "Ingresa un número entero.",
+      "DECIMAL": "Ingresa un número decimal válido.",
+      "BOOLEANO": "Selecciona un valor.",
+      "JSON": "Ingresa un JSON válido."
+    },
+    "minimum": "Mínimo",
+    "maximum": "Máximo",
+    "limits": "Límites",
+    "invalidLimits": "Los límites deben ser números decimales con máximo 4 decimales.",
+    "scope": "Ámbito",
+    "scopes": {
+      "NEGOCIO": "Todo el negocio",
+      "PAIS": "País"
+    },
+    "validity": "Vigencia",
+    "validFrom": "Vigente desde",
+    "validTo": "Vigente hasta",
+    "validToHelp": "Vacío: sin fecha de fin.",
+    "openEnded": "sin fin",
+    "empty": "No hay parámetros para los filtros seleccionados.",
+    "savedSuccess": "Parámetro guardado."
+  },
   "modules": {
     "catalog": {
       "title": "Catálogo",
-      "description": "Consulta y administra productos y categorías. La pantalla de gestión se habilitará en la siguiente subetapa."
+      "description": "Consulta y administra productos, atributos y categorías."
     },
     "inventory": {
       "title": "Inventario",
@@ -105,7 +402,7 @@
       "title": "Configuración",
       "description": "Administra parámetros e información de configuración."
     },
-    "availableSoon": "Esta sección se implementará en las próximas subetapas de E6."
+    "availableSoon": "Esta sección se habilitará en la siguiente subetapa."
   },
   "errors": {
     "network": "No se pudo conectar con el servidor. Comprueba que esté iniciado e inténtalo de nuevo.",

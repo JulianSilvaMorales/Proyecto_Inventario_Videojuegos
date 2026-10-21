@@ -1,5 +1,6 @@
 package com.inventario.security;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -29,6 +30,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(authorize -> authorize
+                        // Los despachos ASYNC/ERROR continúan una petición ya autorizada
+                        // (por ejemplo, la exportación CSV transmitida en streaming).
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR)
+                        .permitAll()
                         .requestMatchers(
                                 "/api/v1",
                                 "/api/v1/",

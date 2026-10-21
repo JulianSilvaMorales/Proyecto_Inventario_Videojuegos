@@ -6,9 +6,11 @@ import com.inventario.domain.Moneda;
 import com.inventario.domain.Pais;
 import com.inventario.domain.UsuarioAutenticado;
 import com.inventario.dto.ReferenciaOpcion;
+import com.inventario.repository.UsuarioRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,27 +28,42 @@ public class ReferenciasService {
                     "PROVEEDORES_GESTIONAR",
                     "CLIENTES_GESTIONAR",
                     "PRODUCTOS_GESTIONAR",
-                    "VENTAS_GESTIONAR"),
+                    "VENTAS_GESTIONAR",
+                    "REPORTES_TODOS",
+                    "REPORTES_INVENTARIO"),
             "moneda",
             Set.of(
                     "PARAMETROS_GESTIONAR",
                     "TIPOS_CAMBIO_GESTIONAR",
                     "COMPRAS_GESTIONAR",
-                    "PROVEEDORES_GESTIONAR"),
+                    "PROVEEDORES_GESTIONAR",
+                    "PRODUCTOS_GESTIONAR",
+                    "REPORTES_TODOS",
+                    "REPORTES_INVENTARIO",
+                    "CATALOGO_CONSULTAR"),
             "idioma",
-            Set.of("PARAMETROS_GESTIONAR"),
+            Set.of("PARAMETROS_GESTIONAR", "PRODUCTOS_GESTIONAR"),
             "categoria",
             Set.of(
                     "CATALOGO_CONSULTAR",
                     "PRODUCTOS_GESTIONAR",
-                    "PARAMETROS_GESTIONAR"));
+                    "PARAMETROS_GESTIONAR"),
+            "producto",
+            Set.of("CATALOGO_CONSULTAR", "PRODUCTOS_GESTIONAR"),
+            "usuario",
+            Set.of("REPORTES_TODOS", "REPORTES_INVENTARIO"));
 
     private final ConfiguracionService configuracion;
     private final CatalogoService catalogo;
+    private final UsuarioRepository usuarios;
 
-    public ReferenciasService(ConfiguracionService configuracion, CatalogoService catalogo) {
+    public ReferenciasService(
+            ConfiguracionService configuracion,
+            CatalogoService catalogo,
+            UsuarioRepository usuarios) {
         this.configuracion = configuracion;
         this.catalogo = catalogo;
+        this.usuarios = usuarios;
     }
 
     @Transactional(readOnly = true)
@@ -77,6 +94,9 @@ public class ReferenciasService {
                     .filter(Categoria::activo)
                     .map(ReferenciasService::opcionCategoria)
                     .toList();
+            case "producto" -> catalogo.listarReferenciasProducto(
+                    LocaleContextHolder.getLocale().getLanguage(), MAX_REFERENCES);
+            case "usuario" -> usuarios.listarReferencias(MAX_REFERENCES);
             default -> throw new ErrorAplicacionException(
                     HttpStatus.NOT_FOUND, "error.reference.not-found");
         };
