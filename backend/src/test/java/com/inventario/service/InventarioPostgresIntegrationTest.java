@@ -8,24 +8,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.inventario.domain.UsuarioAutenticado;
 import com.inventario.dto.SolicitudAjusteInventario;
 import com.inventario.dto.SolicitudBodega;
 import com.inventario.dto.SolicitudEntradaInventario;
 import com.inventario.dto.SolicitudLineaEntradaInventario;
 import com.inventario.dto.SolicitudLineaOrdenCompra;
+import com.inventario.dto.SolicitudLineaVenta;
+import com.inventario.dto.SolicitudOrdenCompra;
 import com.inventario.dto.SolicitudProveedor;
 import com.inventario.dto.SolicitudSalidaInventario;
-import com.inventario.dto.SolicitudOrdenCompra;
-import com.inventario.dto.SolicitudLineaVenta;
 import com.inventario.dto.SolicitudVenta;
-import com.inventario.domain.UsuarioAutenticado;
+import com.inventario.support.PostgresIntegrationTest;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,8 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
-@EnabledIfEnvironmentVariable(named = "RUN_POSTGRES_INTEGRATION", matches = "true")
-class InventarioPostgresIntegrationTest {
+class InventarioPostgresIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private InventarioService inventarioService;

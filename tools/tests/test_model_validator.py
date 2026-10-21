@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -116,9 +117,10 @@ def test_valida_el_comando_cli_y_escribe_log(tmp_path: Path) -> None:
             str(log_dir),
         ],
         cwd=ROOT,
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         capture_output=True,
         check=False,
-        text=True,
+        encoding="utf-8",
     )
 
     assert result.returncode == 0, result.stderr
@@ -147,9 +149,10 @@ def test_cli_falla_con_error_y_no_lo_oculta(tmp_path: Path) -> None:
             str(tmp_path / "logs"),
         ],
         cwd=ROOT,
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         capture_output=True,
         check=False,
-        text=True,
+        encoding="utf-8",
     )
 
     assert result.returncode == 1

@@ -18,6 +18,7 @@ import com.inventario.dto.SolicitudPrecioProducto;
 import com.inventario.dto.SolicitudProducto;
 import com.inventario.dto.SolicitudProductoTraduccion;
 import com.inventario.dto.SolicitudTipoProducto;
+import com.inventario.support.PostgresIntegrationTest;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -25,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -38,8 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
-@EnabledIfEnvironmentVariable(named = "RUN_POSTGRES_INTEGRATION", matches = "true")
-class CatalogoPostgresIntegrationTest {
+class CatalogoPostgresIntegrationTest extends PostgresIntegrationTest {
 
     @Autowired
     private CatalogoService service;

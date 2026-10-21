@@ -23,6 +23,7 @@ if __package__:
     from .env_config import cargar_env_file
     from .model_validator import validar_modelo
     from .sql_generator import generar_archivos
+    from .test_runner import SUITES, probar
 else:
     from database import (
         _migrations,
@@ -34,6 +35,7 @@ else:
     from env_config import cargar_env_file
     from model_validator import validar_modelo
     from sql_generator import generar_archivos
+    from test_runner import SUITES, probar
 
 COMANDOS = (
     "validar",
@@ -85,6 +87,16 @@ def crear_parser() -> argparse.ArgumentParser:
                 "--log-dir",
                 type=Path,
                 help="Directorio de logs (por defecto logs/tools).",
+            )
+        if comando in {"probar", "todo"}:
+            subparser.add_argument(
+                "--suites",
+                default=",".join(SUITES),
+                help=(
+                    "Suites separadas por comas (por defecto todas: "
+                    + ", ".join(SUITES)
+                    + "). La suite e2e requiere Docker, Java, Node y Maven."
+                ),
             )
         if comando == "reiniciar-bd":
             subparser.add_argument(
@@ -249,6 +261,46 @@ def _ejecutar_bd(args: argparse.Namespace, root: Path) -> int:
     return 0
 
 
+def _ejecutar_probar(args: argparse.Namespace, root: Path) -> int:
+    suites = [suite.strip() for suite in args.suites.split(",") if suite.strip()]
+    try:
+        codigo, resumen = probar(root, suites, dry_run=args.dry_run)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    if resumen is not None:
+        estado = "Todas las suites pasaron" if codigo == 0 else "Hay suites con fallos"
+        print(f"{estado}. Resumen: {resumen}")
+    return codigo
+
+
+def _ejecutar_todo(args: argparse.Namespace, root: Path) -> int:
+    """validar → generar → crear-bd → probar; se detiene en el primer paso fallido."""
+    pasos = [
+        (
+            "validar",
+            lambda: _validar(
+                argparse.Namespace(dry_run=args.dry_run, model_dir=None, schema=None, log_dir=None)
+            ),
+        ),
+        ("generar", lambda: _ejecutar_generar(root, args.dry_run)),
+        (
+            "crear-bd",
+            lambda: _ejecutar_bd(
+                argparse.Namespace(comando="crear-bd", dry_run=args.dry_run), root
+            ),
+        ),
+        ("probar", lambda: _ejecutar_probar(args, root)),
+    ]
+    for nombre, paso in pasos:
+        print(f"== {nombre}", flush=True)
+        codigo = paso()
+        if codigo != 0:
+            print(f"'todo' se detuvo en '{nombre}' (código {codigo}).", file=sys.stderr)
+            return codigo
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Ejecuta los comandos disponibles e informa los que siguen pendientes."""
     parser = crear_parser()
@@ -260,14 +312,9 @@ def main(argv: list[str] | None = None) -> int:
         return _ejecutar_generar(root, args.dry_run)
     if args.comando in {"crear-bd", "reiniciar-bd", "sembrar"}:
         return _ejecutar_bd(args, root)
-
-    modo = " (simulación)" if args.dry_run else ""
-    print(
-        f"El comando '{args.comando}'{modo} aún no está implementado. "
-        "Se habilitará en una etapa posterior.",
-        file=sys.stderr,
-    )
-    return 2
+    if args.comando == "probar":
+        return _ejecutar_probar(args, root)
+    return _ejecutar_todo(args, root)
 
 
 if __name__ == "__main__":
