@@ -69,10 +69,6 @@ public class ParametroService {
         return value;
     }
 
-    public void invalidar(String clave) {
-        cache.keySet().removeIf(key -> key.clave().equals(clave));
-    }
-
     public void invalidarTodo() {
         cache.clear();
     }

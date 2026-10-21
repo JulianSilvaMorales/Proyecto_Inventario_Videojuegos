@@ -20,8 +20,6 @@
     "logout": "Sign out",
     "close": "Close",
     "currency": "Sample currency",
-    "role": "Role",
-    "countries": "Allowed countries",
     "allCountries": "All countries",
     "filter": "Filter",
     "all": "All",
@@ -375,12 +373,10 @@
   },
   "modules": {
     "catalog": {
-      "title": "Catalog",
-      "description": "Browse and manage products, attributes, and categories."
+      "title": "Catalog"
     },
     "inventory": {
-      "title": "Inventory",
-      "description": "View balances, movements, and adjustments for your authorized countries."
+      "title": "Inventory"
     },
     "purchases": {
       "title": "Purchases",
@@ -391,16 +387,13 @@
       "description": "View authorized suppliers within your assigned countries."
     },
     "sales": {
-      "title": "Sales",
-      "description": "Process sales and confirm payments in the transaction currency."
+      "title": "Sales"
     },
     "reports": {
-      "title": "Reports",
-      "description": "View stock and movement reports with country filters."
+      "title": "Reports"
     },
     "settings": {
-      "title": "Settings",
-      "description": "Manage parameters and international configuration."
+      "title": "Settings"
     },
     "availableSoon": "This section will be available in the next sub-stage."
   },

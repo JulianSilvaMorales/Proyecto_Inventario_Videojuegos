@@ -132,11 +132,12 @@ inventario/
 
 ### 2.6 Requisitos del entorno de desarrollo y pruebas
 
-- **Docker en ejecución** (Docker Desktop en Windows y macOS, Docker Engine en Linux): es obligatorio para las pruebas de integración del back (Testcontainers), las pruebas de base de datos de Python, la prueba de extremo a extremo y, desde E10, Docker Compose. Sin Docker, las integraciones del back y de Python se omiten y la suite E2E de `probar` falla indicando el motivo.
+- **Docker Desktop en ejecución** (el proyecto se desarrolla y se usa en Windows; los comandos se escriben en `cmd`): es obligatorio para las pruebas de integración del back (Testcontainers), las pruebas de base de datos de Python, la prueba de extremo a extremo y, desde E10, Docker Compose. Sin Docker, las integraciones del back y de Python se omiten y la suite E2E de `probar` falla indicando el motivo.
 - Las pruebas **no usan la base local** de `.env`: cada ejecución crea un PostgreSQL 16 desechable (imagen `postgres:16-alpine`) y lo construye con `python tools/cli.py crear-bd`, igual que cualquier otro entorno. El contenedor se elimina al terminar.
 - Docker Engine 29 o superior exige una versión mínima de su API; el back la fija en `backend/src/test/resources/docker-java.properties` (`api.version`).
 - Para la prueba E2E se necesitan además Java 17, Node LTS y el navegador de Playwright, que `probar` instala (`npx playwright install chromium`).
 - Python se toma de la variable `PYTHON` o del entorno virtual `.venv` del proyecto.
+- El CI de GitHub se ejecuta en servidores Linux porque las imágenes de los contenedores (PostgreSQL y las de E10) son Linux; no hace falta Linux en el equipo de desarrollo.
 
 ## 3. Etapas
 
