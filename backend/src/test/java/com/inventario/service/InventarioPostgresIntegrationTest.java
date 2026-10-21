@@ -304,6 +304,24 @@ class InventarioPostgresIntegrationTest extends PostgresIntegrationTest {
                         ErrorAplicacionException.class,
                         exception -> assertThat(exception.status())
                                 .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        assertThat(inventarioService.listarProductosProveedor(
+                        proveedor.id(), "es", Set.of("CO")))
+                .extracting("id")
+                .containsExactly(productId);
+        assertThatThrownBy(() -> inventarioService.listarProductosProveedor(
+                        proveedor.id(), "es", Set.of("US")))
+                .isInstanceOfSatisfying(
+                        ErrorAplicacionException.class,
+                        exception -> assertThat(exception.status())
+                                .isEqualTo(org.springframework.http.HttpStatus.FORBIDDEN));
+        mockMvc.perform(get("/api/v1/proveedores/{id}/productos", proveedor.id())
+                        .with(authentication(authenticationActor(
+                                actorId,
+                                "ENCARGADO_INVENTARIO",
+                                "PROVEEDORES_CONSULTAR",
+                                Set.of("CO")))))
+                .andExpect(status().isOk());
+        assertThat(comprasService.contexto().monedaBaseCodigo()).isEqualTo("COP");
 
         var orden = comprasService.crearOrden(
                 new SolicitudOrdenCompra(

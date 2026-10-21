@@ -10,6 +10,7 @@ import com.inventario.domain.MovimientoInventario;
 import com.inventario.domain.OrdenCompra;
 import com.inventario.domain.Pais;
 import com.inventario.domain.Proveedor;
+import com.inventario.dto.ContextoCompras;
 import com.inventario.dto.SolicitudEntradaInventario;
 import com.inventario.dto.SolicitudLineaEntradaInventario;
 import com.inventario.dto.SolicitudLineaOrdenCompra;
@@ -339,6 +340,11 @@ public class ComprasService {
                         .orElseThrow(() -> new IllegalStateException(
                                 "La operación de compra referencia un país que no existe."));
         accesoPais.validar(paisesPermitidos, pais);
+    }
+
+    @Transactional(readOnly = true)
+    public ContextoCompras contexto() {
+        return new ContextoCompras(monedaBaseCodigo());
     }
 
     private void validarTipoCambio(UUID monedaId, BigDecimal tipoCambio) {

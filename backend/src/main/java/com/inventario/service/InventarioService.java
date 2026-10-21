@@ -1,18 +1,20 @@
 package com.inventario.service;
 
 import com.inventario.domain.Bodega;
-import com.inventario.domain.Pais;
 import com.inventario.domain.MovimientoInventario;
+import com.inventario.domain.Pais;
 import com.inventario.domain.Proveedor;
 import com.inventario.domain.SaldoInventario;
+import com.inventario.dto.ReferenciaOpcion;
 import com.inventario.dto.SolicitudBodega;
 import com.inventario.dto.SolicitudProveedor;
 import com.inventario.dto.SolicitudSalidaInventario;
-import com.inventario.repository.InventarioRepository;
 import com.inventario.repository.ConfiguracionRepository;
+import com.inventario.repository.InventarioRepository;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -223,6 +225,15 @@ public class InventarioService {
                 productoId,
                 null,
                 Map.of("proveedorId", proveedorId, "productoId", productoId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReferenciaOpcion> listarProductosProveedor(
+            UUID proveedorId,
+            String idioma,
+            Set<String> paisesPermitidos) {
+        obtenerProveedor(proveedorId, paisesPermitidos);
+        return repository.listarProductosProveedor(proveedorId, idioma);
     }
 
     @Transactional(readOnly = true)

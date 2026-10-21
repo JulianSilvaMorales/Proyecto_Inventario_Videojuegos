@@ -10,6 +10,7 @@ import com.inventario.domain.OrdenCompra;
 import com.inventario.domain.OrdenCompraLinea;
 import com.inventario.domain.Proveedor;
 import com.inventario.domain.SaldoInventario;
+import com.inventario.dto.ReferenciaOpcion;
 import com.inventario.generated.InventarioCrudSql;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -369,6 +370,35 @@ public class InventarioRepository {
                 """,
                 proveedorId,
                 productoId);
+    }
+
+    public List<ReferenciaOpcion> listarProductosProveedor(UUID proveedorId, String idioma) {
+        return jdbc.query(
+                """
+                SELECT p.id, p.codigo_interno,
+                       COALESCE(
+                           (SELECT pt.nombre
+                            FROM public.producto_traduccion pt
+                            JOIN public.idioma i ON i.id = pt.idioma_id
+                            WHERE pt.producto_id = p.id AND lower(i.codigo_bcp47) = lower(?)),
+                           (SELECT pt.nombre
+                            FROM public.producto_traduccion pt
+                            JOIN public.idioma i ON i.id = pt.idioma_id
+                            WHERE pt.producto_id = p.id
+                            ORDER BY i.codigo_bcp47
+                            LIMIT 1),
+                           p.codigo_interno) AS nombre
+                FROM public.producto_proveedor pp
+                JOIN public.producto p ON p.id = pp.producto_id
+                WHERE pp.proveedor_id = ? AND p.activo
+                ORDER BY nombre, p.codigo_interno
+                """,
+                (rs, row) -> new ReferenciaOpcion(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("codigo_interno"),
+                        rs.getString("nombre")),
+                idioma,
+                proveedorId);
     }
 
     public void vincularProveedorProducto(UUID proveedorId, UUID productoId) {

@@ -2,11 +2,14 @@ package com.inventario.controller;
 
 import com.inventario.domain.Proveedor;
 import com.inventario.domain.UsuarioAutenticado;
+import com.inventario.dto.ReferenciaOpcion;
 import com.inventario.dto.SolicitudProveedor;
 import com.inventario.service.InventarioService;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -71,6 +74,14 @@ public class ProveedorController {
             @AuthenticationPrincipal UsuarioAutenticado actor) {
         return inventarioService.actualizarProveedor(
                 id, solicitud, actor.usuarioId(), actor.paises());
+    }
+
+    @GetMapping("/{proveedorId}/productos")
+    public List<ReferenciaOpcion> productosOficiales(
+            @PathVariable UUID proveedorId,
+            @AuthenticationPrincipal UsuarioAutenticado actor) {
+        return inventarioService.listarProductosProveedor(
+                proveedorId, LocaleContextHolder.getLocale().getLanguage(), actor.paises());
     }
 
     @PostMapping("/{proveedorId}/productos/{productoId}")

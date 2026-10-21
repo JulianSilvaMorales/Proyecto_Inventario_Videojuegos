@@ -35,7 +35,7 @@ siguiente:
 | E7 | Verificación transversal: sin constantes de negocio en el código, importes como texto decimal en toda la API y prueba automatizada de un país y una moneda agregados solo con datos. Implementada y aprobada. |
 | E8 | Pruebas y logs: integraciones con PostgreSQL desechable (Testcontainers), pruebas reales de `crear-bd`, flujo E2E con Playwright y comando `probar` con `resumen.md`. Implementada y aprobada. |
 | E9 | Integración continua con GitHub Actions (python, backend, frontend y e2e) con logs como artefactos, control de archivos generados y hook local `pre-push`; `main` protegida con CI obligatorio. Implementada y aprobada. |
-| E10 | Contenedores: imágenes de backend, frontend y `db-init`, y `docker-compose.yml` que levanta todo con un solo comando; E2E del CI sobre Docker Compose. Incluye la revisión general del proyecto, la limpieza de archivos sin uso y el soporte de `cmd` (ver [Revisión y correcciones de E10](#revisión-y-correcciones-de-e10)). Implementada y pendiente de revisión. |
+| E10 | Contenedores: imágenes de backend, frontend y `db-init`, y `docker-compose.yml` que levanta todo con un solo comando; E2E del CI sobre Docker Compose. Incluye la revisión general del proyecto, la limpieza de archivos sin uso, el soporte de `cmd` (ver [Revisión y correcciones de E10](#revisión-y-correcciones-de-e10)), datos de demostración, la nueva identidad visual y la [pantalla de Compras](#compras-purchasespage). Implementada y pendiente de revisión. |
 | Pendiente | Despliegue de demostración y cierre según E11–E12 de la guía. |
 
 ## Resumen de lo construido hasta ahora
@@ -54,6 +54,9 @@ tienda de consolas y videojuegos que vende en varios países. Hoy permite:
 - **Catálogo:** productos con atributos según su tipo, nombres y descripciones
   en español e inglés, y precios por moneda con periodos de vigencia; los
   productos se desactivan, no se borran.
+- **Compras:** productos oficiales de cada proveedor y órdenes de compra en la
+  moneda del proveedor (borrador → enviada → recibida parcial o completa, o
+  cancelada), con tipo de cambio hacia la moneda base.
 - **Inventario:** existencias por bodega, entradas contra órdenes de compra,
   salidas por pérdida, daño, robo o defecto, ajustes con aprobación del
   administrador e historial inmutable de movimientos, todo auditado.
@@ -65,7 +68,7 @@ tienda de consolas y videojuegos que vende en varios países. Hoy permite:
   moneda cambian sin recargar la página.
 
 La base de datos se describe en JSON (`db/model/`) y se crea solo con los
-scripts de Python. La calidad se comprueba con 159 pruebas automáticas en
+scripts de Python. La calidad se comprueba con 164 pruebas automáticas en
 cuatro suites (Python, backend, frontend y extremo a extremo) que se ejecutan
 con un solo comando y dejan sus logs en `logs/tests/` (ver
 [Pruebas y logs](#pruebas-y-logs-e8)).
@@ -325,8 +328,9 @@ conserva el alcance global.
 | Recurso | Operaciones |
 |---|---|
 | `/api/v1/inventario/bodegas` | Consultar, crear y actualizar bodegas con país; la asignación no se cambia una vez establecida. No se eliminan físicamente ni se desactivan si conservan saldo positivo o ajustes abiertos. |
-| `/api/v1/proveedores` | Consultar, crear y actualizar proveedores; vincular un producto con un proveedor oficial. |
-| `/api/v1/compras/ordenes` | Crear borrador, enviar al proveedor, consultar y cancelar antes de recibir. |
+| `/api/v1/proveedores` | Consultar, crear y actualizar proveedores; vincular un producto con un proveedor oficial y listar sus productos oficiales (`GET /{id}/productos`). |
+| `/api/v1/compras/ordenes` | Crear borrador, enviar al proveedor, consultar (filtros `estado` y `proveedorId`) y cancelar antes de recibir. |
+| `/api/v1/compras/contexto` | Moneda base del negocio, para saber cuándo la tasa de la orden es `1`. |
 | `/api/v1/compras/entradas` | Registrar y consultar recepciones parciales o completas con documento, tasa aplicada y costos. |
 | `/api/v1/inventario/saldos` | Consultar por producto, bodega o país y filtrar saldos positivos. |
 | `/api/v1/inventario/salidas` | Registrar pérdidas, daños, robos o defectos con reporte al proveedor oficial. |
@@ -416,6 +420,19 @@ continúa una petición ya autenticada y autorizada.
 | `GET/POST /api/v1/parametros`, `GET/PUT /api/v1/parametros/{id}` | Administración de parámetros: clave, tipo, valor, mínimo y máximo, ámbito (`NEGOCIO` o `PAIS`) y vigencia, sin periodos superpuestos para la misma clave, ámbito y país. Requiere `PARAMETROS_GESTIONAR`; cada cambio invalida la caché y queda en auditoría. Los valores `DECIMAL` y los límites se aceptan como texto decimal. |
 | `GET /api/v1/referencias/producto` | Productos activos con su nombre en el idioma de la solicitud (`Accept-Language`). Requiere `CATALOGO_CONSULTAR` o `PRODUCTOS_GESTIONAR`. |
 | `GET /api/v1/referencias/usuario` | Usuarios (nombre y correo) para filtrar reportes. Requiere `REPORTES_TODOS` o `REPORTES_INVENTARIO`. |
+
+#### Ampliaciones de API para la pantalla de Compras
+
+La pantalla de Compras usa la API de E5.4 tal cual; solo se añadieron dos
+consultas de lectura, sin cambios en la base de datos:
+
+| Recurso | Uso |
+|---|---|
+| `GET /api/v1/proveedores/{id}/productos` | Productos oficiales (activos) del proveedor, con su nombre en el idioma de la solicitud (`Accept-Language`): `[{ "id", "codigo", "nombre" }]`. Requiere `PROVEEDORES_CONSULTAR` o `PROVEEDORES_GESTIONAR` y respeta el alcance por país: un usuario de Estados Unidos no puede ver los de un proveedor de Colombia (403). |
+| `GET /api/v1/compras/contexto` | `{ "monedaBaseCodigo": "COP" }`, leído del parámetro `moneda.base_codigo_iso`. Requiere `COMPRAS_GESTIONAR`. Con él la pantalla fija la tasa en `1` cuando el proveedor compra en la moneda base, sin escribir "COP" en el código. |
+
+Ambas quedan cubiertas en `InventarioPostgresIntegrationTest` (listado,
+rechazo fuera del país, llamada HTTP con permisos y moneda base sembrada).
 
 Las referencias `idioma` y `moneda` también se permiten a `PRODUCTOS_GESTIONAR`
 (formulario de productos del encargado de inventario), y `pais` y `moneda` a
@@ -542,6 +559,62 @@ datos.
 Los importes y tasas se envían a la API como texto decimal y se muestran con
 `Intl` en la moneda de la transacción y el idioma activo; al cambiar de idioma
 los textos y formatos se actualizan sin recargar la página.
+
+### Compras (`PurchasesPage`)
+
+Hasta E10 el menú **Compras** solo mostraba "Esta sección se habilitará en la
+siguiente subetapa", y las órdenes de compra únicamente se podían crear llamando
+a la API. Como sin orden enviada no se puede registrar ninguna entrada de
+inventario, se completó esta pantalla antes de cerrar E10. Está en
+`frontend/src/components/purchases/` y aparece para quien tiene
+`COMPRAS_GESTIONAR` (administrador y encargado de inventario).
+
+**Pestaña "Órdenes de compra"**
+
+- Lista de órdenes con número, proveedor, estado, moneda, tipo de cambio y
+  fecha, filtrable por estado y por proveedor.
+- **Nueva orden de compra:**
+  1. Se elige el proveedor (solo los activos). La moneda es la de compra del
+     proveedor y se muestra sin poder cambiarla.
+  2. **Tipo de cambio:** si el proveedor compra en la moneda base (COP en la
+     semilla), el campo queda fijo en `1`, como exige el backend. Si compra en
+     otra moneda (por ejemplo, USD), hay que escribir cuántos COP vale 1 USD
+     (hasta 11 enteros y 8 decimales; se acepta punto o coma).
+  3. Se agregan líneas: producto, cantidad (entero mayor que cero) y costo
+     unitario en la moneda del proveedor (mayor o igual que cero, hasta 4
+     decimales). **Solo se ofrecen los productos oficiales del proveedor** y no
+     se puede repetir un producto en dos líneas.
+  4. **Crear borrador** guarda la orden en estado `BORRADOR` y abre su detalle.
+- **Detalle de la orden:** datos generales y, por línea, cantidad pedida,
+  recibida, pendiente y costo unitario (con sus 4 decimales, sin redondear).
+  Según el estado ofrece:
+  - `BORRADOR` → **Enviar al proveedor** (pasa a `ENVIADA_AL_PROVEEDOR`).
+  - `BORRADOR` o `ENVIADA_AL_PROVEEDOR` → **Cancelar orden**, con
+    confirmación. El backend la rechaza si ya tiene entradas.
+  - `ENVIADA_AL_PROVEEDOR` o `RECIBIDA_PARCIAL` → aviso con el botón **Ir a
+    Inventario**, porque la mercancía se recibe en *Inventario → Entradas de
+    compra* (allí se elige bodega, documento y cantidades).
+
+**Pestaña "Productos por proveedor"**
+
+Muestra los productos oficiales del proveedor elegido. Quien tiene
+`PROVEEDORES_GESTIONAR` puede **vincular** un producto más (la lista solo ofrece
+los que aún no están vinculados); un proveedor inactivo no admite vínculos.
+Estos vínculos son los que limitan qué se puede pedir en una orden y qué
+proveedor se puede indicar en una salida por pérdida, daño, robo o defecto.
+
+**Flujo completo de una compra, de principio a fin**
+
+1. *Proveedores* (CRUD): crear el proveedor con su país y moneda de compra.
+2. *Compras → Productos por proveedor*: vincular sus productos oficiales.
+3. *Compras → Órdenes de compra*: crear la orden y enviarla al proveedor.
+4. *Inventario → Entradas de compra*: registrar lo recibido (puede ser en
+   varias entregas parciales); la existencia aumenta y queda el movimiento
+   `ENTRADA`.
+
+Todos los textos están en español e inglés, los importes y tasas viajan como
+texto decimal y cada acción (vincular, crear, enviar y cancelar) queda en la
+auditoría del backend.
 
 ### Revisión y correcciones de E6.3 y E6.4
 
@@ -750,7 +823,7 @@ Cada suite lista sus pasos con el código de salida; si un paso falla, su
 | python | `tools/tests/test_test_runner.py` | Conteo de JUnit, `resumen.md` y opciones de `probar`. |
 | backend | `src/test/java/.../service/*Test.java` | Unitarias: autenticación, JWT, sesiones, parámetros, impuestos, conversión, catálogo, clientes, inventario, ventas, referencias y reportes. |
 | backend | `src/test/java/.../service/*PostgresIntegrationTest.java` | Integración con API y base: permisos, alcance por país, catálogo, clientes, compras, ventas, ajustes, parámetros y país/moneda agregados solo con datos. |
-| frontend | `src/**/*.test.ts(x)` | Inicio de sesión, cliente HTTP, navegación por permisos, CRUD genérico, catálogo, inventario, ventas, reportes, configuración, formatos, decimales y traducciones. |
+| frontend | `src/**/*.test.ts(x)` | Inicio de sesión, cliente HTTP, navegación por permisos, CRUD genérico, catálogo, inventario, compras, ventas, reportes, configuración, formatos, decimales y traducciones. |
 | e2e | `e2e/tests/flujo-venta.spec.ts` | Flujo completo en la interfaz (ver abajo). |
 
 ### Si algo falla
@@ -785,21 +858,23 @@ fallan por el trigger de inmutabilidad.
 ### Prueba de extremo a extremo
 
 `e2e/tests/flujo-venta.spec.ts` recorre en la interfaz, en español: inicio de
-sesión → crear producto con precio en COP → registrar la entrada de 5 unidades →
-vender 2 unidades (total 357.000 COP con IVA del 19 %) → confirmar el pago y ver
-el recibo → comprobar existencia 3 y el movimiento "Salida por venta". El tipo
-de producto, las categorías, el proveedor y la orden de compra se preparan por
-API porque aún no tienen pantalla propia.
+sesión → crear producto con precio en COP → en *Compras*, vincular el producto
+al proveedor, crear la orden de 5 unidades (tasa fija en 1 por ser COP) y
+enviarla → registrar la entrada de las 5 unidades → vender 2 unidades (total
+357.000 COP con IVA del 19 %) → confirmar el pago y ver el recibo → comprobar
+existencia 3 y el movimiento "Salida por venta". Solo el tipo de producto, las
+categorías y el proveedor se preparan por API (son CRUD genéricos ya probados),
+para que la prueba sea corta.
 
-### Resultado de la última corrida completa (`logs/tests/20261021-173740/`, E2E sobre Docker Compose)
+### Resultado de la última corrida completa (`logs/tests/20261021-181836/`, E2E sobre Docker Compose)
 
 | Suite | Pruebas |
 |---|---:|
 | python | 53 |
 | backend | 74 |
-| frontend | 31 |
+| frontend | 36 |
 | e2e | 1 |
-| **Total** | **159, todas en verde** |
+| **Total** | **164, todas en verde** |
 
 ## Contenedores (E10)
 
@@ -1133,6 +1208,7 @@ compilación):
 │       │   ├── catalog/          # Productos y formulario dinámico (E6.3)
 │       │   ├── inventory/        # Existencias, entradas, salidas, ajustes y
 │       │   │                     # movimientos (E6.3)
+│       │   ├── purchases/        # Órdenes de compra y productos por proveedor
 │       │   ├── sales/            # Ventas, detalle y recibo (E6.4)
 │       │   ├── reports/          # Existencias, movimientos y CSV (E6.4)
 │       │   └── settings/         # Parámetros y configuración (E6.4)
@@ -1142,7 +1218,8 @@ compilación):
 ├── e2e/
 │   ├── package.json, package-lock.json   # Playwright con versión fija
 │   ├── playwright.config.ts      # URLs y credenciales por variables de entorno
-│   └── tests/flujo-venta.spec.ts # Producto → entrada → venta → saldo y movimiento
+│   └── tests/flujo-venta.spec.ts # Producto → orden de compra → entrada → venta →
+│                                 # saldo y movimiento
 ├── docker/
 │   ├── backend.Dockerfile        # JDK 17 (compilación) → JRE 21 (ejecución)
 │   ├── frontend.Dockerfile       # Node 22 (build de Vite) → nginx

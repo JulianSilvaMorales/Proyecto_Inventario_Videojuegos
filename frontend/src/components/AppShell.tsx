@@ -43,6 +43,7 @@ import { Dashboard } from './Dashboard'
 import { InventoryPage } from './inventory/InventoryPage'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { PixelVaultLogo } from './PixelVaultLogo'
+import { PurchasesPage } from './purchases/PurchasesPage'
 import { ReportsPage } from './reports/ReportsPage'
 import { SalesPage } from './sales/SalesPage'
 import { SettingsPage } from './settings/SettingsPage'
@@ -235,6 +236,15 @@ export function AppShell({ user, onLogout }: AppShellProps) {
               canOpenWarehouses={canOpenCrud('bodega')}
               onOpenCrudEntity={openCrudByName}
             />
+          ) : visibleActiveModule === 'purchases' ? (
+            <PurchasesPage
+              permissions={user.permisos}
+              onOpenInventory={
+                user.permisos.includes('INVENTARIO_CONSULTAR')
+                  ? () => selectModule('inventory')
+                  : undefined
+              }
+            />
           ) : visibleActiveModule === 'sales' ? (
             <SalesPage permissions={user.permisos} onSelectEntity={selectEntity} />
           ) : visibleActiveModule === 'reports' ? (
@@ -255,7 +265,10 @@ export function AppShell({ user, onLogout }: AppShellProps) {
 }
 
 interface ModulePlaceholderProps {
-  module: Exclude<NavigationId, 'home' | 'catalog' | 'inventory' | 'sales' | 'reports' | 'settings'>
+  module: Exclude<
+    NavigationId,
+    'home' | 'catalog' | 'inventory' | 'purchases' | 'sales' | 'reports' | 'settings'
+  >
   permissions: readonly string[]
   onSelectEntity: (entity: CrudEntityMetadata) => void
 }

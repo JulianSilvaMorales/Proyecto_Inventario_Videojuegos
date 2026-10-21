@@ -1,9 +1,11 @@
 import { expect, request, test, type APIRequestContext, type Page } from '@playwright/test'
 
 /**
- * Flujo de la guía (E8): iniciar sesión → crear producto → registrar entrada →
- * vender → verificar saldo y movimiento. Los datos que la interfaz aún no
- * administra (tipo, categorías, proveedor y orden de compra) se preparan por API.
+ * Flujo de la guía (E8): iniciar sesión → crear producto → vincularlo al
+ * proveedor y crear y enviar la orden de compra (pantalla de Compras) →
+ * registrar la entrada → vender → verificar saldo y movimiento. Los datos
+ * maestros que la interfaz administra con el CRUD genérico (tipo, categorías y
+ * proveedor) se preparan por API para que la prueba sea corta.
  */
 
 const apiUrl = process.env.E2E_API_URL ?? 'http://127.0.0.1:8080'
@@ -50,7 +52,7 @@ async function elegir(page: Page, combo: string, opcion: string | RegExp) {
   await page.getByRole('option', { name: opcion }).click()
 }
 
-test('producto → entrada → venta en COP → saldo y movimiento', async ({ page }) => {
+test('producto → orden de compra → entrada → venta en COP → saldo y movimiento', async ({ page }) => {
   expect(email, 'Defina E2E_ADMIN_EMAIL y E2E_ADMIN_PASSWORD').not.toBe('')
   const contexto = await api()
 
@@ -74,7 +76,7 @@ test('producto → entrada → venta en COP → saldo y movimiento', async ({ pa
   })
   const colombia = await referencia(contexto, 'pais', 'CO')
   const cop = await referencia(contexto, 'moneda', 'COP')
-  const proveedor = await post<{ id: string }>(contexto, '/api/v1/proveedores', {
+  await post(contexto, '/api/v1/proveedores', {
     razonSocial: `Proveedor E2E ${sufijo}`,
     paisId: colombia.id,
     monedaCompraId: cop.id,
@@ -104,32 +106,49 @@ test('producto → entrada → venta en COP → saldo y movimiento', async ({ pa
   await expect(page.getByText('Producto guardado.')).toBeVisible()
   await expect(page.getByText(nombreProducto)).toBeVisible()
   const producto = await referencia(contexto, 'producto', nombreProducto)
+  const nombreProveedor = `Proveedor E2E ${sufijo}`
 
-  // Orden de compra enviada al proveedor oficial del producto (sin pantalla aún).
-  await post(contexto, `/api/v1/proveedores/${proveedor.id}/productos/${producto.id}`)
-  const orden = await post<{ orden: { id: string; numero: string } }>(
-    contexto,
-    '/api/v1/compras/ordenes',
-    {
-      proveedorId: proveedor.id,
-      tipoCambio: '1',
-      lineas: [{ productoId: producto.id, cantidadPedida: 5, costoUnitario: '90000' }],
-    },
+  // 3. Compras: vincular el producto al proveedor y crear y enviar la orden.
+  await page.getByRole('button', { name: 'Compras' }).click()
+  await page.getByRole('tab', { name: 'Productos por proveedor' }).click()
+  await elegir(page, 'Proveedor', nombreProveedor)
+  await elegir(page, 'Producto a vincular', new RegExp(nombreProducto))
+  await page.getByRole('button', { name: 'Vincular producto' }).click()
+  await expect(page.getByText(/quedó vinculado como producto oficial/)).toBeVisible()
+  await expect(page.getByRole('row').filter({ hasText: nombreProducto })).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Órdenes de compra' }).click()
+  await page.getByRole('button', { name: 'Nueva orden de compra' }).click()
+  const nuevaOrden = page.getByRole('dialog')
+  await elegir(page, 'Proveedor', nombreProveedor)
+  await expect(nuevaOrden.getByRole('textbox', { name: 'Tipo de cambio' })).toHaveValue('1')
+  await elegir(page, 'Producto de la línea 1', new RegExp(nombreProducto))
+  await nuevaOrden.getByRole('spinbutton', { name: 'Cantidad de la línea 1' }).fill('5')
+  await nuevaOrden.getByRole('textbox', { name: /Costo unitario de la línea 1/ }).fill('90000')
+  await nuevaOrden.getByRole('button', { name: 'Crear borrador' }).click()
+  const detalleOrden = page.getByRole('dialog', { name: /^Orden OC-/ })
+  await expect(detalleOrden.getByText('Borrador', { exact: true })).toBeVisible()
+  const numeroOrden = ((await detalleOrden.getByRole('heading').textContent()) ?? '').replace(
+    /^Orden /,
+    '',
   )
-  await post(contexto, `/api/v1/compras/ordenes/${orden.orden.id}/enviar`)
+  expect(numeroOrden).toMatch(/^OC-/)
+  await detalleOrden.getByRole('button', { name: 'Enviar al proveedor' }).click()
+  await expect(detalleOrden.getByText('Enviada al proveedor', { exact: true })).toBeVisible()
+  await detalleOrden.getByRole('button', { name: 'Cerrar' }).click()
 
-  // 3. Registrar la entrada de inventario.
+  // 4. Registrar la entrada de inventario.
   await page.getByRole('button', { name: 'Inventario' }).click()
   await page.getByRole('tab', { name: 'Entradas de compra' }).click()
   await page.getByRole('button', { name: 'Registrar entrada' }).click()
   const entrada = page.getByRole('dialog')
-  await elegir(page, 'Orden de compra (enviada o parcial)', new RegExp(orden.orden.numero))
+  await elegir(page, 'Orden de compra (enviada o parcial)', new RegExp(numeroOrden))
   await expect(entrada.getByRole('combobox', { name: 'Bodega' })).toHaveText(/GENERAL/)
   await entrada.getByLabel(/Documento o factura/).fill(`FAC-${sufijo}`)
   await entrada.getByRole('button', { name: 'Guardar' }).click()
   await expect(page.getByText('Entrada de inventario registrada.')).toBeVisible()
 
-  // 4. Vender 2 unidades en Colombia (COP, IVA 19 % no incluido) y confirmar el pago.
+  // 5. Vender 2 unidades en Colombia (COP, IVA 19 % no incluido) y confirmar el pago.
   await page.getByRole('button', { name: 'Ventas' }).click()
   await page.getByRole('button', { name: 'Nueva venta' }).click()
   await page.getByRole('combobox', { name: /Producto 1/ }).fill(nombreProducto)
@@ -147,7 +166,7 @@ test('producto → entrada → venta en COP → saldo y movimiento', async ({ pa
   await expect(page.getByText(/Recibo simulado/)).toBeVisible()
   await page.getByRole('button', { name: 'Cerrar' }).click()
 
-  // 5. Verificar el saldo (5 recibidas − 2 vendidas) y el movimiento de venta.
+  // 6. Verificar el saldo (5 recibidas − 2 vendidas) y el movimiento de venta.
   await page.getByRole('button', { name: 'Inventario' }).click()
   const filaSaldo = page.getByRole('row').filter({ hasText: nombreProducto })
   await expect(filaSaldo).toContainText('3')
