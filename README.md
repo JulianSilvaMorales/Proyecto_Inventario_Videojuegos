@@ -775,21 +775,47 @@ contenedores.
 Para ejecutarlos a mano: `pre-commit run --all-files` y
 `pre-commit run --hook-stage pre-push --all-files`.
 
-### Exigir el CI en verde antes de fusionar
+### Protección de la rama `main`
 
-En GitHub: **Settings → Branches → Add branch ruleset** (o *Add rule* en la
-protección clásica) para la rama `main`:
+`main` está protegida por el *branch ruleset* **"Proteger main - CI
+obligatorio."** (activo, configurado en **Settings → Rules → Rulesets**). Ningún
+cambio entra en `main` sin pasar por un pull request con el CI en verde:
 
-1. Activar **Require a pull request before merging**.
-2. Activar **Require status checks to pass** y agregar los cuatro trabajos:
-   `Python (ruff, pytest, validar y generado)`, `Backend (mvn verify con
-   Testcontainers)`, `Frontend (lint, typecheck, test y build)` y `Extremo a
-   extremo (Playwright)`. Los nombres aparecen después de la primera ejecución.
-3. Opcional: **Require branches to be up to date before merging**.
+| Regla | Efecto |
+|---|---|
+| Pull request obligatorio | No se puede hacer `push` directo a `main`; todo cambio llega desde otra rama mediante un pull request. No se exigen aprobaciones de revisores (0), adecuado para un equipo de una persona. |
+| Checks de estado obligatorios | La fusión se bloquea hasta que terminen en verde los cuatro trabajos del CI: `Python (ruff, pytest, validar y generado)`, `Backend (mvn verify con Testcontainers)`, `Frontend (lint, typecheck, test y build)` y `Extremo a extremo (Playwright)`. Si alguno falla o sigue en curso, el botón de fusión queda deshabilitado. |
+| Sin borrado de la rama | `main` no se puede eliminar. |
+| Sin *force push* | No se puede reescribir el historial de `main`. |
 
-En repositorios privados, las reglas de protección requieren un plan de GitHub
-que las incluya (por ejemplo, Pro o Team); en repositorios públicos están
-disponibles en el plan gratuito.
+Métodos de fusión permitidos: *merge*, *squash* y *rebase*. No se exige que la
+rama esté al día con `main` antes de fusionar (opción *Require branches to be
+up to date* desactivada).
+
+#### Flujo de trabajo
+
+```powershell
+git switch -c mi-cambio            # 1. rama nueva desde main actualizada
+# 2. cambios + pruebas locales (python tools/cli.py probar)
+git push -u origin mi-cambio       # 3. publicar la rama (se ejecuta el CI)
+```
+
+4. En GitHub, abrir el pull request de `mi-cambio` hacia `main` (el enlace
+   aparece al hacer `push` o en la pestaña **Pull requests**).
+5. Esperar a que los cuatro checks terminen en verde; si alguno falla, revisar
+   su artefacto de logs, corregir en la misma rama y volver a hacer `push`.
+6. Fusionar el pull request y actualizar la copia local:
+   `git switch main` y `git pull`.
+
+#### Cómo se configuró
+
+En GitHub: **Settings → Rules → Rulesets → New branch ruleset**, con destino la
+rama `main` y *Enforcement status* **Active**, activando **Restrict
+deletions**, **Block force pushes**, **Require a pull request before merging**
+y **Require status checks to pass** con los cuatro trabajos anteriores (sus
+nombres aparecen después de la primera ejecución del CI). En repositorios
+privados, las reglas requieren un plan de GitHub que las incluya; en
+repositorios públicos, como este, están en el plan gratuito.
 
 ## Verificaciones
 
