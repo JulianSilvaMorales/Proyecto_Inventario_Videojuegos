@@ -59,12 +59,13 @@ public abstract class PostgresIntegrationTest {
                 .directory(raiz.toFile())
                 .redirectErrorStream(true);
         Map<String, String> entorno = proceso.environment();
-        entorno.put("DATABASE_URL", "postgresql://%s:%s@%s:%d/%s".formatted(
-                contenedor.getUsername(),
-                contenedor.getPassword(),
-                contenedor.getHost(),
-                contenedor.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT),
-                contenedor.getDatabaseName()));
+        // DATABASE_URL vacía tiene prioridad sobre un .env local, así que se usan los DB_*.
+        entorno.put("DATABASE_URL", "");
+        entorno.put("DB_HOST", contenedor.getHost());
+        entorno.put("DB_PORT", String.valueOf(contenedor.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)));
+        entorno.put("DB_NAME", contenedor.getDatabaseName());
+        entorno.put("DB_USER", contenedor.getUsername());
+        entorno.put("DB_PASSWORD", contenedor.getPassword());
         entorno.put("ADMIN_EMAIL", "admin-pruebas@inventario.invalid");
         entorno.put("ADMIN_PASSWORD", aleatorio(24));
         entorno.put("PYTHONIOENCODING", "utf-8");

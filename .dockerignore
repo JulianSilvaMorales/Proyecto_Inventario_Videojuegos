@@ -1,0 +1,19 @@
+# Solo se envía al contexto de Docker lo necesario para compilar las imágenes.
+.git
+.github
+.venv
+.env
+.env.*
+**/.env
+**/.env.*
+**/node_modules
+**/dist
+**/target
+**/__pycache__
+.pytest_cache
+.ruff_cache
+logs
+e2e
+docs
+spec
+*.md

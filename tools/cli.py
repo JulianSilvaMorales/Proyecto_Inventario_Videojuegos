@@ -23,7 +23,7 @@ if __package__:
     from .env_config import cargar_env_file
     from .model_validator import validar_modelo
     from .sql_generator import generar_archivos
-    from .test_runner import SUITES, probar
+    from .test_runner import ENTORNOS_E2E, SUITES, probar
 else:
     from database import (
         _migrations,
@@ -35,7 +35,7 @@ else:
     from env_config import cargar_env_file
     from model_validator import validar_modelo
     from sql_generator import generar_archivos
-    from test_runner import SUITES, probar
+    from test_runner import ENTORNOS_E2E, SUITES, probar
 
 COMANDOS = (
     "validar",
@@ -96,6 +96,15 @@ def crear_parser() -> argparse.ArgumentParser:
                     "Suites separadas por comas (por defecto todas: "
                     + ", ".join(SUITES)
                     + "). La suite e2e requiere Docker, Java, Node y Maven."
+                ),
+            )
+            subparser.add_argument(
+                "--e2e-entorno",
+                choices=ENTORNOS_E2E,
+                default="local",
+                help=(
+                    "Dónde se ejecuta la E2E: 'local' (backend JAR y vite preview) o "
+                    "'compose' (docker-compose.yml en un proyecto aislado)."
                 ),
             )
         if comando == "reiniciar-bd":
@@ -264,7 +273,7 @@ def _ejecutar_bd(args: argparse.Namespace, root: Path) -> int:
 def _ejecutar_probar(args: argparse.Namespace, root: Path) -> int:
     suites = [suite.strip() for suite in args.suites.split(",") if suite.strip()]
     try:
-        codigo, resumen = probar(root, suites, dry_run=args.dry_run)
+        codigo, resumen = probar(root, suites, dry_run=args.dry_run, e2e_entorno=args.e2e_entorno)
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
