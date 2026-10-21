@@ -1,4 +1,6 @@
-# Especificación de requisitos — Sistema de inventario para tienda de consolas y videojuegos
+# Especificación de requisitos — PixelVault: sistema de inventario para tienda de consolas y videojuegos
+
+**Nombre del producto:** PixelVault — nombre comercial de la plataforma; se muestra en la interfaz y la documentación.
 
 **Versión del documento:** 0.7
 

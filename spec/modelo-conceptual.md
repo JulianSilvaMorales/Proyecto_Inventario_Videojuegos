@@ -1,4 +1,6 @@
-# Modelo conceptual — sistema de inventario
+# Modelo conceptual — PixelVault: sistema de inventario
+
+**Nombre del producto:** PixelVault — nombre comercial de la plataforma; se muestra en la interfaz y la documentación.
 
 **Etapa:** E1 — Análisis y modelo conceptual
 **Base:** `REQUIREMENTS.md` v0.7, apartado 7.3, y `GUIDE.md` v1.0

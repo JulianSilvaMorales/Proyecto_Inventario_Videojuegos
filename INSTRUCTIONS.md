@@ -1,4 +1,6 @@
-# Instrucciones de trabajo para el asistente — Sistema de inventario (resumen)
+# Instrucciones de trabajo para el asistente — PixelVault: sistema de inventario (resumen)
+
+**Nombre del producto:** PixelVault — nombre comercial de la plataforma; se muestra en la interfaz y la documentación.
 
 Este documento resume la "Guía de desarrollo" y se usa junto con la **Especificación de requisitos v0.7** (adjunta). Si hay contradicción, prevalece la especificación; si algo falta, **pregunta antes de inventar**.
 

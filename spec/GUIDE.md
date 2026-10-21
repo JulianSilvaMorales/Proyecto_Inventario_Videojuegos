@@ -1,4 +1,6 @@
-# Guía de desarrollo — Sistema de inventario para tienda de consolas y videojuegos
+# Guía de desarrollo — PixelVault: sistema de inventario para tienda de consolas y videojuegos
+
+**Nombre del producto:** PixelVault — nombre comercial de la plataforma; se muestra en la interfaz y la documentación.
 
 **Versión:** 1.0 · **Base:** Especificación de requisitos v0.7 (sección 7.3, corte vertical)
 
@@ -128,6 +130,14 @@ inventario/
 
 ---
 
+### 2.6 Requisitos del entorno de desarrollo y pruebas
+
+- **Docker en ejecución** (Docker Desktop en Windows y macOS, Docker Engine en Linux): es obligatorio para las pruebas de integración del back (Testcontainers), las pruebas de base de datos de Python, la prueba de extremo a extremo y, desde E10, Docker Compose. Sin Docker, las integraciones del back y de Python se omiten y la suite E2E de `probar` falla indicando el motivo.
+- Las pruebas **no usan la base local** de `.env`: cada ejecución crea un PostgreSQL 16 desechable (imagen `postgres:16-alpine`) y lo construye con `python tools/cli.py crear-bd`, igual que cualquier otro entorno. El contenedor se elimina al terminar.
+- Docker Engine 29 o superior exige una versión mínima de su API; el back la fija en `backend/src/test/resources/docker-java.properties` (`api.version`).
+- Para la prueba E2E se necesitan además Java 17, Node LTS y el navegador de Playwright, que `probar` instala (`npx playwright install chromium`).
+- Python se toma de la variable `PYTHON` o del entorno virtual `.venv` del proyecto.
+
 ## 3. Etapas
 
 ### E0 — Preparación del repositorio
@@ -199,6 +209,7 @@ Cada subetapa se entrega con sus pruebas (unitarias e integración).
 - **Front:** Vitest + React Testing Library (formularios, formatos por idioma y moneda, permisos en el menú).
 - **Extremo a extremo (Playwright):** iniciar sesión → crear producto → registrar entrada → vender → verificar saldo y movimiento.
 - `python tools/cli.py probar` ejecuta todo y guarda en `logs/tests/<AAAAMMDD-HHMMSS>/` los reportes (JUnit XML, salida de consola) por suite y un `resumen.md` con totales.
+**Requisito:** Docker en ejecución (ver 2.6). `probar` crea las bases desechables, levanta el back y el front en puertos libres para la E2E y los detiene al terminar.
 **Aceptación:** todas las pruebas pasan; el `resumen.md` lista suite por suite; los logs quedan guardados.
 **Revisión:** ejecutar `probar` y abrir `resumen.md`.
 
@@ -263,6 +274,7 @@ Cada subetapa se entrega con sus pruebas (unitarias e integración).
 | La base gratuita caduca | Recrear con `crear-bd` y restaurar con el script de respaldo. |
 | Primera petición lenta tras la suspensión | Abrir la aplicación antes de demostrar; el front muestra el aviso de espera. |
 | Testcontainers no funciona en el equipo local | Ejecutar esas pruebas solo en CI y usar la base de Docker Compose en local. |
+| Docker no está iniciado o su API no es compatible | Iniciar Docker Desktop antes de `probar`; mantener `api.version` en `docker-java.properties` acorde con la versión de Docker Engine. |
 | Falta de tiempo | Recortar según la sección 4. |
 
 ---
