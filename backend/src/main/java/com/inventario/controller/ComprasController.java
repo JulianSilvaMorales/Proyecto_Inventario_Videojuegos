@@ -4,6 +4,7 @@ import com.inventario.domain.DetalleEntradaInventario;
 import com.inventario.domain.DetalleOrdenCompra;
 import com.inventario.domain.OrdenCompra;
 import com.inventario.domain.UsuarioAutenticado;
+import com.inventario.dto.ContextoCompras;
 import com.inventario.dto.SolicitudEntradaInventario;
 import com.inventario.dto.SolicitudOrdenCompra;
 import com.inventario.service.ComprasService;
@@ -33,6 +34,11 @@ public class ComprasController {
 
     public ComprasController(ComprasService comprasService) {
         this.comprasService = comprasService;
+    }
+
+    @GetMapping("/contexto")
+    public ContextoCompras contexto() {
+        return comprasService.contexto();
     }
 
     @GetMapping("/ordenes")
