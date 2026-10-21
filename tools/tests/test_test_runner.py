@@ -72,3 +72,19 @@ def test_probar_dry_run_no_crea_logs(tmp_path: Path, capsys: pytest.CaptureFixtu
 def test_cli_probar_dry_run(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["probar", "--suites", "python,backend", "--dry-run"]) == 0
     assert "python, backend" in capsys.readouterr().out
+
+
+def test_e2e_remota_exige_las_url_y_el_administrador(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    for nombre in ("E2E_BASE_URL", "E2E_API_URL", "E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD"):
+        monkeypatch.delenv(nombre, raising=False)
+    monkeypatch.setenv("E2E_BASE_URL", "https://pixelvault-web.example")
+
+    codigo, resumen = probar(tmp_path, ["e2e"], e2e_entorno="remoto")
+
+    assert codigo == 1
+    assert resumen is not None
+    log = (resumen.parent / "e2e.log").read_text(encoding="utf-8")
+    assert "E2E_API_URL, E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD" in log
+    assert "FALLIDO" in capsys.readouterr().out

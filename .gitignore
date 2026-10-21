@@ -31,3 +31,6 @@ Thumbs.db
 
 # Logs locales: los crean el CLI y 'probar' cuando hacen falta.
 logs/
+
+# Respaldos de la base (python tools/cli.py respaldar): contienen datos reales.
+backups/

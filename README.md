@@ -36,7 +36,8 @@ siguiente:
 | E8 | Pruebas y logs: integraciones con PostgreSQL desechable (Testcontainers), pruebas reales de `crear-bd`, flujo E2E con Playwright y comando `probar` con `resumen.md`. Implementada y aprobada. |
 | E9 | Integración continua con GitHub Actions (python, backend, frontend y e2e) con logs como artefactos, control de archivos generados y hook local `pre-push`; `main` protegida con CI obligatorio. Implementada y aprobada. |
 | E10 | Contenedores: imágenes de backend, frontend y `db-init`, y `docker-compose.yml` que levanta todo con un solo comando; E2E del CI sobre Docker Compose. Incluye la revisión general del proyecto, la limpieza de archivos sin uso, el soporte de `cmd` (ver [Revisión y correcciones de E10](#revisión-y-correcciones-de-e10)), datos de demostración, la nueva identidad visual y la [pantalla de Compras](#compras-purchasespage). Implementada y pendiente de revisión. |
-| Pendiente | Despliegue de demostración y cierre según E11–E12 de la guía. |
+| E11 | Despliegue de demostración en Render: `render.yaml` (base PostgreSQL 16, backend en Docker y frontend estático), `crear-bd` desde el equipo local contra la base de Render, comandos `respaldar` y `restaurar` con la retención de RNF-011 y E2E contra las URL públicas (`--e2e-entorno remoto`). Preparada; falta crear el Blueprint en la cuenta de Render y verificarlo (ver [Despliegue de demostración en Render (E11)](#despliegue-de-demostración-en-render-e11)). |
+| Pendiente | Cierre según E12 de la guía (evidencias, README final y lista de fase 2). |
 
 ## Resumen de lo construido hasta ahora
 
@@ -68,7 +69,7 @@ tienda de consolas y videojuegos que vende en varios países. Hoy permite:
   moneda cambian sin recargar la página.
 
 La base de datos se describe en JSON (`db/model/`) y se crea solo con los
-scripts de Python. La calidad se comprueba con 164 pruebas automáticas en
+scripts de Python. La calidad se comprueba con 173 pruebas automáticas en
 cuatro suites (Python, backend, frontend y extremo a extremo) que se ejecutan
 con un solo comando y dejan sus logs en `logs/tests/` (ver
 [Pruebas y logs](#pruebas-y-logs-e8)).
@@ -140,6 +141,14 @@ modelo; si alguna bodega existente no tiene país, la migración se detiene con 
 mensaje y debe asignarse antes de volver a ejecutar `crear-bd`. La semilla de la
 bodega `GENERAL` indica su país con `pais_codigo`. `generar`
 actualiza el modelo resuelto y el CRUD sin reescribir esa migración.
+
+`respaldar` y `restaurar` guardan y recuperan la base con `pg_dump` y
+`pg_restore` (ver [Respaldo y restauración](#respaldo-y-restauración)).
+
+Todos los comandos que usan la base toman la conexión de `DB_HOST`, `DB_PORT`,
+`DB_NAME`, `DB_USER` y `DB_PASSWORD` del `.env` o, si está definida,
+de `DATABASE_URL` (por ejemplo, la URL externa de la base de Render). Las
+variables definidas en la consola tienen prioridad sobre el `.env`.
 
 `reiniciar-bd` es destructivo: solo permite hosts de loopback y exige confirmar
 el nombre exacto de la base con `--confirm-db`. No lo ejecutes contra datos que
@@ -764,6 +773,8 @@ rem Muestra qué se ejecutaría, sin ejecutar nada
 python tools/cli.py probar --dry-run
 rem E2E sobre Docker Compose (como en el CI)
 python tools/cli.py probar --suites e2e --e2e-entorno compose
+rem E2E contra un despliegue publicado (Render), ver E11
+python tools/cli.py probar --suites e2e --e2e-entorno remoto
 rem validar, generar, crear-bd y probar, en ese orden
 python tools/cli.py todo
 ```
@@ -783,18 +794,19 @@ El comando devuelve código distinto de cero si falla cualquier paso o prueba.
 | `python` | `ruff check`, `ruff format --check` y `pytest` (validación, generación, semillas, CLI y base de datos real). |
 | `backend` | `mvnw clean verify`: unitarias e integración con PostgreSQL desechable. |
 | `frontend` | `npm ci`, lint, typecheck, Vitest y build. |
-| `e2e` | Por defecto (`--e2e-entorno local`): base desechable creada con `crear-bd`, backend (JAR) y front (`vite preview`) en puertos libres. Con `--e2e-entorno compose`: `docker-compose.yml` en un proyecto aislado con puertos y secretos propios, que se elimina al terminar. En ambos casos, Playwright con Chromium. |
+| `e2e` | Por defecto (`--e2e-entorno local`): base desechable creada con `crear-bd`, backend (JAR) y front (`vite preview`) en puertos libres. Con `--e2e-entorno compose`: `docker-compose.yml` en un proyecto aislado con puertos y secretos propios, que se elimina al terminar. Con `--e2e-entorno remoto`: no levanta nada; despierta y usa el despliegue indicado en `E2E_BASE_URL` y `E2E_API_URL` con el administrador de `E2E_ADMIN_EMAIL` y `E2E_ADMIN_PASSWORD` (crea datos de prueba en esa base). En todos los casos, Playwright con Chromium. |
 
 ### Dónde quedan los logs y reportes
 
-Nada de `logs/` se versiona (salvo las carpetas vacías); las evidencias de la
+Nada de `logs/` se versiona; las evidencias de la
 corrida final se copiarán a `docs/evidencias/` en E12.
 
 | Origen | Ubicación |
 |---|---|
 | `python tools/cli.py probar` | `logs/tests/<AAAAMMDD-HHMMSS>/resumen.md` (resumen), `<suite>.log` (consola) y `<suite>/` (JUnit XML) |
 | Capturas y trazas de la E2E cuando falla | `logs/tests/<AAAAMMDD-HHMMSS>/e2e/artefactos/` (abrir la traza con `npx playwright show-trace <trace.zip>` desde `e2e/`) |
-| Comandos del CLI (`validar`, `generar`, `crear-bd`, `sembrar`, `reiniciar-bd`) | `logs/tools/<comando>-<marca de tiempo>.log` |
+| Comandos del CLI (`validar`, `generar`, `crear-bd`, `sembrar`, `reiniciar-bd`, `respaldar`, `restaurar`) | `logs/tools/<comando>-<marca de tiempo>.log` |
+| Respaldos de la base (`respaldar`) | `backups/<base>-<AAAAMMDD-HHMMSS>.dump` (no versionado: contiene datos) |
 | `mvnw verify` ejecutado a mano | `backend/target/surefire-reports/` |
 | Playwright ejecutado a mano | `e2e/reports/` |
 
@@ -820,7 +832,8 @@ Cada suite lista sus pasos con el código de salida; si un paso falla, su
 |---|---|---|
 | python | `tools/tests/test_model_validator.py`, `test_sql_generator.py`, `test_database.py` | Validación del modelo, generación de SQL y metadatos, semillas, CLI y migraciones con checksum. |
 | python | `tools/tests/test_database_integracion.py` | Base real: idempotencia de `crear-bd`, `reiniciar-bd`, saldo no negativo e inmutabilidad. |
-| python | `tools/tests/test_test_runner.py` | Conteo de JUnit, `resumen.md` y opciones de `probar`. |
+| python | `tools/tests/test_test_runner.py` | Conteo de JUnit, `resumen.md` y opciones de `probar` (incluida la E2E remota sin variables). |
+| python | `tools/tests/test_respaldo.py` | Retención de RNF-011, contraseña fuera de la línea de comandos, confirmación de `restaurar` y respaldo y restauración reales en un contenedor. |
 | backend | `src/test/java/.../service/*Test.java` | Unitarias: autenticación, JWT, sesiones, parámetros, impuestos, conversión, catálogo, clientes, inventario, ventas, referencias y reportes. |
 | backend | `src/test/java/.../service/*PostgresIntegrationTest.java` | Integración con API y base: permisos, alcance por país, catálogo, clientes, compras, ventas, ajustes, parámetros y país/moneda agregados solo con datos. |
 | frontend | `src/**/*.test.ts(x)` | Inicio de sesión, cliente HTTP, navegación por permisos, CRUD genérico, catálogo, inventario, compras, ventas, reportes, configuración, formatos, decimales y traducciones. |
@@ -866,15 +879,15 @@ existencia 3 y el movimiento "Salida por venta". Solo el tipo de producto, las
 categorías y el proveedor se preparan por API (son CRUD genéricos ya probados),
 para que la prueba sea corta.
 
-### Resultado de la última corrida completa (`logs/tests/20261021-181836/`, E2E sobre Docker Compose)
+### Resultado de la última corrida completa (`logs/tests/20261021-184417/`, E2E sobre Docker Compose)
 
 | Suite | Pruebas |
 |---|---:|
-| python | 53 |
+| python | 62 |
 | backend | 74 |
 | frontend | 36 |
 | e2e | 1 |
-| **Total** | **164, todas en verde** |
+| **Total** | **173, todas en verde** |
 
 ## Contenedores (E10)
 
@@ -993,6 +1006,203 @@ correcciones:
 | Archivos sin uso | Copias duplicadas de la especificación en la raíz (`GUIDE.md` desactualizada y `REQUIREMENTS.md`); restos de la plantilla de Vite (`frontend/README.md`, `public/favicon.svg` y `public/icons.svg` con el logo de Vite, sin enlazar; `src/assets/hero.png`); 13 archivos `.gitkeep` en carpetas que ya tienen contenido o que el código crea solo (`logs/`). | Eliminados. `INSTRUCTIONS.md` se movió a `spec/`, junto a los demás documentos de referencia. `logs/` queda ignorado por completo en `.gitignore`. |
 | Definiciones de atributos | Al preparar los datos de demostración apareció un error de E5.3: una definición sin opciones enviada con `"opciones": null` se rechazaba como "no es una lista" (Jackson lo recibe como nodo JSON nulo). | `null` explícito equivale a no indicar opciones; prueba unitaria añadida. |
 | Documentación | El CI se describía "sobre Ubuntu" sin explicar por qué. | Nueva sección [¿Por qué aparece Linux en el CI?](#por-qué-aparece-linux-en-el-ci). |
+
+## Despliegue de demostración en Render (E11)
+
+El objetivo de E11 es una **URL pública para demostrar** el sistema. Se usa
+[Render](https://render.com) con su plan gratuito y un *Blueprint*:
+`render.yaml`, en la raíz, describe los tres recursos y Render los crea juntos.
+
+### Condiciones del plan gratuito (verificadas el 21-10-2026)
+
+Según la [documentación de Render](https://render.com/docs/free):
+
+| Recurso | Condición | Qué implica para la demostración |
+|---|---|---|
+| Servicio web (backend) | Se **suspende tras 15 minutos sin tráfico** y tarda **alrededor de 1 minuto** en despertar. 512 MB de memoria. | Abrir la aplicación 2 minutos antes de presentar. La primera petición tras la pausa es lenta. |
+| Base PostgreSQL | **Caduca 30 días después de crearla**; luego hay 14 días para pasarla a un plan pago y después Render la borra con sus datos. 1 GB. Solo una base gratuita activa por cuenta. | Respaldar con frecuencia y saber recrearla (ver más abajo). |
+| Sitio estático (frontend) | Gratuito; consume el ancho de banda y los minutos de compilación incluidos. | Sin pausas: siempre responde. |
+| Cuenta | 750 horas de instancia gratuitas al mes. | Suficiente para un servicio encendido todo el mes. |
+
+Estas condiciones cambian con el tiempo: revísalas antes de una entrega.
+
+### Qué define `render.yaml`
+
+| Recurso | Nombre | Detalle |
+|---|---|---|
+| Base de datos | `pixelvault-db` | PostgreSQL **16** (igual que Docker Compose y el `pg_dump` de los respaldos), base `inventario`, usuario `inventario`, región `virginia` (la más cercana a Colombia de las disponibles). |
+| Backend | `pixelvault-api` | Servicio web con la imagen de `docker/backend.Dockerfile` (la misma de E10), perfil `produccion`, comprobación de salud en `/actuator/health` y región `virginia`, para hablar con la base por la red interna. |
+| Frontend | `pixelvault-web` | Sitio estático: `npm ci` y `npm run build` en `frontend/` con Node 22; publica `frontend/dist` y reescribe cualquier ruta a `index.html`. |
+
+Cada servicio se vuelve a desplegar solo cuando cambian sus archivos (`buildFilter`)
+en la rama `main`. **La base no se crea en Render**: como pide la guía, se crea
+con `crear-bd` desde el equipo local, igual que en cualquier otro entorno.
+
+Variables de entorno:
+
+| Variable | Servicio | Valor | Cómo se define |
+|---|---|---|---|
+| `SPRING_DATASOURCE_URL` | backend | Formato **JDBC** con el host **interno** de la base: `jdbc:postgresql://dpg-xxxxxxxx-a:5432/inventario` | A mano (`sync: false`): Render da la URL como `postgresql://usuario:clave@host/base` y Spring necesita la forma JDBC, sin usuario ni clave. |
+| `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD` | backend | Usuario y contraseña de la base | Automático, desde la base (`fromDatabase`). |
+| `JWT_SECRET` | backend | Clave aleatoria de 256 bits en base64 | Automático: Render la genera una vez (`generateValue`). |
+| `CORS_ORIGINS` | backend | URL pública del frontend, por ejemplo `https://pixelvault-web.onrender.com` | A mano (`sync: false`). |
+| `SPRING_PROFILES_ACTIVE`, `PORT`, `SERVER_PORT` | backend | `produccion`, `8080`, `8080` | Fijos en `render.yaml`. |
+| `VITE_API_URL` | frontend | URL pública del backend, por ejemplo `https://pixelvault-api.onrender.com` | A mano (`sync: false`). Vite la incorpora al compilar: si cambia, hay que volver a desplegar el sitio. |
+| `NODE_VERSION` | frontend | `22` | Fijo en `render.yaml`. |
+
+Ningún secreto queda en el repositorio: los valores manuales se escriben en el
+panel de Render y las credenciales de la base las inyecta Render.
+
+### Paso a paso (una sola vez)
+
+**1. Crear el Blueprint.** En el panel de Render: *New* → *Blueprint* → elegir
+el repositorio de GitHub → rama `main`. Render lee `render.yaml` y pide los
+valores manuales. Si aún no conoces las URL, escribe las esperadas
+(`https://pixelvault-api.onrender.com`, `https://pixelvault-web.onrender.com`) y
+en `SPRING_DATASOURCE_URL` un valor provisional
+(`jdbc:postgresql://pendiente:5432/inventario`). Pulsa *Apply*.
+
+**2. Copiar las URL de la base.** En *pixelvault-db* → *Connections* están la
+*Internal Database URL* (para el backend) y la *External Database URL* (para tu
+equipo). Son secretas: no las pegues en archivos versionados.
+
+**3. Crear la base desde el equipo local**, en `cmd`, con el entorno activado.
+Las variables `set` solo duran mientras la ventana esté abierta, y las comillas
+alrededor de `NOMBRE=valor` evitan problemas con caracteres especiales:
+
+```bat
+.venv\Scripts\activate.bat
+set "DATABASE_URL=postgresql://inventario:CLAVE@dpg-xxxxxxxx-a.virginia-postgres.render.com/inventario?sslmode=require"
+set "ADMIN_EMAIL=admin@tu-dominio.com"
+set "ADMIN_PASSWORD=una-clave-larga-solo-para-render"
+python tools/cli.py crear-bd
+```
+
+Usa para Render una contraseña de administrador distinta de la local. `crear-bd`
+se conecta directamente a la base `inventario` (Render no permite crear bases
+ni entrar a `postgres`), aplica las migraciones, carga las semillas y verifica
+el esquema. Es idempotente: repetirlo no duplica nada.
+
+**4. Conectar el backend.** En *pixelvault-api* → *Environment*, cambia
+`SPRING_DATASOURCE_URL` por la forma JDBC de la URL **interna**. Por ejemplo,
+`postgresql://inventario:CLAVE@dpg-xxxxxxxx-a/inventario` se convierte en
+`jdbc:postgresql://dpg-xxxxxxxx-a:5432/inventario`. Guarda y elige *Save, rebuild
+and deploy*. El primer despliegue del paso 1 falla con seguridad, porque la base
+aún no tenía esquema: es lo esperado.
+
+**5. Revisar las URL.** Si Render asignó nombres con sufijo (por ejemplo,
+`pixelvault-api-x1y2.onrender.com`), corrige `CORS_ORIGINS` en el backend y
+`VITE_API_URL` en el frontend, y vuelve a desplegar ambos.
+
+**6. Verificar.**
+
+```bat
+curl https://pixelvault-api.onrender.com/actuator/health
+```
+
+Debe responder `{"status":"UP"}` (la primera vez puede tardar un minuto si el
+servicio estaba suspendido). Luego abre `https://pixelvault-web.onrender.com` y
+entra con el administrador del paso 3.
+
+**7. Repetir el flujo de E8 en la URL pública** (revisión de la etapa), con logs
+en `logs/tests/` como cualquier otra corrida:
+
+```bat
+set "E2E_BASE_URL=https://pixelvault-web.onrender.com"
+set "E2E_API_URL=https://pixelvault-api.onrender.com"
+set "E2E_ADMIN_EMAIL=admin@tu-dominio.com"
+set "E2E_ADMIN_PASSWORD=una-clave-larga-solo-para-render"
+python tools/cli.py probar --suites e2e --e2e-entorno remoto
+```
+
+Primero despierta el backend y el sitio (espera hasta 5 minutos) y luego ejecuta
+el mismo flujo de Playwright: crear producto, vincularlo al proveedor, orden de
+compra, entrada, venta, pago, recibo, saldo y movimiento. Deja esos datos de
+prueba en la base de Render.
+
+**8. (Opcional) Datos de demostración**, con `DATABASE_URL`, `ADMIN_EMAIL` y
+`ADMIN_PASSWORD` del paso 3 y `DEMO_PASSWORD` definidos en la consola:
+
+```bat
+set "DEMO_PASSWORD=clave-comun-de-los-usuarios-demo"
+python tools/cli.py sembrar-demo --api https://pixelvault-api.onrender.com
+```
+
+### Antes de cada demostración
+
+1. Abrir `https://pixelvault-web.onrender.com` y entrar, unos 2 minutos antes,
+   para despertar el backend.
+2. Revisar la fecha de caducidad de la base en el panel (*pixelvault-db*) y
+   tener un respaldo reciente.
+
+### Respaldo y restauración
+
+Cumplen RNF-011 en la versión académica: un script de respaldo y restauración
+con copias en otra ubicación (tu equipo). Ambos comandos ejecutan `pg_dump` y
+`pg_restore` dentro de la imagen oficial `postgres:16-alpine`, así que **no hace
+falta instalar PostgreSQL**, basta con Docker en ejecución, y la versión siempre
+coincide con la de la base. La contraseña pasa al contenedor como variable de
+entorno, nunca en la línea de comandos.
+
+```bat
+rem Respaldar la base de .env, o la de DATABASE_URL si está definida
+python tools/cli.py respaldar
+rem Respaldar y aplicar la retención (ver abajo)
+python tools/cli.py respaldar --podar
+rem Restaurar: reemplaza TODO el contenido de la base; exige confirmar su nombre
+python tools/cli.py restaurar --archivo backups\inventario-20261021-020000.dump --confirm-db inventario
+```
+
+- `respaldar` crea `backups/<base>-<AAAAMMDD-HHMMSS>.dump` (formato comprimido
+  de `pg_dump`, hora UTC). La carpeta `backups/` está en `.gitignore` porque
+  contiene datos reales.
+- `--podar` aplica la retención de RNF-011: conserva **todas las copias de los
+  últimos 35 días** y, de las anteriores, **la primera de cada mes durante 12
+  meses**; borra el resto.
+- `restaurar` usa `pg_restore --clean --if-exists` en **una sola transacción**:
+  si algo falla, la base queda como estaba. Al terminar verifica el esquema
+  contra el modelo, igual que `crear-bd`.
+- Los dos aceptan `--dry-run` y dejan su log en `logs/tools/`.
+- Para respaldar la base de Docker Compose, publica su puerto o usa
+  `docker compose exec db pg_dump`; los comandos del CLI apuntan a la base de
+  `.env` o de `DATABASE_URL`.
+
+**Respaldo automático diario.** RNF-011 pide una copia diaria. En Windows se
+programa con el Programador de tareas. Crea, fuera del repositorio (por ejemplo,
+en `C:\respaldos-pixelvault\respaldar-render.cmd`), un archivo con la URL
+externa de la base:
+
+```bat
+@echo off
+cd /d C:\ruta\al\Proyecto_Inventario_Videojuegos
+set "DATABASE_URL=postgresql://inventario:CLAVE@dpg-xxxxxxxx-a.virginia-postgres.render.com/inventario?sslmode=require"
+.venv\Scripts\python.exe tools\cli.py respaldar --podar
+```
+
+y prográmalo una vez al día, por ejemplo a las 02:00:
+
+```bat
+schtasks /create /tn "PixelVault respaldo" /sc daily /st 02:00 /tr "C:\respaldos-pixelvault\respaldar-render.cmd"
+```
+
+El equipo debe estar encendido y con Docker Desktop abierto a esa hora.
+
+### Si la base caduca (o hay que recrearla)
+
+1. Crear una base nueva: en el panel, *New* → *Postgres* con el mismo nombre
+   `pixelvault-db`, base `inventario`, usuario `inventario`, versión 16 y región
+   `virginia`, o volver a sincronizar el Blueprint.
+2. Con la nueva URL externa en `DATABASE_URL`, restaurar el último respaldo:
+   `python tools/cli.py restaurar --archivo backups\<último>.dump --confirm-db inventario`.
+   Si no hay respaldo, `python tools/cli.py crear-bd` deja la base vacía con el
+   administrador y las semillas.
+3. Actualizar `SPRING_DATASOURCE_URL` del backend con el nuevo host interno y
+   volver a desplegar. Si la base nueva no quedó enlazada al Blueprint, copia
+   también su usuario y contraseña del panel en `SPRING_DATASOURCE_USERNAME` y
+   `SPRING_DATASOURCE_PASSWORD`.
+
+Con el respaldo a mano, todo el proceso toma unos minutos, muy por debajo de
+las 3 horas de RNF-011.
 
 ## Integración continua (E9)
 
@@ -1134,6 +1344,7 @@ compilación):
 ├── requirements.txt              # Dependencias de ejecución de tools/ (versión fija)
 ├── requirements-dev.txt          # requirements.txt + herramientas de desarrollo
 ├── docker-compose.yml            # db, db-init, backend y frontend (E10)
+├── render.yaml                   # Blueprint de Render: base, backend y frontend (E11)
 ├── .dockerignore                 # Contexto mínimo para construir imágenes
 ├── .github/workflows/ci.yml      # CI con GitHub Actions (E9)
 ├── spec/
@@ -1157,7 +1368,7 @@ compilación):
 │       └── demo.json             # Datos de demostración (sembrar-demo, manual)
 ├── tools/
 │   ├── cli.py                    # validar, generar, crear-bd, reiniciar-bd, sembrar,
-│   │                             # sembrar-demo, probar y todo
+│   │                             # sembrar-demo, respaldar, restaurar, probar y todo
 │   ├── demo_seed.py              # Carga de datos de demostración vía API
 │   ├── env_config.py             # Carga de .env sin reemplazar el entorno
 │   ├── model_validator.py        # Validación del modelo JSON
@@ -1166,6 +1377,7 @@ compilación):
 │   ├── database.py               # Conexión, migraciones con checksum y verificación
 │   ├── test_runner.py            # Comando probar: suites, logs y resumen.md
 │   ├── postgres_desechable.py    # PostgreSQL temporal en Docker para pruebas
+│   ├── respaldo.py               # pg_dump/pg_restore en Docker y retención (RNF-011)
 │   ├── templates/migration.sql.j2
 │   └── tests/                    # pytest: modelo, generador, base de datos, base real
 │                                 # en contenedor y orquestador de pruebas
@@ -1225,6 +1437,7 @@ compilación):
 │   ├── frontend.Dockerfile       # Node 22 (build de Vite) → nginx
 │   ├── nginx.conf                # Sitio estático con respaldo a index.html
 │   └── db-init.Dockerfile        # Python 3.12 que ejecuta crear-bd
+├── backups/                      # No versionado: respaldos .dump (respaldar)
 ├── logs/                         # No versionado: tools/ (CLI), tests/<fecha-hora>/
 │                                 # (probar) y corridas manuales de revisión
 └── docs/evidencias/              # Evidencias de la corrida final (E12)

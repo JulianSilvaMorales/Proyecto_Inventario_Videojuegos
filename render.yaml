@@ -1,0 +1,83 @@
+# Despliegue de demostración en Render (E11): Blueprint con la base PostgreSQL,
+# el backend (contenedor Docker) y el frontend (sitio estático).
+#
+# Guía paso a paso y condiciones del plan gratuito: README, sección
+# "Despliegue de demostración en Render (E11)". La base NO se crea aquí: se crea
+# con `python tools/cli.py crear-bd` desde el equipo local contra su URL externa.
+#
+# Los valores marcados con `sync: false` se escriben en Render al crear el
+# Blueprint (no se guardan en el repositorio).
+
+databases:
+  - name: pixelvault-db
+    plan: free
+    region: virginia
+    # Misma versión mayor que Docker Compose y que el pg_dump del respaldo.
+    postgresMajorVersion: "16"
+    databaseName: inventario
+    user: inventario
+
+services:
+  - type: web
+    name: pixelvault-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerfilePath: ./docker/backend.Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    # Solo se reconstruye si cambia algo que entra en la imagen del backend.
+    buildFilter:
+      paths:
+        - backend/**
+        - docker/backend.Dockerfile
+        - db/model/schema-resuelto.json
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: produccion
+      # Render envía el tráfico al puerto de PORT; el backend escucha en SERVER_PORT.
+      - key: PORT
+        value: "8080"
+      - key: SERVER_PORT
+        value: "8080"
+      # Formato JDBC con el host INTERNO de la base, por ejemplo
+      # jdbc:postgresql://dpg-xxxxxxxx-a:5432/inventario (Render no lo arma solo).
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: pixelvault-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: pixelvault-db
+          property: password
+      # Render genera un valor aleatorio de 256 bits en base64 (32 bytes, lo mínimo exigido).
+      - key: JWT_SECRET
+        generateValue: true
+      # URL pública del frontend, por ejemplo https://pixelvault-web.onrender.com
+      - key: CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: pixelvault-web
+    runtime: static
+    branch: main
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: ./frontend/dist
+    buildFilter:
+      paths:
+        - frontend/**
+    # La aplicación es de una sola página: cualquier ruta sirve index.html.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # URL pública del backend, por ejemplo https://pixelvault-api.onrender.com
+      # (Vite la incorpora al compilar: si cambia, hay que volver a desplegar el sitio).
+      - key: VITE_API_URL
+        sync: false

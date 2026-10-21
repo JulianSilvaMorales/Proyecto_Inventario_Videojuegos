@@ -11,6 +11,7 @@ from hashlib import sha256
 from pathlib import Path
 from unittest.mock import patch
 
+import psycopg
 import pytest
 
 from tools.database import (
@@ -131,14 +132,30 @@ def test_reinicio_dry_run_local_no_conecta() -> None:
     connect.assert_not_called()
 
 
-def test_creacion_de_base_existente_es_idempotente() -> None:
+def test_creacion_de_base_existente_no_entra_a_postgres() -> None:
+    # En Render la base ya existe y el usuario no puede entrar a 'postgres'.
     connection = FakeConnection(Cursor((1,)))
     with patch("tools.database.psycopg.connect", return_value=connection) as connect:
+        created = crear_base_si_no_existe(
+            {"host": "render.example", "dbname": "inventario", "user": "test"}
+        )
+
+    assert created is False
+    assert connect.call_count == 1
+    assert connect.call_args.kwargs["dbname"] == "inventario"
+
+
+def test_creacion_de_base_faltante_usa_postgres() -> None:
+    connection = FakeConnection(Cursor(None))
+    with patch(
+        "tools.database.psycopg.connect",
+        side_effect=[psycopg.OperationalError("no existe"), connection],
+    ) as connect:
         created = crear_base_si_no_existe(
             {"host": "localhost", "dbname": "inventario", "user": "test"}
         )
 
-    assert created is False
+    assert created is True
     assert connect.call_args.kwargs["dbname"] == "postgres"
     assert connect.call_args.kwargs["autocommit"] is True
 
