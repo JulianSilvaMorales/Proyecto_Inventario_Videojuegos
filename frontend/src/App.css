@@ -49,9 +49,9 @@
 .format-sample {
   min-width: 0;
   padding: 18px;
-  border: 1px solid #e7ebf2;
+  border: 1px solid rgba(148, 163, 209, 0.16);
   border-radius: 12px;
-  background: #f9fbfe;
+  background: #1b2036;
 }
 
 .card-icon,
@@ -65,35 +65,36 @@
 }
 
 .brand-mark {
-  width: 48px;
-  height: 48px;
-  color: #fff;
-  background: #1d4ed8;
+  width: 56px;
+  height: 56px;
+  background: #0b0d17;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  box-shadow: 0 0 24px rgba(139, 92, 246, 0.35);
 }
 
 .card-icon-blue {
-  color: #1d4ed8;
-  background: #eaf0ff;
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.16);
 }
 
 .card-icon-teal {
-  color: #0f766e;
-  background: #e6f5f2;
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.12);
 }
 
 .module-placeholder {
   max-width: 760px;
   padding: 36px;
-  border: 1px solid #e7ebf2;
+  border: 1px solid rgba(148, 163, 209, 0.16);
   border-radius: 16px;
-  background: #fff;
+  background: #141829;
 }
 
 .coming-soon {
   margin-top: 28px;
   padding: 12px 14px;
   border-radius: 10px;
-  background: #edf3ff;
+  background: rgba(139, 92, 246, 0.14);
 }
 
 .login-page {
@@ -102,9 +103,11 @@
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(ellipse at 15% 15%, rgba(29, 78, 216, 0.12), transparent 38%),
-    radial-gradient(ellipse at 90% 85%, rgba(15, 118, 110, 0.09), transparent 34%),
-    #f4f7fb;
+    radial-gradient(ellipse at 15% 15%, rgba(139, 92, 246, 0.28), transparent 42%),
+    radial-gradient(ellipse at 88% 85%, rgba(34, 211, 238, 0.16), transparent 38%),
+    linear-gradient(rgba(148, 163, 209, 0.05) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, rgba(148, 163, 209, 0.05) 1px, transparent 1px) 0 0 / 24px 24px,
+    #0b0d17;
 }
 
 .login-language {
@@ -116,7 +119,23 @@
 .login-card {
   width: min(100%, 460px);
   border-radius: 18px !important;
-  box-shadow: 0 20px 70px rgba(35, 55, 90, 0.08) !important;
+  border: 1px solid rgba(167, 139, 250, 0.22) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 60px rgba(139, 92, 246, 0.12) !important;
+}
+
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-name {
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #c4b5fd, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .global-alert {

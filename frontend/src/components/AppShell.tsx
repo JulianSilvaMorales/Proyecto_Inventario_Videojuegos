@@ -42,6 +42,7 @@ import { CrudPage } from './CrudPage'
 import { Dashboard } from './Dashboard'
 import { InventoryPage } from './inventory/InventoryPage'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { PixelVaultLogo } from './PixelVaultLogo'
 import { ReportsPage } from './reports/ReportsPage'
 import { SalesPage } from './sales/SalesPage'
 import { SettingsPage } from './settings/SettingsPage'
@@ -165,9 +166,12 @@ export function AppShell({ user, onLogout }: AppShellProps) {
               <MenuRoundedIcon />
             </IconButton>
           )}
-          <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700 }}>
-            {t('app.name')}
-          </Typography>
+          <Box className="brand-title">
+            <PixelVaultLogo size={30} />
+            <Typography variant="subtitle1" noWrap className="brand-name">
+              {t('app.name')}
+            </Typography>
+          </Box>
           <Box sx={{ flexGrow: 1 }} />
           <LanguageSwitcher />
           <Tooltip title={t('common.logout')}>

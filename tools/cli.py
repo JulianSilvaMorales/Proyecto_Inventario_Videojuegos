@@ -20,6 +20,7 @@ if __package__:
         reiniciar_base_local,
         sembrar_base,
     )
+    from .demo_seed import DemoError, cargar_datos, sembrar_demo, validar_datos
     from .env_config import cargar_env_file
     from .model_validator import validar_modelo
     from .sql_generator import generar_archivos
@@ -32,6 +33,7 @@ else:
         reiniciar_base_local,
         sembrar_base,
     )
+    from demo_seed import DemoError, cargar_datos, sembrar_demo, validar_datos
     from env_config import cargar_env_file
     from model_validator import validar_modelo
     from sql_generator import generar_archivos
@@ -43,6 +45,7 @@ COMANDOS = (
     "crear-bd",
     "reiniciar-bd",
     "sembrar",
+    "sembrar-demo",
     "probar",
     "todo",
 )
@@ -61,6 +64,10 @@ def crear_parser() -> argparse.ArgumentParser:
         "crear-bd": "Crear la base de datos, aplicar migraciones y cargar semillas.",
         "reiniciar-bd": "Recrear la base de datos local.",
         "sembrar": "Cargar las semillas de datos.",
+        "sembrar-demo": (
+            "Cargar datos de demostración realistas (usuarios por rol, catálogo, compras, "
+            "ventas en COP y USD) a través de la API del backend en ejecución."
+        ),
         "probar": "Ejecutar las pruebas del proyecto.",
         "todo": "Validar, generar, crear la base de datos y ejecutar las pruebas.",
     }
@@ -106,6 +113,12 @@ def crear_parser() -> argparse.ArgumentParser:
                     "Dónde se ejecuta la E2E: 'local' (backend JAR y vite preview) o "
                     "'compose' (docker-compose.yml en un proyecto aislado)."
                 ),
+            )
+        if comando == "sembrar-demo":
+            subparser.add_argument(
+                "--api",
+                default="http://localhost:8080",
+                help="URL del backend en ejecución (por defecto http://localhost:8080).",
             )
         if comando == "reiniciar-bd":
             subparser.add_argument(
@@ -270,6 +283,55 @@ def _ejecutar_bd(args: argparse.Namespace, root: Path) -> int:
     return 0
 
 
+def _ejecutar_sembrar_demo(args: argparse.Namespace, root: Path) -> int:
+    mensajes: list[str] = []
+
+    def log(mensaje: str) -> None:
+        mensajes.append(mensaje)
+        print(mensaje, flush=True)
+
+    try:
+        datos = cargar_datos(root)
+        errores = validar_datos(datos)
+        if errores:
+            raise DemoError("db/seeds/demo.json tiene referencias inválidas: " + " ".join(errores))
+        if args.dry_run:
+            log(
+                f"Se cargarían {len(datos['usuarios'])} usuarios, "
+                f"{len(datos['productos'])} productos, "
+                f"{len(datos['compras'])} compras, {len(datos['clientes'])} clientes y "
+                f"{len(datos['ventas'])} ventas usando la API {args.api}. No se conectó a nada."
+            )
+        else:
+            cargar_env_file(root / ".env")
+            demo_password = os.environ.get("DEMO_PASSWORD", "")
+            if len(demo_password) < 8:
+                raise ValueError(
+                    "Defina DEMO_PASSWORD (8 caracteres o más) en .env: es la contraseña "
+                    "de los usuarios de demostración."
+                )
+            sembrar_demo(
+                root,
+                parametros_conexion(),
+                args.api,
+                _credenciales_admin(),
+                demo_password,
+                log,
+            )
+            log("Datos de demostración listos.")
+    except (DemoError, OSError, ValueError, KeyError, psycopg.Error) as exc:
+        log_path = _escribir_log(root, "sembrar-demo", "ERROR", "\n".join([*mensajes, str(exc)]))
+        print(f"ERROR: {exc}", file=sys.stderr)
+        if log_path is not None:
+            print(f"Log: {log_path}", file=sys.stderr)
+        return 1
+    estado = "DRY-RUN" if args.dry_run else "OK"
+    log_path = _escribir_log(root, "sembrar-demo", estado, "\n".join(mensajes))
+    if log_path is not None:
+        print(f"Log: {log_path}")
+    return 0
+
+
 def _ejecutar_probar(args: argparse.Namespace, root: Path) -> int:
     suites = [suite.strip() for suite in args.suites.split(",") if suite.strip()]
     try:
@@ -321,6 +383,8 @@ def main(argv: list[str] | None = None) -> int:
         return _ejecutar_generar(root, args.dry_run)
     if args.comando in {"crear-bd", "reiniciar-bd", "sembrar"}:
         return _ejecutar_bd(args, root)
+    if args.comando == "sembrar-demo":
+        return _ejecutar_sembrar_demo(args, root)
     if args.comando == "probar":
         return _ejecutar_probar(args, root)
     return _ejecutar_todo(args, root)

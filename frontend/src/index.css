@@ -6,8 +6,9 @@
   -moz-osx-font-smoothing: grayscale;
   font-optical-sizing: auto;
   font-weight: 400;
-  color: #172033;
-  background: #f4f7fb;
+  color: #e6e8f2;
+  background: #0b0d17;
+  color-scheme: dark;
 }
 
 html,
@@ -43,5 +44,14 @@ select {
     position: absolute;
     inset: 0 0 auto;
     padding: 16px;
+  }
+
+  /* El recibo se imprime en blanco y negro aunque la interfaz sea oscura. */
+  body,
+  .receipt-print,
+  .receipt-print * {
+    color: #000 !important;
+    background: #fff !important;
+    border-color: #ccc !important;
   }
 }
