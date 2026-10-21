@@ -8,6 +8,12 @@ from tools.cli import main
 from tools.test_runner import Paso, ResultadoSuite, contar_junit, escribir_resumen, probar
 
 
+@pytest.fixture(autouse=True)
+def sin_resumen_de_github(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Los resultados ficticios de estas pruebas no deben llegar al resumen real del CI."""
+    monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
+
+
 def test_cuenta_solo_las_suites_hoja_de_los_reportes_junit(tmp_path: Path) -> None:
     (tmp_path / "agregado.xml").write_text(
         '<testsuites tests="5" failures="1">'

@@ -2,8 +2,14 @@
 
 Aplicación web para administrar catálogo, inventario y ventas con soporte
 internacional. El alcance y las decisiones del proyecto están documentados en
-[`spec/REQUIREMENTS.md`](spec/REQUIREMENTS.md), y el proceso de desarrollo en
-[`spec/GUIDE.md`](spec/GUIDE.md).
+[`spec/REQUIREMENTS.md`](spec/REQUIREMENTS.md), el proceso de desarrollo en
+[`spec/GUIDE.md`](spec/GUIDE.md) y las instrucciones de trabajo por etapas en
+[`spec/INSTRUCTIONS.md`](spec/INSTRUCTIONS.md).
+
+El proyecto se usa en **Windows**: todos los comandos de este documento se
+escriben en el **Símbolo del sistema (`cmd`)**, desde la carpeta raíz del
+proyecto, y funcionan igual en PowerShell. No se necesita Linux ni Ubuntu en tu
+equipo (ver [¿Por qué aparece Linux en el CI?](#por-qué-aparece-linux-en-el-ci)).
 
 ## Estado
 
@@ -29,7 +35,7 @@ siguiente:
 | E7 | Verificación transversal: sin constantes de negocio en el código, importes como texto decimal en toda la API y prueba automatizada de un país y una moneda agregados solo con datos. Implementada y aprobada. |
 | E8 | Pruebas y logs: integraciones con PostgreSQL desechable (Testcontainers), pruebas reales de `crear-bd`, flujo E2E con Playwright y comando `probar` con `resumen.md`. Implementada y aprobada. |
 | E9 | Integración continua con GitHub Actions (python, backend, frontend y e2e) con logs como artefactos, control de archivos generados y hook local `pre-push`; `main` protegida con CI obligatorio. Implementada y aprobada. |
-| E10 | Contenedores: imágenes de backend, frontend y `db-init`, y `docker-compose.yml` que levanta todo con un solo comando; E2E del CI sobre Docker Compose. Implementada y pendiente de revisión. |
+| E10 | Contenedores: imágenes de backend, frontend y `db-init`, y `docker-compose.yml` que levanta todo con un solo comando; E2E del CI sobre Docker Compose. Incluye la revisión general del proyecto, la limpieza de archivos sin uso y el soporte de `cmd` (ver [Revisión y correcciones de E10](#revisión-y-correcciones-de-e10)). Implementada y pendiente de revisión. |
 | Pendiente | Despliegue de demostración y cierre según E11–E12 de la guía. |
 
 ## Resumen de lo construido hasta ahora
@@ -84,23 +90,36 @@ implementadas; deberán abordarse en una etapa posterior.
 
 ## Preparación local
 
-Desde PowerShell, en la carpeta del proyecto:
+En `cmd`, desde la carpeta del proyecto (una sola vez):
 
-```powershell
+```bat
 py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.venv\Scripts\activate.bat
 python -m pip install --upgrade pip
-python -m pip install -r requirements-dev.txt   # incluye requirements.txt
-pre-commit install   # instala los hooks de commit y de push (ver E9)
+python -m pip install -r requirements-dev.txt
+pre-commit install
+copy .env.example .env
 ```
 
-El archivo `.env.example` documenta las variables necesarias. Crea un `.env`
-local con los valores de tu entorno. No guardes credenciales ni secretos en el
-repositorio.
+- `requirements-dev.txt` incluye `requirements.txt` (dependencias de ejecución)
+  y las herramientas de desarrollo.
+- `pre-commit install` instala los hooks de commit y de push (ver E9).
+- Completa en `.env` los valores de tu entorno (`DB_PASSWORD`, `JWT_SECRET`,
+  `ADMIN_EMAIL`, `ADMIN_PASSWORD`…), en formato `CLAVE=valor` y sin comillas.
+  Nunca lo subas al repositorio (está en `.gitignore`).
+- En cada consola nueva, activa el entorno con `.venv\Scripts\activate.bat`
+  (en PowerShell: `.venv\Scripts\Activate.ps1`).
+
+### Formas de ejecutar el sistema
+
+| Opción | Para qué | Cómo |
+|---|---|---|
+| Docker Compose | Usar o demostrar el sistema completo sin instalar nada más que Docker. | `docker compose up --build` (ver [Contenedores (E10)](#contenedores-e10)). |
+| Desarrollo local | Modificar el código con recarga rápida. Requiere PostgreSQL local. | `python tools/cli.py crear-bd`, luego el backend y el frontend (ver [Backend](#backend-e51e55) y [Frontend](#frontend-e61e64)). |
 
 ## CLI de desarrollo
 
-```powershell
+```bat
 python tools/cli.py --help
 python tools/cli.py validar --help
 python tools/cli.py generar --help
@@ -127,25 +146,21 @@ necesites conservar. `probar` ejecuta todas las suites de prueba y `todo` encade
 ## Backend (E5.1–E5.5)
 
 El backend Spring Boot está en `backend/`, usa Java 17, valida el esquema al
-arrancar y no modifica la base (`ddl-auto=validate`). Spring Boot no carga
-`.env` automáticamente; desde la raíz del repositorio, carga sus variables en
-la sesión sin imprimir los valores:
+arrancar y no modifica la base (`ddl-auto=validate`). Lee automáticamente el
+`.env` de la raíz del proyecto (`spring.config.import` en `application.yml`),
+así que no hace falta cargar variables a mano; si una variable también existe
+en el entorno del sistema, prevalece la del sistema. Con PostgreSQL local y la
+base creada (`python tools/cli.py crear-bd`), en `cmd`:
 
-```powershell
-Get-Content .env | ForEach-Object {
-    if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$') {
-        [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2].Trim().Trim('"').Trim("'"), 'Process')
-    }
-}
-```
-
-Luego ejecuta:
-
-```powershell
-Push-Location backend
-.\mvnw.cmd verify
+```bat
+cd backend
 .\mvnw.cmd spring-boot:run
 ```
+
+Para detenerlo, `Ctrl+C`. Las pruebas del backend se ejecutan con
+`.\mvnw.cmd verify` desde `backend` (necesitan Docker; ver
+[Pruebas y logs](#pruebas-y-logs-e8)). Se escribe `.\mvnw.cmd` con `.\` para
+que funcione igual en `cmd` y en PowerShell.
 
 Maven Wrapper descarga Maven 3.9.11; requiere que Java 17 esté instalado. La
 aplicación expone
@@ -188,7 +203,7 @@ moneda, idioma, zona horaria e impuesto vigente configurados.
 
 Para validar el modelo:
 
-```powershell
+```bat
 python tools/cli.py validar
 python tools/cli.py validar --dry-run
 ```
@@ -200,7 +215,7 @@ Para generar el esquema y preparar PostgreSQL:
    define `DATABASE_URL` y las dos variables del administrador.
 2. Genera la migración y crea/siembra la base:
 
-```powershell
+```bat
 python tools/cli.py generar
 python tools/cli.py crear-bd
 ```
@@ -375,10 +390,10 @@ parámetro, sin cambiar código.
 ## Frontend (E6.1–E6.4)
 
 El cliente React + TypeScript está en `frontend/`. Con el backend iniciado en
-`http://localhost:8080`, desde PowerShell ejecuta:
+`http://localhost:8080`, en `cmd`:
 
-```powershell
-Push-Location frontend
+```bat
+cd frontend
 npm ci
 npm run dev
 ```
@@ -607,7 +622,6 @@ las mismas claves y que toda clave `t('…')` usada en la interfaz existe.
 | Python: `validar` y `pytest` | 37 pruebas en verde |
 | `pre-commit run --all-files` | Correcto |
 
-Los logs de la corrida están en `logs/e7/` (no versionados).
 
 ## Pruebas y logs (E8)
 
@@ -621,12 +635,17 @@ Los logs de la corrida están en `logs/e7/` (no versionados).
 
 ### Comando `probar`
 
-```powershell
-python tools/cli.py probar                       # todas las suites
+```bat
+rem Todas las suites
+python tools/cli.py probar
+rem Solo algunas suites
 python tools/cli.py probar --suites python,frontend
-python tools/cli.py probar --dry-run             # muestra qué se ejecutaría
-python tools/cli.py probar --suites e2e --e2e-entorno compose   # E2E sobre Docker Compose
-python tools/cli.py todo                         # validar → generar → crear-bd → probar
+rem Muestra qué se ejecutaría, sin ejecutar nada
+python tools/cli.py probar --dry-run
+rem E2E sobre Docker Compose (como en el CI)
+python tools/cli.py probar --suites e2e --e2e-entorno compose
+rem validar, generar, crear-bd y probar, en ese orden
+python tools/cli.py todo
 ```
 
 Cada ejecución crea `logs/tests/<AAAAMMDD-HHMMSS>/` con:
@@ -658,7 +677,6 @@ corrida final se copiarán a `docs/evidencias/` en E12.
 | Comandos del CLI (`validar`, `generar`, `crear-bd`, `sembrar`, `reiniciar-bd`) | `logs/tools/<comando>-<marca de tiempo>.log` |
 | `mvnw verify` ejecutado a mano | `backend/target/surefire-reports/` |
 | Playwright ejecutado a mano | `e2e/reports/` |
-| Corridas manuales de revisión de etapas | `logs/e6.4/`, `logs/e7/` |
 
 Ejemplo de `resumen.md`:
 
@@ -726,7 +744,7 @@ el recibo → comprobar existencia 3 y el movimiento "Salida por venta". El tipo
 de producto, las categorías, el proveedor y la orden de compra se preparan por
 API porque aún no tienen pantalla propia.
 
-### Resultado de la última corrida completa (`logs/tests/20261021-052451/`, E2E sobre Docker Compose)
+### Resultado de la última corrida completa (`logs/tests/20261021-165546/`, E2E sobre Docker Compose)
 
 | Suite | Pruebas |
 |---|---:|
@@ -743,9 +761,11 @@ API porque aún no tienen pantalla propia.
 Requisitos: Docker Desktop en ejecución y un `.env` con `DB_PASSWORD`,
 `JWT_SECRET`, `ADMIN_EMAIL` y `ADMIN_PASSWORD` (ver `.env.example`).
 
-```powershell
-docker compose up --build          # primer arranque (o tras cambiar el código)
-docker compose up -d --wait        # en segundo plano, espera a que todo esté sano
+```bat
+rem Primer arranque, o después de cambiar el código (construye las imágenes)
+docker compose up --build
+rem En segundo plano: devuelve la consola cuando todo está sano
+docker compose up --build -d --wait
 ```
 
 Después se entra en `http://localhost:8081` con `ADMIN_EMAIL` y
@@ -791,11 +811,18 @@ obligatoria, `docker compose` se detiene con un mensaje que la nombra.
 `db-init` se ejecuta en cada arranque y es idempotente: en un segundo arranque
 no aplica migraciones ni inserta semillas, así que no duplica datos.
 
-```powershell
-docker compose logs -f backend     # logs de un servicio
-docker compose down                # detiene y conserva los datos (volumen db-data)
-docker compose down -v             # detiene y BORRA la base para empezar de cero
+```bat
+rem Ver los logs de un servicio (Ctrl+C para salir)
+docker compose logs -f backend
+rem Detener y conservar los datos (volumen db-data)
+docker compose down
+rem Detener y BORRAR la base para empezar de cero
+docker compose down -v
 ```
+
+La pila no arranca sola al abrir Docker Desktop: solo corre cuando la levantas
+con `docker compose up`, así que no ocupa los puertos 8080/8081 mientras
+desarrollas con el backend y el frontend locales.
 
 ### Verificación de la etapa
 
@@ -806,12 +833,27 @@ docker compose down -v             # detiene y BORRA la base para empezar de cer
 | `docker compose down` + `up` | `db-init`: 0 migraciones y 0 semillas nuevas; conteos sin cambios. |
 | E2E de Playwright sobre la pila (`probar --suites e2e --e2e-entorno compose`) | Correcta; la pila aislada se elimina al terminar. |
 
+### Revisión y correcciones de E10
+
+Antes de aprobar E10 se revisó todo el proyecto y se aplicaron estas
+correcciones:
+
+| Tema | Hallazgo | Corrección |
+|---|---|---|
+| Resumen del CI | En la página de una ejecución apareció un resumen con "e2e ❌ fallido" y "python 42 pruebas". **No era una ejecución real**: lo escribía la prueba unitaria `test_resumen_lista_cada_suite_y_marca_los_fallos`, que fabrica a propósito un resultado fallido para comprobar el formato de `resumen.md`, y al estar definida la variable `GITHUB_STEP_SUMMARY` en el CI lo añadía al resumen de GitHub. La E2E real pasó. | Las pruebas del orquestador borran esa variable antes de ejecutarse (fixture `sin_resumen_de_github`); comprobado que ya no escriben nada en el resumen del CI. |
+| Windows (`cmd`) | Arrancar el backend en local exigía un bloque de PowerShell para cargar `.env`, y el README usaba comandos de PowerShell (`Push-Location`, `;`, comentarios con `#`). | El backend lee `.env` por sí mismo (`spring.config.import`); todos los comandos del README están en sintaxis de `cmd` y se verificaron en `cmd.exe` (CLI, `probar`, `pre-commit`, pruebas del front, Docker Compose y arranque del backend leyendo solo `.env`). |
+| Docker Compose | Con `restart: unless-stopped`, la pila volvía a arrancar sola al abrir Docker Desktop y ocupaba los puertos 8080/8081. | Sin política de reinicio: la pila solo corre cuando se levanta con `docker compose up`. |
+| Detección de secretos | detect-secrets marcaba la URL de conexión con credenciales que armaba la base de pruebas de Testcontainers. | La conexión se pasa con variables `DB_*` y `DATABASE_URL` vacía. |
+| Código sin uso | `ParametroService.invalidar(clave)` no se usaba (la caché se invalida completa con `invalidarTodo()`); 7 claves de traducción ya no las usaba ninguna pantalla. | Eliminados. Se comprobó además que todas las clases y métodos públicos del backend, todas las funciones de `tools/`, todas las exportaciones y clases CSS del front y todos los mensajes del backend se usan. |
+| Archivos sin uso | Copias duplicadas de la especificación en la raíz (`GUIDE.md` desactualizada y `REQUIREMENTS.md`); restos de la plantilla de Vite (`frontend/README.md`, `public/favicon.svg` y `public/icons.svg` con el logo de Vite, sin enlazar; `src/assets/hero.png`); 13 archivos `.gitkeep` en carpetas que ya tienen contenido o que el código crea solo (`logs/`). | Eliminados. `INSTRUCTIONS.md` se movió a `spec/`, junto a los demás documentos de referencia. `logs/` queda ignorado por completo en `.gitignore`. |
+| Documentación | El CI se describía "sobre Ubuntu" sin explicar por qué. | Nueva sección [¿Por qué aparece Linux en el CI?](#por-qué-aparece-linux-en-el-ci). |
+
 ## Integración continua (E9)
 
 `.github/workflows/ci.yml` se ejecuta una vez por cambio: con `pull_request` en
 los pull requests y con `push` solo en `main` (después de fusionar), para que
 los checks no aparezcan duplicados. Las ramas sin pull request no ejecutan el
-CI. Son cuatro trabajos en paralelo sobre Ubuntu. Cada uno usa el mismo comando que en local,
+CI. Son cuatro trabajos en paralelo en los servidores de GitHub. Cada uno usa el mismo comando que en local,
 `python tools/cli.py probar --suites <suite>`, y sube sus logs como artefacto
 aunque falle.
 
@@ -836,6 +878,23 @@ igual); esa rama se eliminó después.
 
 Desde E10 la prueba E2E del CI se ejecuta sobre Docker Compose, como pide la
 guía; así el CI también comprueba que las imágenes se construyen y arrancan.
+
+### ¿Por qué aparece Linux en el CI?
+
+El proyecto se desarrolla y se usa en **Windows**; tú no necesitas Linux ni
+Ubuntu. Lo único que corre en Linux son los **servidores de GitHub** que
+ejecutan el CI (`runs-on: ubuntu-latest` en `ci.yml`), por dos motivos:
+
+- Las pruebas de integración, la base de pruebas y Docker Compose usan
+  contenedores **Linux** (`postgres:16-alpine`, las imágenes de E10). En tu
+  equipo, Docker Desktop los ejecuta sin que tengas que hacer nada; en los
+  servidores Windows de GitHub, Docker solo admite contenedores Windows, así que
+  esas pruebas no podrían correr allí.
+- Son los servidores más rápidos y gratuitos para repositorios públicos.
+
+Los comandos que ejecuta el CI son los mismos que usas en Windows
+(`python tools/cli.py probar --suites <suite>`); `tools/test_runner.py` elige
+automáticamente `mvnw.cmd` en Windows y `mvnw` en Linux.
 
 ### Hook local antes de cada push
 
@@ -867,12 +926,9 @@ up to date* desactivada).
 
 #### Flujo de trabajo
 
-```powershell
-git switch -c mi-cambio            # 1. rama nueva desde main actualizada
-# 2. cambios + pruebas locales (python tools/cli.py probar)
-git push -u origin mi-cambio       # 3. publicar la rama (se ejecuta el CI)
-```
-
+1. Crear una rama nueva desde `main` actualizada: `git switch -c mi-cambio`.
+2. Hacer los cambios y probarlos en local: `python tools/cli.py probar`.
+3. Publicar la rama: `git push -u origin mi-cambio`.
 4. En GitHub, abrir el pull request de `mi-cambio` hacia `main` (el enlace
    aparece al hacer `push` o en la pestaña **Pull requests**).
 5. Esperar a que los cuatro checks terminen en verde; si alguno falla, revisar
@@ -892,20 +948,20 @@ repositorios públicos, como este, están en el plan gratuito.
 
 ## Verificaciones
 
-```powershell
+```bat
 python tools/cli.py --help
 python tools/cli.py validar
 python tools/cli.py generar --dry-run
-python tools/cli.py probar          # todas las suites, con logs y resumen
+python tools/cli.py probar
 pre-commit run --all-files
 ```
 
 Cada suite también se puede ejecutar por separado:
 
-```powershell
+```bat
 python -m pytest
-Push-Location backend; .\mvnw.cmd clean verify; Pop-Location
-Push-Location frontend; npm run lint; npm run typecheck; npm test; npm run build; Pop-Location
+cd backend && .\mvnw.cmd clean verify && cd ..
+cd frontend && npm run lint && npm run typecheck && npm test && npm run build && cd ..
 ```
 
 Las pruebas de integración y la E2E necesitan Docker en ejecución; no usan la
@@ -923,9 +979,9 @@ compilación):
 ```text
 .
 ├── README.md                     # Este documento
-├── REQUIREMENTS.md, GUIDE.md, INSTRUCTIONS.md   # Copias de referencia en la raíz
 ├── .env.example                  # Variables de entorno documentadas (sin secretos)
 ├── .gitignore
+├── .gitattributes                # Saltos de línea LF en los archivos que usan los contenedores
 ├── .pre-commit-config.yaml       # Hooks: commit (ruff, secretos) y push (validar y pruebas)
 ├── .secrets.baseline             # Falsos positivos aceptados por detect-secrets
 ├── pyproject.toml                # Configuración de ruff y pytest
@@ -937,6 +993,7 @@ compilación):
 ├── spec/
 │   ├── REQUIREMENTS.md           # Especificación de requisitos v0.7
 │   ├── GUIDE.md                  # Guía de desarrollo por etapas
+│   ├── INSTRUCTIONS.md           # Instrucciones de trabajo por etapas (resumen)
 │   └── modelo-conceptual.md      # E1: entidades, reglas, estados y permisos
 ├── db/
 │   ├── model/
@@ -985,7 +1042,7 @@ compilación):
 │       └── test/resources/       # docker-java.properties (API de Docker)
 ├── frontend/
 │   ├── package.json, package-lock.json, vite.config.ts, tsconfig*.json, .oxlintrc.json
-│   ├── index.html, public/
+│   ├── index.html                # Página base de Vite (título y metadatos)
 │   └── src/
 │       ├── main.tsx, App.tsx, theme.ts, navigation.ts, index.css
 │       ├── api/                  # apiClient (peticiones y CSV), useApiQuery,

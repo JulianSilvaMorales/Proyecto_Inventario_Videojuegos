@@ -1,6 +1,13 @@
 spring:
   application:
     name: inventario-backend
+  config:
+    # Lee el .env del proyecto (formato KEY=VALUE, sin comillas) al ejecutar desde
+    # la raíz o desde backend/. Es opcional y las variables de entorno del sistema
+    # tienen prioridad, así que Docker, CI y Render no se ven afectados.
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
