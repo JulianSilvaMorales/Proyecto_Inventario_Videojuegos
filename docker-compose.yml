@@ -1,0 +1,76 @@
+# PixelVault completo con un solo comando:  docker compose up --build
+# Las credenciales se leen del archivo .env (ver .env.example); nada secreto se
+# escribe aquí. Orden de arranque: db (sana) → db-init (termina bien) → backend
+# (sano) → frontend.
+name: pixelvault
+
+x-db: &db-env
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_NAME: ${DB_NAME:-inventario}
+  DB_USER: ${DB_USER:-inventario}
+  DB_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-inventario}
+      POSTGRES_USER: ${DB_USER:-inventario}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # Crea la base con los scripts de Python; idempotente en cada arranque.
+  db-init:
+    build:
+      context: .
+      dockerfile: docker/db-init.Dockerfile
+    environment:
+      <<: *db-env
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Defina ADMIN_EMAIL en .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD en .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    environment:
+      <<: *db-env
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET en .env}
+      # Origen del navegador: el frontend publicado por este mismo compose.
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-8081}
+      SPRING_PROFILES_ACTIVE: produccion
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        # El navegador llama al backend publicado en el equipo anfitrión.
+        VITE_API_URL: http://localhost:${BACKEND_PORT:-8080}
+    ports:
+      - "${FRONTEND_PORT:-8081}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  db-data:

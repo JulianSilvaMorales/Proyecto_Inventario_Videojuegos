@@ -28,8 +28,9 @@ siguiente:
 | E6.4 | Ventas (desglose de impuestos, confirmación de pago, anulación y recibo simulado), reportes con exportación CSV y pantalla de parámetros por ámbito y vigencia. Implementada y aprobada. |
 | E7 | Verificación transversal: sin constantes de negocio en el código, importes como texto decimal en toda la API y prueba automatizada de un país y una moneda agregados solo con datos. Implementada y aprobada. |
 | E8 | Pruebas y logs: integraciones con PostgreSQL desechable (Testcontainers), pruebas reales de `crear-bd`, flujo E2E con Playwright y comando `probar` con `resumen.md`. Implementada y aprobada. |
-| E9 | Integración continua con GitHub Actions (python, backend, frontend y e2e) con logs como artefactos, control de archivos generados y hook local `pre-push`. Implementada y pendiente de revisión. |
-| Pendiente | Contenedores, despliegue y cierre según E10–E12 de la guía. |
+| E9 | Integración continua con GitHub Actions (python, backend, frontend y e2e) con logs como artefactos, control de archivos generados y hook local `pre-push`; `main` protegida con CI obligatorio. Implementada y aprobada. |
+| E10 | Contenedores: imágenes de backend, frontend y `db-init`, y `docker-compose.yml` que levanta todo con un solo comando; E2E del CI sobre Docker Compose. Implementada y pendiente de revisión. |
+| Pendiente | Despliegue de demostración y cierre según E11–E12 de la guía. |
 
 ## Resumen de lo construido hasta ahora
 
@@ -58,7 +59,7 @@ tienda de consolas y videojuegos que vende en varios países. Hoy permite:
   moneda cambian sin recargar la página.
 
 La base de datos se describe en JSON (`db/model/`) y se crea solo con los
-scripts de Python. La calidad se comprueba con 153 pruebas automáticas en
+scripts de Python. La calidad se comprueba con 154 pruebas automáticas en
 cuatro suites (Python, backend, frontend y extremo a extremo) que se ejecutan
 con un solo comando y dejan sus logs en `logs/tests/` (ver
 [Pruebas y logs](#pruebas-y-logs-e8)).
@@ -77,8 +78,8 @@ implementadas; deberán abordarse en una etapa posterior.
 - PostgreSQL 16+
 - Node.js LTS y npm para el frontend
 - Docker (Docker Desktop en Windows) en ejecución: lo usan las pruebas de integración
-  del backend, las de base de datos de Python y la prueba E2E; Docker Compose se
-  usará en E10
+  del backend, las de base de datos de Python, la prueba E2E y la ejecución con
+  Docker Compose (E10)
 - Git
 
 ## Preparación local
@@ -89,7 +90,7 @@ Desde PowerShell, en la carpeta del proyecto:
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r requirements-dev.txt
+python -m pip install -r requirements-dev.txt   # incluye requirements.txt
 pre-commit install   # instala los hooks de commit y de push (ver E9)
 ```
 
@@ -624,6 +625,7 @@ Los logs de la corrida están en `logs/e7/` (no versionados).
 python tools/cli.py probar                       # todas las suites
 python tools/cli.py probar --suites python,frontend
 python tools/cli.py probar --dry-run             # muestra qué se ejecutaría
+python tools/cli.py probar --suites e2e --e2e-entorno compose   # E2E sobre Docker Compose
 python tools/cli.py todo                         # validar → generar → crear-bd → probar
 ```
 
@@ -642,7 +644,7 @@ El comando devuelve código distinto de cero si falla cualquier paso o prueba.
 | `python` | `ruff check`, `ruff format --check` y `pytest` (validación, generación, semillas, CLI y base de datos real). |
 | `backend` | `mvnw clean verify`: unitarias e integración con PostgreSQL desechable. |
 | `frontend` | `npm ci`, lint, typecheck, Vitest y build. |
-| `e2e` | Base desechable creada con `crear-bd`, backend (JAR) y front (`vite preview`) en puertos libres, y Playwright con Chromium. |
+| `e2e` | Por defecto (`--e2e-entorno local`): base desechable creada con `crear-bd`, backend (JAR) y front (`vite preview`) en puertos libres. Con `--e2e-entorno compose`: `docker-compose.yml` en un proyecto aislado con puertos y secretos propios, que se elimina al terminar. En ambos casos, Playwright con Chromium. |
 
 ### Dónde quedan los logs y reportes
 
@@ -724,20 +726,92 @@ el recibo → comprobar existencia 3 y el movimiento "Salida por venta". El tipo
 de producto, las categorías, el proveedor y la orden de compra se preparan por
 API porque aún no tienen pantalla propia.
 
-### Resultado de la última corrida completa (`logs/tests/20261021-040346/`)
+### Resultado de la última corrida completa (`logs/tests/20261021-052451/`, E2E sobre Docker Compose)
 
 | Suite | Pruebas |
 |---|---:|
-| python | 48 |
+| python | 49 |
 | backend | 73 |
 | frontend | 31 |
 | e2e | 1 |
-| **Total** | **153, todas en verde** |
+| **Total** | **154, todas en verde** |
+
+## Contenedores (E10)
+
+### Puesta en marcha con un solo comando
+
+Requisitos: Docker Desktop en ejecución y un `.env` con `DB_PASSWORD`,
+`JWT_SECRET`, `ADMIN_EMAIL` y `ADMIN_PASSWORD` (ver `.env.example`).
+
+```powershell
+docker compose up --build          # primer arranque (o tras cambiar el código)
+docker compose up -d --wait        # en segundo plano, espera a que todo esté sano
+```
+
+Después se entra en `http://localhost:8081` con `ADMIN_EMAIL` y
+`ADMIN_PASSWORD`. La API queda en `http://localhost:8080` (salud en
+`/actuator/health`).
+
+### Servicios
+
+| Servicio | Imagen | Función | Arranca cuando |
+|---|---|---|---|
+| `db` | `postgres:16-alpine` | Base de datos con volumen persistente `db-data`. | — |
+| `db-init` | `docker/db-init.Dockerfile` (Python 3.12) | Ejecuta `python tools/cli.py crear-bd`: crea la base si falta, aplica migraciones pendientes, carga semillas y verifica; termina con código 0. | `db` está sana (`pg_isready`). |
+| `backend` | `docker/backend.Dockerfile` | API Spring Boot con perfil `produccion`; publica `BACKEND_PORT` (8080). | `db-init` terminó bien. |
+| `frontend` | `docker/frontend.Dockerfile` | Sitio estático compilado con Vite y servido por nginx; publica `FRONTEND_PORT` (8081). | `backend` está sano (`/actuator/health`). |
+
+### Imágenes
+
+- **Backend:** etapa de compilación con JDK 17 y el Maven Wrapper (Maven
+  3.9.11); ejecución con JRE 21, usuario sin privilegios y JVM para poca
+  memoria (`-XX:MaxRAMPercentage=65 -XX:+UseSerialGC
+  -XX:TieredStopAtLevel=1`). Incluye `db/model/schema-resuelto.json` para validar
+  el esquema al arrancar. En reposo usa unos 250 MiB.
+- **Frontend:** `npm ci` y `npm run build` con `VITE_API_URL` como argumento de
+  construcción (la URL que usa el navegador; no debe contener secretos), servido
+  por nginx con respaldo a `index.html` para las rutas de la aplicación, caché
+  larga para `/assets/` y sin caché para `index.html`.
+- **db-init:** Python 3.12 con solo las dependencias de ejecución
+  (`requirements.txt`), `tools/` y `db/`.
+
+`.dockerignore` deja fuera del contexto `.env`, dependencias instaladas,
+compilaciones, logs y documentación.
+
+### Configuración
+
+Docker Compose lee el `.env` de la raíz. Dentro de la red de Docker la base es
+el servicio `db` (el `DB_HOST` del `.env` no se usa). `CORS_ORIGINS` del backend
+y `VITE_API_URL` del frontend se derivan de `FRONTEND_PORT` y `BACKEND_PORT`, de
+modo que no chocan con los valores de desarrollo (`5173`). Si falta una variable
+obligatoria, `docker compose` se detiene con un mensaje que la nombra.
+
+### Reinicios y datos
+
+`db-init` se ejecuta en cada arranque y es idempotente: en un segundo arranque
+no aplica migraciones ni inserta semillas, así que no duplica datos.
+
+```powershell
+docker compose logs -f backend     # logs de un servicio
+docker compose down                # detiene y conserva los datos (volumen db-data)
+docker compose down -v             # detiene y BORRA la base para empezar de cero
+```
+
+### Verificación de la etapa
+
+| Comprobación | Resultado |
+|---|---|
+| `docker compose up --build --wait` desde cero | Los cuatro servicios en orden; `db-init` aplicó V001–V003 y cargó las semillas. |
+| Inicio de sesión del administrador, CORS desde el frontend, rutas de la aplicación y URL de la API en el bundle | Correcto. |
+| `docker compose down` + `up` | `db-init`: 0 migraciones y 0 semillas nuevas; conteos sin cambios. |
+| E2E de Playwright sobre la pila (`probar --suites e2e --e2e-entorno compose`) | Correcta; la pila aislada se elimina al terminar. |
 
 ## Integración continua (E9)
 
-`.github/workflows/ci.yml` se ejecuta en cada `push` y `pull_request` con cuatro
-trabajos en paralelo sobre Ubuntu. Cada uno usa el mismo comando que en local,
+`.github/workflows/ci.yml` se ejecuta una vez por cambio: con `pull_request` en
+los pull requests y con `push` solo en `main` (después de fusionar), para que
+los checks no aparezcan duplicados. Las ramas sin pull request no ejecutan el
+CI. Son cuatro trabajos en paralelo sobre Ubuntu. Cada uno usa el mismo comando que en local,
 `python tools/cli.py probar --suites <suite>`, y sube sus logs como artefacto
 aunque falle.
 
@@ -746,7 +820,7 @@ aunque falle.
 | `python` | `validar`; que `generar` no produzca diferencias con lo versionado (migraciones, modelo resuelto, SQL de CRUD y metadatos del front); ruff, formato y pytest con PostgreSQL desechable. | `logs-python` |
 | `backend` | `mvnw clean verify`: pruebas unitarias e integración con Testcontainers (los runners de GitHub traen Docker). | `logs-backend` |
 | `frontend` | `npm ci`, lint, typecheck, Vitest y build. | `logs-frontend` |
-| `e2e` | Instala Chromium con sus dependencias y ejecuta el flujo producto → entrada → venta con la base desechable, el backend y el front. | `logs-e2e` (incluye capturas y traza si falla) |
+| `e2e` | Instala Chromium con sus dependencias, construye las imágenes de E10 y ejecuta el flujo producto → entrada → venta sobre Docker Compose (`--e2e-entorno compose`). | `logs-e2e` (incluye capturas, traza si falla y los logs de los contenedores) |
 
 Cada artefacto contiene `logs/tests/<fecha-hora>/` (`resumen.md`, `<suite>.log`
 y JUnit XML) y, cuando aplica, `logs/tools/`. Se descargan desde la pestaña
@@ -760,9 +834,8 @@ artefactos, y en una rama temporal con una prueba rota a propósito el trabajo
 `python` falló (la ejecución quedó en rojo y el artefacto con el log se subió
 igual); esa rama se eliminó después.
 
-La prueba E2E levanta el backend (JAR) y el front (`vite preview`) desde
-`probar`; cuando exista Docker Compose (E10) podrá ejecutarse sobre esos
-contenedores.
+Desde E10 la prueba E2E del CI se ejecuta sobre Docker Compose, como pide la
+guía; así el CI también comprueba que las imágenes se construyen y arrancan.
 
 ### Hook local antes de cada push
 
@@ -856,7 +929,10 @@ compilación):
 ├── .pre-commit-config.yaml       # Hooks: commit (ruff, secretos) y push (validar y pruebas)
 ├── .secrets.baseline             # Falsos positivos aceptados por detect-secrets
 ├── pyproject.toml                # Configuración de ruff y pytest
-├── requirements-dev.txt          # Dependencias de Python con versión fija
+├── requirements.txt              # Dependencias de ejecución de tools/ (versión fija)
+├── requirements-dev.txt          # requirements.txt + herramientas de desarrollo
+├── docker-compose.yml            # db, db-init, backend y frontend (E10)
+├── .dockerignore                 # Contexto mínimo para construir imágenes
 ├── .github/workflows/ci.yml      # CI con GitHub Actions (E9)
 ├── spec/
 │   ├── REQUIREMENTS.md           # Especificación de requisitos v0.7
@@ -935,7 +1011,11 @@ compilación):
 │   ├── package.json, package-lock.json   # Playwright con versión fija
 │   ├── playwright.config.ts      # URLs y credenciales por variables de entorno
 │   └── tests/flujo-venta.spec.ts # Producto → entrada → venta → saldo y movimiento
-├── docker/                       # Dockerfiles (E10)
+├── docker/
+│   ├── backend.Dockerfile        # JDK 17 (compilación) → JRE 21 (ejecución)
+│   ├── frontend.Dockerfile       # Node 22 (build de Vite) → nginx
+│   ├── nginx.conf                # Sitio estático con respaldo a index.html
+│   └── db-init.Dockerfile        # Python 3.12 que ejecuta crear-bd
 ├── logs/                         # No versionado: tools/ (CLI), tests/<fecha-hora>/
 │                                 # (probar) y corridas manuales de revisión
 └── docs/evidencias/              # Evidencias de la corrida final (E12)

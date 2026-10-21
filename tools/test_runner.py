@@ -241,6 +241,48 @@ def _jar_backend(root: Path) -> Path:
     return max(candidatos, key=lambda jar: jar.stat().st_mtime)
 
 
+def _preparar_playwright(root: Path, log: Path, resultado: ResultadoSuite) -> bool:
+    npm = _ejecutable("npm")
+    npx = _ejecutable("npx")
+    if _ejecutar(
+        resultado, "npm ci e2e", [npm, "ci", "--no-audit", "--no-fund"], log, root / "e2e"
+    ):
+        return False
+    return not _ejecutar(
+        resultado,
+        "navegador Playwright",
+        [npx, "playwright", "install", "chromium"],
+        log,
+        root / "e2e",
+    )
+
+
+def _playwright(
+    root: Path,
+    log: Path,
+    resultado: ResultadoSuite,
+    reportes: Path,
+    url_web: str,
+    url_api: str,
+    admin: tuple[str, str],
+) -> None:
+    _ejecutar(
+        resultado,
+        "playwright",
+        [_ejecutable("npx"), "playwright", "test"],
+        log,
+        root / "e2e",
+        {
+            **os.environ,
+            "E2E_BASE_URL": url_web,
+            "E2E_API_URL": url_api,
+            "E2E_ADMIN_EMAIL": admin[0],
+            "E2E_ADMIN_PASSWORD": admin[1],
+            "E2E_REPORT_DIR": str(reportes),
+        },
+    )
+
+
 def _suite_e2e(root: Path, carpeta: Path, log: Path, resultado: ResultadoSuite) -> None:
     if __package__:
         from .database import crear_base_y_sembrar
@@ -276,17 +318,7 @@ def _suite_e2e(root: Path, carpeta: Path, log: Path, resultado: ResultadoSuite) 
         resultado, "build frontend", [npm, "run", "build"], log, root / "frontend", entorno_front
     ):
         return
-    if _ejecutar(
-        resultado, "npm ci e2e", [npm, "ci", "--no-audit", "--no-fund"], log, root / "e2e"
-    ):
-        return
-    if _ejecutar(
-        resultado,
-        "navegador Playwright",
-        [npx, "playwright", "install", "chromium"],
-        log,
-        root / "e2e",
-    ):
+    if not _preparar_playwright(root, log, resultado):
         return
 
     with ExitStack() as pila:
@@ -331,20 +363,68 @@ def _suite_e2e(root: Path, carpeta: Path, log: Path, resultado: ResultadoSuite) 
             )
         )
         _esperar_url(url_web, web)
-        _ejecutar(
+        _playwright(root, log, resultado, reportes, url_web, url_api, (admin_email, admin_password))
+
+
+def _suite_e2e_compose(root: Path, carpeta: Path, log: Path, resultado: ResultadoSuite) -> None:
+    """E2E sobre `docker-compose.yml` en un proyecto aislado que se elimina al terminar."""
+    docker = _ejecutable("docker")
+    reportes = carpeta / "e2e"
+    reportes.mkdir(parents=True, exist_ok=True)
+    if not _preparar_playwright(root, log, resultado):
+        return
+    proyecto = f"pixelvault-e2e-{secrets.token_hex(4)}"
+    admin = ("admin-e2e@inventario.invalid", secrets.token_urlsafe(18))
+    puerto_api = _puerto_libre()
+    puerto_web = _puerto_libre()
+    # Las variables del proceso tienen prioridad sobre el .env del desarrollador.
+    entorno = {
+        **os.environ,
+        "COMPOSE_PROJECT_NAME": proyecto,
+        "DB_NAME": "inventario",
+        "DB_USER": "inventario",
+        "DB_PASSWORD": secrets.token_urlsafe(18),
+        "ADMIN_EMAIL": admin[0],
+        "ADMIN_PASSWORD": admin[1],
+        "JWT_SECRET": base64.b64encode(secrets.token_bytes(48)).decode("ascii"),
+        "BACKEND_PORT": str(puerto_api),
+        "FRONTEND_PORT": str(puerto_web),
+    }
+    compose = [docker, "compose", "-f", str(root / "docker-compose.yml")]
+    try:
+        if _ejecutar(
             resultado,
-            "playwright",
-            [npx, "playwright", "test"],
+            "docker compose up --build --wait",
+            [*compose, "up", "--build", "--detach", "--wait"],
             log,
-            root / "e2e",
-            {
-                **os.environ,
-                "E2E_BASE_URL": url_web,
-                "E2E_API_URL": url_api,
-                "E2E_ADMIN_EMAIL": admin_email,
-                "E2E_ADMIN_PASSWORD": admin_password,
-                "E2E_REPORT_DIR": str(reportes),
-            },
+            root,
+            entorno,
+        ):
+            return
+        # El backend solo acepta el origen "localhost" configurado en CORS_ORIGINS.
+        _playwright(
+            root,
+            log,
+            resultado,
+            reportes,
+            f"http://localhost:{puerto_web}",
+            f"http://localhost:{puerto_api}",
+            admin,
+        )
+    finally:
+        with log.open("a", encoding="utf-8") as salida:
+            salida.write("\n===== docker compose logs\n")
+            salida.flush()
+            subprocess.run(
+                [*compose, "logs", "--no-color"],
+                cwd=root,
+                env=entorno,
+                stdout=salida,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+        _ejecutar(
+            resultado, "docker compose down -v", [*compose, "down", "--volumes"], log, root, entorno
         )
 
 
@@ -403,10 +483,17 @@ def escribir_resumen(carpeta: Path, resultados: list[ResultadoSuite], root: Path
     return resumen
 
 
-def probar(root: Path, suites: list[str], dry_run: bool = False) -> tuple[int, Path | None]:
+ENTORNOS_E2E = ("local", "compose")
+
+
+def probar(
+    root: Path, suites: list[str], dry_run: bool = False, e2e_entorno: str = "local"
+) -> tuple[int, Path | None]:
     desconocidas = [suite for suite in suites if suite not in SUITES]
     if desconocidas:
         raise ValueError(f"Suites desconocidas: {', '.join(desconocidas)}.")
+    if e2e_entorno not in ENTORNOS_E2E:
+        raise ValueError(f"Entorno E2E desconocido: {e2e_entorno}.")
     if dry_run:
         print("Se ejecutarían las suites: " + ", ".join(suites) + ". No se ejecutó nada.")
         return 0, None
@@ -421,7 +508,12 @@ def probar(root: Path, suites: list[str], dry_run: bool = False) -> tuple[int, P
         print(f"[{suite}] en ejecución… (log: {log})", flush=True)
         inicio = time.monotonic()
         try:
-            EJECUTORES[suite](root, carpeta, log, resultado)
+            ejecutor = (
+                _suite_e2e_compose
+                if suite == "e2e" and e2e_entorno == "compose"
+                else EJECUTORES[suite]
+            )
+            ejecutor(root, carpeta, log, resultado)
         except (EntornoError, OSError, subprocess.SubprocessError, TimeoutError) as exc:
             resultado.nota = str(exc)
             resultado.pasos.append(Paso("preparación del entorno", 1, 0.0))
