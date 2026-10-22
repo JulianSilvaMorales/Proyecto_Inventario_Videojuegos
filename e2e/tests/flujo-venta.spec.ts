@@ -143,7 +143,8 @@ test('producto → orden de compra → entrada → venta en COP → saldo y movi
   await page.getByRole('button', { name: 'Registrar entrada' }).click()
   const entrada = page.getByRole('dialog')
   await elegir(page, 'Orden de compra (enviada o parcial)', new RegExp(numeroOrden))
-  await expect(entrada.getByRole('combobox', { name: 'Bodega' })).toHaveText(/GENERAL/)
+  // Se elige la bodega explícitamente: con los datos de demostración hay varias en Colombia.
+  await elegir(page, 'Bodega', /GENERAL/)
   await entrada.getByLabel(/Documento o factura/).fill(`FAC-${sufijo}`)
   await entrada.getByRole('button', { name: 'Guardar' }).click()
   await expect(page.getByText('Entrada de inventario registrada.')).toBeVisible()
@@ -151,6 +152,8 @@ test('producto → orden de compra → entrada → venta en COP → saldo y movi
   // 5. Vender 2 unidades en Colombia (COP, IVA 19 % no incluido) y confirmar el pago.
   await page.getByRole('button', { name: 'Ventas' }).click()
   await page.getByRole('button', { name: 'Nueva venta' }).click()
+  // Explícito: en un despliegue con Estados Unidos habilitado hay más de un país.
+  await elegir(page, 'País', /Colombia/)
   await page.getByRole('combobox', { name: /Producto 1/ }).fill(nombreProducto)
   await page.getByRole('option', { name: new RegExp(nombreProducto) }).click()
   await elegir(page, 'Bodega', /GENERAL/)

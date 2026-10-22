@@ -11,11 +11,12 @@ export function problem(status: number, detail: string) {
   return jsonResponse({ title: 'Error', detail }, status)
 }
 
-type Handler = (url: URL, init: RequestInit | undefined) => Response | unknown
+type Handler = (url: URL, init: RequestInit | undefined) => Response | unknown | Promise<unknown>
 
 /**
  * Simula `fetch` resolviendo cada petición con la primera ruta cuyo prefijo
- * (`MÉTODO /ruta`) coincide. Las rutas no declaradas responden 404.
+ * (`MÉTODO /ruta`) coincide. Las rutas no declaradas responden 404. Una ruta puede
+ * devolver una promesa para simular un servidor lento.
  */
 export function mockApi(routes: Record<string, Handler>) {
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -30,7 +31,7 @@ export function mockApi(routes: Record<string, Handler>) {
     if (!key) {
       return problem(404, `No mock for ${method} ${url.pathname}`)
     }
-    const result = routes[key](url, init)
+    const result = await routes[key](url, init)
     return result instanceof Response ? result : jsonResponse(result)
   })
 }
