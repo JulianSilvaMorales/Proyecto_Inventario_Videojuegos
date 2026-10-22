@@ -1,0 +1,6 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="31.327768">
+<testsuite name="flujo-venta.spec.ts" timestamp="2026-10-22T01:16:11.935Z" hostname="chromium" tests="1" failures="0" skipped="0" time="30.567" errors="0">
+<testcase name="producto → orden de compra → entrada → venta en COP → saldo y movimiento" classname="flujo-venta.spec.ts" time="30.567">
+</testcase>
+</testsuite>
+</testsuites>

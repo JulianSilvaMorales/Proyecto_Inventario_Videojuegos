@@ -1,0 +1,87 @@
+
+===== empaquetar backend: C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\backend\mvnw.cmd -B -q -DskipTests package (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\backend)
+===== empaquetar backend: código de salida 0
+
+===== build frontend: C:\Program Files\nodejs\npm.CMD run build (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\frontend)
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+[36mvite v8.3.4 [32mbuilding client environment for production...[36m[39m
+transforming...
+✓ 1012 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.70 kB │ gzip:   0.41 kB
+dist/assets/index-ocK_Vv5x.css    2.96 kB │ gzip:   1.19 kB
+dist/assets/index-BW809Oc6.js   814.44 kB │ gzip: 238.88 kB
+
+[33m[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 315ms[39m
+===== build frontend: código de salida 0
+
+===== npm ci e2e: C:\Program Files\nodejs\npm.CMD ci --no-audit --no-fund (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\e2e)
+
+added 3 packages in 1s
+===== npm ci e2e: código de salida 0
+
+===== navegador Playwright: C:\Program Files\nodejs\npx.CMD playwright install chromium (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\e2e)
+===== navegador Playwright: código de salida 0
+
+===== crear-bd sobre la base desechable
+{'migraciones_aplicadas': ['V001', 'V002', 'V003'], 'semillas_insertadas': {'moneda': 2, 'idioma': 2, 'pais': 2, 'rol': 5, 'permiso': 21, 'rol_permiso': 41, 'usuario': 1, 'usuario_rol': 1, 'bodega': 1, 'impuesto': 1, 'parametro': 11}, 'verificacion': {'entidades': 33, 'migraciones': 3, 'pais': 2, 'moneda': 2, 'idioma': 2, 'rol': 5, 'permiso': 21, 'parametro': 11, 'bodega': 1, 'impuesto_co': 1, 'impuesto_us': 0}}
+
+===== servicio: C:\Users\USER\AppData\Local\Programs\Eclipse Adoptium\jdk-17.0.18.8-hotspot\bin\java.EXE -jar C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\backend\target\inventario-backend-0.1.0-SNAPSHOT.jar (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos)
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+2026-10-21T21:11:20.638-05:00  INFO 17420 --- [inventario-backend] [           main] com.inventario.InventarioApplication     : Starting InventarioApplication v0.1.0-SNAPSHOT using Java 17.0.18 with PID 17420 (C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\backend\target\inventario-backend-0.1.0-SNAPSHOT.jar started by USER in C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos)
+2026-10-21T21:11:20.640-05:00  INFO 17420 --- [inventario-backend] [           main] com.inventario.InventarioApplication     : The following 1 profile is active: "local"
+2026-10-21T21:11:21.779-05:00  INFO 17420 --- [inventario-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-21T21:11:21.802-05:00  INFO 17420 --- [inventario-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 14 ms. Found 0 JPA repository interfaces.
+2026-10-21T21:11:22.404-05:00  INFO 17420 --- [inventario-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 60361 (http)
+2026-10-21T21:11:22.418-05:00  INFO 17420 --- [inventario-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-21T21:11:22.418-05:00  INFO 17420 --- [inventario-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2026-10-21T21:11:22.462-05:00  INFO 17420 --- [inventario-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-10-21T21:11:22.463-05:00  INFO 17420 --- [inventario-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1781 ms
+2026-10-21T21:11:22.914-05:00  INFO 17420 --- [inventario-backend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-10-21T21:11:22.968-05:00  INFO 17420 --- [inventario-backend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
+2026-10-21T21:11:23.005-05:00  INFO 17420 --- [inventario-backend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-10-21T21:11:23.259-05:00  INFO 17420 --- [inventario-backend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-21T21:11:23.294-05:00  INFO 17420 --- [inventario-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-21T21:11:23.473-05:00  INFO 17420 --- [inventario-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@55f23335
+2026-10-21T21:11:23.474-05:00  INFO 17420 --- [inventario-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-21T21:11:23.536-05:00  INFO 17420 --- [inventario-backend] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 16.15
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-21T21:11:23.854-05:00  INFO 17420 --- [inventario-backend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-21T21:11:23.857-05:00  INFO 17420 --- [inventario-backend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-21T21:11:24.884-05:00  INFO 17420 --- [inventario-backend] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-10-21T21:11:25.379-05:00  INFO 17420 --- [inventario-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 60361 (http) with context path '/'
+2026-10-21T21:11:25.396-05:00  INFO 17420 --- [inventario-backend] [           main] com.inventario.InventarioApplication     : Started InventarioApplication in 5.285 seconds (process running for 5.662)
+2026-10-21T21:11:25.879-05:00  INFO 17420 --- [inventario-backend] [io-60361-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-21T21:11:25.879-05:00  INFO 17420 --- [inventario-backend] [io-60361-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-21T21:11:25.880-05:00  INFO 17420 --- [inventario-backend] [io-60361-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-10-21T21:11:31.295-05:00  WARN 17420 --- [inventario-backend] [io-60361-exec-9] ration$PageModule$WarningLoggingModifier : Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Sprin  ok 1 [chromium] › tests\flujo-venta.spec.ts:59:1 › producto → orden de compra → entrada → venta en COP → saldo y movimiento (11.5s)
+  ok 2 [chromium] › tests\flujo-venta.spec.ts:248:1 › compra en USD con tipo de cambio → entrada → venta en USD → saldo (6.6s)
+
+  2 passed (19.0s)
+===== playwright: código de salida 0

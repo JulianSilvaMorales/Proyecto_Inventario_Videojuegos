@@ -1,0 +1,96 @@
+
+===== npm ci: C:\Program Files\nodejs\npm.CMD ci --no-audit --no-fund (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\frontend)
+
+added 183 packages in 50s
+===== npm ci: código de salida 0
+
+===== lint: C:\Program Files\nodejs\npm.CMD run lint (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\frontend)
+
+> frontend@0.0.0 lint
+> oxlint
+
+===== lint: código de salida 0
+
+===== typecheck: C:\Program Files\nodejs\npm.CMD run typecheck (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\frontend)
+
+> frontend@0.0.0 typecheck
+> tsc -b --pretty false
+
+===== typecheck: código de salida 0
+
+===== vitest: C:\Program Files\nodejs\npx.CMD vitest run --reporter=default --reporter=junit --outputFile.junit=C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\logs\tests\20261021-210902\frontend\vitest-junit.xml (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\frontend)
+
+ RUN  v5.0.5 C:/Users/USER/Documents/Proyecto_Inventario_Videojuegos/frontend
+
+ ✓ src/api/apiClient.test.ts (2 tests) 15ms
+ ✓ src/utils/decimal.test.ts (4 tests) 7ms
+ ✓ src/i18n/locales.test.ts (2 tests) 7ms
+ ✓ src/navigation.test.ts (2 tests) 5ms
+ ✓ src/utils/formatters.test.ts (3 tests) 31ms
+ ✓ src/components/reports/ReportsPage.test.tsx (2 tests) 1881ms
+   ✓ ReportsPage (2)
+     ✓ applies the filters to the report and to the authenticated CSV export 1404ms
+     ✓ hides filters whose references are not allowed for the role 475ms
+ ✓ src/components/LoginPage.test.tsx (1 test) 2020ms
+   ✓ LoginPage (1)
+     ✓ submits the email and password without exposing the password in the UI 2018ms
+ ✓ src/components/inventory/InventoryPage.test.tsx (3 tests) 2830ms
+   ✓ InventoryPage (3)
+     ✓ lets the administrator approve adjustments using the backend states 1271ms
+     ✓ works for the technical expert even when optional references are forbidden 763ms
+     ✓ filters movements with the model movement types and a date range 795ms
+ ✓ src/components/sales/SalesPage.test.tsx (3 tests) 3054ms
+   ✓ SalesPage (3)
+     ✓ creates a sale in the local currency, shows the tax breakdown and confirms payment 2454ms
+     ✓ selects the only country even when the list arrives after opening the form 355ms
+ ✓ src/components/CrudPage.test.tsx (4 tests) 4063ms
+   ✓ CrudPage (4)
+     ✓ loads and renders paged records from the configured API route 1244ms
+     ✓ validates required fields and submits the metadata-driven form 2121ms
+     ✓ validates consent and classification-specific customer fields 628ms
+ ✓ src/components/settings/SettingsPage.test.tsx (3 tests) 4428ms
+   ✓ SettingsPage (3)
+     ✓ lists parameters with scope and validity and links the configuration CRUDs 990ms
+     ✓ creates a country decimal parameter sending the value as decimal text 2716ms
+     ✓ validates JSON values before calling the API 720ms
+ ✓ src/components/catalog/CatalogPage.test.tsx (3 tests) 4511ms
+   ✓ CatalogPage (3)
+     ✓ updates existing translations with PUT and creates missing ones with POST 2839ms
+     ✓ shows save errors instead of reporting success 512ms
+     ✓ sends new prices as decimal text 1158ms
+ ✓ src/components/purchases/PurchasesPage.test.tsx (5 tests) 4911ms
+   ✓ PurchasesPage (5)
+     ✓ creates a draft in the base currency with rate 1 and sends it to the supplier 2528ms
+     ✓ requires an exchange rate when the supplier buys in another currency 1330ms
+     ✓ cancels a sent order after confirmation 316ms
+     ✓ lists and links the official products of a supplier 483ms
+
+ Test Files  13 passed (13)
+      Tests  37 passed (37)
+   Start at  21:10:47
+   Duration  11.04s (environment 34%, tests 31%, import 26%, setup 5%, transform 3%)
+
+JUNIT report written to C:/Users/USER/Documents/Proyecto_Inventario_Videojuegos/logs/tests/20261021-210902/frontend/vitest-junit.xml
+===== vitest: código de salida 0
+
+===== build: C:\Program Files\nodejs\npm.CMD run build (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\frontend)
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+[36mvite v8.3.4 [32mbuilding client environment for production...[36m[39m
+transforming...
+✓ 1012 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.70 kB │ gzip:   0.41 kB
+dist/assets/index-ocK_Vv5x.css    2.96 kB │ gzip:   1.19 kB
+dist/assets/index-CRfvSvkM.js   814.44 kB │ gzip: 238.88 kB
+
+[33m[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 316ms[39m
+===== build: código de salida 0

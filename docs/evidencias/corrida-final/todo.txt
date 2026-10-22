@@ -1,0 +1,16 @@
+== validar
+Modelo válido: 33 entidades. Log: logs\tools\validar-20261022T020902190508Z.log
+== generar
+Generado: db\migrations\V001__modelo_inicial.sql, db\model\schema-resuelto.json, backend\src\main\java\com\inventario\generated\ParametrizacionCrudSql.java, backend\src\main\java\com\inventario\generated\CatalogoCrudSql.java, backend\src\main\java\com\inventario\generated\InventarioCrudSql.java, frontend\src\generated\entidades.json, frontend\src\generated\entidades.ts. Log: logs\tools\generar-20261022T020902242751Z.log
+== crear-bd
+{"migraciones_aplicadas": [], "semillas_insertadas": {"bodega": 0, "idioma": 0, "impuesto": 0, "moneda": 0, "pais": 0, "parametro": 0, "permiso": 0, "rol": 0, "rol_permiso": 0, "usuario": 0, "usuario_rol": 0}, "verificacion": {"bodega": 1, "entidades": 33, "idioma": 2, "impuesto_co": 1, "impuesto_us": 0, "migraciones": 3, "moneda": 2, "pais": 2, "parametro": 11, "permiso": 21, "rol": 5}} Log: logs\tools\crear-bd-20261022T020902683589Z.log
+== probar
+[python] en ejecución… (log: logs\tests\20261021-210902\python.log)
+[python] correcto: 67 pruebas, 0 fallos, 0 errores, 0 omitidas (18 s)
+[backend] en ejecución… (log: logs\tests\20261021-210902\backend.log)
+[backend] correcto: 74 pruebas, 0 fallos, 0 errores, 0 omitidas (30 s)
+[frontend] en ejecución… (log: logs\tests\20261021-210902\frontend.log)
+[frontend] correcto: 37 pruebas, 0 fallos, 0 errores, 0 omitidas (73 s)
+[e2e] en ejecución… (log: logs\tests\20261021-210902\e2e.log)
+[e2e] correcto: 2 pruebas, 0 fallos, 0 errores, 0 omitidas (44 s)
+Todas las suites pasaron. Resumen: logs\tests\20261021-210902\resumen.md

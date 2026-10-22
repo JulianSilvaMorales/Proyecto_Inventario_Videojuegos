@@ -1,0 +1,8 @@
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="19.01337">
+<testsuite name="flujo-venta.spec.ts" timestamp="2026-10-22T02:11:29.141Z" hostname="chromium" tests="2" failures="0" skipped="0" time="18.082" errors="0">
+<testcase name="producto → orden de compra → entrada → venta en COP → saldo y movimiento" classname="flujo-venta.spec.ts" time="11.51">
+</testcase>
+<testcase name="compra en USD con tipo de cambio → entrada → venta en USD → saldo" classname="flujo-venta.spec.ts" time="6.572">
+</testcase>
+</testsuite>
+</testsuites>

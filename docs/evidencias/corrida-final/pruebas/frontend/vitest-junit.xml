@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="37" failures="0" errors="0" time="27.7638076">
+    <testsuite name="src/api/apiClient.test.ts" timestamp="2026-10-22T02:10:59.029Z" hostname="DESKTOP-CK8KF63" tests="2" failures="0" errors="0" skipped="0" time="0.0148453">
+        <testcase classname="src/api/apiClient.test.ts" name="apiRequest &gt; sends the current token and stores the refreshed token" time="0.0099089">
+        </testcase>
+        <testcase classname="src/api/apiClient.test.ts" name="apiRequest &gt; surfaces localized problem details as ApiError" time="0.002831">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/CrudPage.test.tsx" timestamp="2026-10-22T02:10:59.031Z" hostname="DESKTOP-CK8KF63" tests="4" failures="0" errors="0" skipped="0" time="4.0625689">
+        <testcase classname="src/components/CrudPage.test.tsx" name="CrudPage &gt; loads and renders paged records from the configured API route" time="1.2439754">
+        </testcase>
+        <testcase classname="src/components/CrudPage.test.tsx" name="CrudPage &gt; validates required fields and submits the metadata-driven form" time="2.1211381">
+        </testcase>
+        <testcase classname="src/components/CrudPage.test.tsx" name="CrudPage &gt; hides mutation controls when the user only has read permission" time="0.0669838">
+        </testcase>
+        <testcase classname="src/components/CrudPage.test.tsx" name="CrudPage &gt; validates consent and classification-specific customer fields" time="0.6283894">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/LoginPage.test.tsx" timestamp="2026-10-22T02:10:59.031Z" hostname="DESKTOP-CK8KF63" tests="1" failures="0" errors="0" skipped="0" time="2.0198599">
+        <testcase classname="src/components/LoginPage.test.tsx" name="LoginPage &gt; submits the email and password without exposing the password in the UI" time="2.0182168">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/catalog/CatalogPage.test.tsx" timestamp="2026-10-22T02:10:59.032Z" hostname="DESKTOP-CK8KF63" tests="3" failures="0" errors="0" skipped="0" time="4.5112336">
+        <testcase classname="src/components/catalog/CatalogPage.test.tsx" name="CatalogPage &gt; updates existing translations with PUT and creates missing ones with POST" time="2.8387541">
+        </testcase>
+        <testcase classname="src/components/catalog/CatalogPage.test.tsx" name="CatalogPage &gt; shows save errors instead of reporting success" time="0.5122657">
+        </testcase>
+        <testcase classname="src/components/catalog/CatalogPage.test.tsx" name="CatalogPage &gt; sends new prices as decimal text" time="1.1581003">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/inventory/InventoryPage.test.tsx" timestamp="2026-10-22T02:10:59.032Z" hostname="DESKTOP-CK8KF63" tests="3" failures="0" errors="0" skipped="0" time="2.8302648">
+        <testcase classname="src/components/inventory/InventoryPage.test.tsx" name="InventoryPage &gt; lets the administrator approve adjustments using the backend states" time="1.2707855">
+        </testcase>
+        <testcase classname="src/components/inventory/InventoryPage.test.tsx" name="InventoryPage &gt; works for the technical expert even when optional references are forbidden" time="0.7625207">
+        </testcase>
+        <testcase classname="src/components/inventory/InventoryPage.test.tsx" name="InventoryPage &gt; filters movements with the model movement types and a date range" time="0.7950388">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/purchases/PurchasesPage.test.tsx" timestamp="2026-10-22T02:10:59.033Z" hostname="DESKTOP-CK8KF63" tests="5" failures="0" errors="0" skipped="0" time="4.911137">
+        <testcase classname="src/components/purchases/PurchasesPage.test.tsx" name="PurchasesPage &gt; creates a draft in the base currency with rate 1 and sends it to the supplier" time="2.5280198">
+        </testcase>
+        <testcase classname="src/components/purchases/PurchasesPage.test.tsx" name="PurchasesPage &gt; requires an exchange rate when the supplier buys in another currency" time="1.3297544">
+        </testcase>
+        <testcase classname="src/components/purchases/PurchasesPage.test.tsx" name="PurchasesPage &gt; cancels a sent order after confirmation" time="0.3155041">
+        </testcase>
+        <testcase classname="src/components/purchases/PurchasesPage.test.tsx" name="PurchasesPage &gt; lists and links the official products of a supplier" time="0.4832667">
+        </testcase>
+        <testcase classname="src/components/purchases/PurchasesPage.test.tsx" name="PurchasesPage &gt; hides linking for roles that can only consult suppliers" time="0.2526387">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/reports/ReportsPage.test.tsx" timestamp="2026-10-22T02:10:59.034Z" hostname="DESKTOP-CK8KF63" tests="2" failures="0" errors="0" skipped="0" time="1.8811189">
+        <testcase classname="src/components/reports/ReportsPage.test.tsx" name="ReportsPage &gt; applies the filters to the report and to the authenticated CSV export" time="1.4040209">
+        </testcase>
+        <testcase classname="src/components/reports/ReportsPage.test.tsx" name="ReportsPage &gt; hides filters whose references are not allowed for the role" time="0.4748628">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/sales/SalesPage.test.tsx" timestamp="2026-10-22T02:10:59.034Z" hostname="DESKTOP-CK8KF63" tests="3" failures="0" errors="0" skipped="0" time="3.0543792">
+        <testcase classname="src/components/sales/SalesPage.test.tsx" name="SalesPage &gt; creates a sale in the local currency, shows the tax breakdown and confirms payment" time="2.4541575">
+        </testcase>
+        <testcase classname="src/components/sales/SalesPage.test.tsx" name="SalesPage &gt; selects the only country even when the list arrives after opening the form" time="0.3551948">
+        </testcase>
+        <testcase classname="src/components/sales/SalesPage.test.tsx" name="SalesPage &gt; formats the same amount differently when the language changes, without reloading" time="0.2435227">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/settings/SettingsPage.test.tsx" timestamp="2026-10-22T02:10:59.035Z" hostname="DESKTOP-CK8KF63" tests="3" failures="0" errors="0" skipped="0" time="4.4276438">
+        <testcase classname="src/components/settings/SettingsPage.test.tsx" name="SettingsPage &gt; lists parameters with scope and validity and links the configuration CRUDs" time="0.9895951">
+        </testcase>
+        <testcase classname="src/components/settings/SettingsPage.test.tsx" name="SettingsPage &gt; creates a country decimal parameter sending the value as decimal text" time="2.7155063">
+        </testcase>
+        <testcase classname="src/components/settings/SettingsPage.test.tsx" name="SettingsPage &gt; validates JSON values before calling the API" time="0.7204311">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/i18n/locales.test.ts" timestamp="2026-10-22T02:10:59.035Z" hostname="DESKTOP-CK8KF63" tests="2" failures="0" errors="0" skipped="0" time="0.0066938">
+        <testcase classname="src/i18n/locales.test.ts" name="translations &gt; have the same keys in Spanish and English" time="0.0032496">
+        </testcase>
+        <testcase classname="src/i18n/locales.test.ts" name="translations &gt; define every static key used by the interface" time="0.0014286">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/navigation.test.ts" timestamp="2026-10-22T02:10:59.036Z" hostname="DESKTOP-CK8KF63" tests="2" failures="0" errors="0" skipped="0" time="0.0053619">
+        <testcase classname="src/navigation.test.ts" name="visibleNavigation &gt; shows only modules allowed by the user permissions" time="0.0028913">
+        </testcase>
+        <testcase classname="src/navigation.test.ts" name="visibleNavigation &gt; always includes the home page without granting business access" time="0.0004619">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/decimal.test.ts" timestamp="2026-10-22T02:10:59.036Z" hostname="DESKTOP-CK8KF63" tests="4" failures="0" errors="0" skipped="0" time="0.0072635">
+        <testcase classname="src/utils/decimal.test.ts" name="decimal text without float &gt; normalizes decimal separators and keeps every digit" time="0.0025397">
+        </testcase>
+        <testcase classname="src/utils/decimal.test.ts" name="decimal text without float &gt; rejects invalid text, extra decimals and too many integer digits" time="0.0005807">
+        </testcase>
+        <testcase classname="src/utils/decimal.test.ts" name="decimal text without float &gt; detects positive values" time="0.0003538">
+        </testcase>
+        <testcase classname="src/utils/decimal.test.ts" name="decimal text without float &gt; converts parameter values by type" time="0.0015981">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/formatters.test.ts" timestamp="2026-10-22T02:10:59.037Z" hostname="DESKTOP-CK8KF63" tests="3" failures="0" errors="0" skipped="0" time="0.031437">
+        <testcase classname="src/utils/formatters.test.ts" name="internationalized formatters &gt; formats transaction currency and number with the selected locale" time="0.0229661">
+        </testcase>
+        <testcase classname="src/utils/formatters.test.ts" name="internationalized formatters &gt; formats decimal text amounts in the transaction currency without losing digits" time="0.0007078">
+        </testcase>
+        <testcase classname="src/utils/formatters.test.ts" name="internationalized formatters &gt; formats dates with the selected locale" time="0.0057418">
+        </testcase>
+    </testsuite>
+</testsuites>
