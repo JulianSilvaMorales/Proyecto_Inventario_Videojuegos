@@ -78,9 +78,9 @@
     "accessTitle": "Current session access",
     "permissions": "Assigned permissions",
     "formatTitle": "Formats based on your language and currency",
-    "formatDescription": "Changes apply instantly without reloading the page.",
+    "formatDescription": "Examples (not real data) of how amounts, numbers and dates are shown in your language; they change instantly, without reloading the page.",
     "amount": "Sample amount",
-    "number": "Quantity",
+    "number": "Sample number",
     "date": "Date and time"
   },
   "catalog": {

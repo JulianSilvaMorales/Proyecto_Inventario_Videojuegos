@@ -78,9 +78,9 @@
     "accessTitle": "Acceso de esta sesión",
     "permissions": "Permisos asignados",
     "formatTitle": "Formatos según tu idioma y moneda",
-    "formatDescription": "La selección cambia al instante, sin recargar la página.",
+    "formatDescription": "Ejemplos (no son datos reales) de cómo se muestran importes, números y fechas en tu idioma; cambian al instante, sin recargar la página.",
     "amount": "Importe de ejemplo",
-    "number": "Cantidad",
+    "number": "Número de ejemplo",
     "date": "Fecha y hora"
   },
   "catalog": {

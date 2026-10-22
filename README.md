@@ -69,7 +69,7 @@ tienda de consolas y videojuegos que vende en varios países. Hoy permite:
   moneda cambian sin recargar la página.
 
 La base de datos se describe en JSON (`db/model/`) y se crea solo con los
-scripts de Python. La calidad se comprueba con 174 pruebas automáticas en
+scripts de Python. La calidad se comprueba con 176 pruebas automáticas en
 cuatro suites (Python, backend, frontend y extremo a extremo) que se ejecutan
 con un solo comando y dejan sus logs en `logs/tests/` (ver
 [Pruebas y logs](#pruebas-y-logs-e8)).
@@ -190,8 +190,11 @@ interfaz.
 Las empresas, personas y correos son ficticios (dominio reservado
 `.example`); los productos y precios son realistas. La carga es idempotente:
 usuarios y datos maestros se buscan antes de crearlos, y las operaciones
-(compras, ventas, salidas y ajustes) solo se cargan si la base aún no tiene
-órdenes de compra, así que repetirla no duplica nada.
+(compras, ventas, salidas y ajustes) solo se cargan si los proveedores de la
+demostración aún no tienen órdenes de compra, así que repetirla no duplica nada.
+Las órdenes de otros proveedores, como las que deja la prueba E2E en un
+despliegue, no cuentan: en Render la demostración se puede cargar después de la
+E2E y queda completa.
 
 ## Backend (E5.1–E5.5)
 
@@ -485,6 +488,11 @@ del usuario. La interfaz admite español e inglés, localiza fechas y números, 
 centraliza las solicitudes, los errores de API y la renovación del token de
 sesión. Las credenciales se envían únicamente al backend; no deben almacenarse
 en variables `VITE_*`.
+
+La página de **Inicio** muestra el usuario, sus roles y permisos, y una tarjeta
+de **formatos de ejemplo** (un importe, el número `1.234.567,89` y una fecha).
+No son datos del negocio: enseñan cómo cambian los formatos al elegir el idioma
+o la moneda. En inglés, el mismo número se muestra como `1,234,567.89`.
 
 ### E6.2 — CRUD genérico dirigido por metadatos
 
@@ -879,15 +887,15 @@ existencia 3 y el movimiento "Salida por venta". Solo el tipo de producto, las
 categorías y el proveedor se preparan por API (son CRUD genéricos ya probados),
 para que la prueba sea corta.
 
-### Resultado de la última corrida completa (`logs/tests/20261021-195236/`, E2E sobre Docker Compose)
+### Resultado de la última corrida completa (`logs/tests/20261021-203932/`, E2E sobre Docker Compose)
 
 | Suite | Pruebas |
 |---|---:|
-| python | 62 |
+| python | 64 |
 | backend | 74 |
 | frontend | 37 |
 | e2e | 1 |
-| **Total** | **174, todas en verde** |
+| **Total** | **176, todas en verde** |
 
 ## Contenedores (E10)
 
@@ -1194,6 +1202,8 @@ El equipo debe estar encendido y con Docker Desktop abierto a esa hora.
 | Render agregó un sufijo a los nombres (`pixelvault-api-ljq6`, `pixelvault-web-ceen`) y a la base (`inventario_xxxx`). | Los nombres ya estaban ocupados en Render. | Es normal: se usan las URL reales en `CORS_ORIGINS`, `VITE_API_URL` y `SPRING_DATASOURCE_URL` (paso 5), y el nombre real de la base en `restaurar --confirm-db`. |
 | En la URL pública, la E2E se detenía al crear la venta: "Bodega" quedaba desactivada. | El formulario de venta elegía el país único solo si la lista de países ya había llegado al abrirlo. En local llega al instante; en Render, que es más lento, llegaba después y el país quedaba vacío. | El formulario elige el país también cuando la lista llega tarde (prueba de regresión en `SalesPage.test.tsx` que simula el servidor lento). La E2E elige país y bodega de forma explícita, para no depender de la velocidad ni de que existan más países o bodegas. |
 | El CI falló en el backend (`error.catalog.price.not-found`) sin cambios en el backend. | Error de la prueba `InventarioPostgresIntegrationTest`, no del sistema: la venta toma la fecha local del país (Colombia) y la prueba guardaba el precio con la fecha del equipo. El CI usa UTC; entre las 00:00 y las 05:00 UTC en Colombia aún es el día anterior y el precio quedaba vigente "desde mañana". | La prueba usa la zona horaria del país. Verificado con el reloj en UTC, en UTC+14 y en la hora local. |
+| En Render, `sembrar-demo` cargó usuarios, catálogo y clientes, pero no compras, ventas, salidas ni ajustes. | La carga omitía las operaciones si la base tenía cualquier orden de compra, y la E2E del paso 7 ya había creado una. | Solo cuentan las órdenes de los proveedores de la demostración (pruebas en `test_demo_seed.py`). Comprobado en una pila de Docker aislada: con una orden previa de otro proveedor se cargan las 3 compras, 6 ventas, 1 salida y 2 ajustes; sobre una base que ya tiene la demostración, no se duplica nada. Basta con repetir el paso 8. |
+| En **Inicio**, la tarjeta "Cantidad 1.234.567,89" parecía un dato real. | Es un ejemplo de formato numérico de E6.1 con una etiqueta ambigua. | La etiqueta dice "Número de ejemplo" y la descripción aclara que son ejemplos. |
 | La consola del navegador muestra `401` en `/api/v1/auth/login`. | Respuesta normal a un correo o una contraseña incorrectos. | Ninguna: si después se entra con los datos correctos, no hay problema. |
 
 ### Si la base caduca (o hay que recrearla)
