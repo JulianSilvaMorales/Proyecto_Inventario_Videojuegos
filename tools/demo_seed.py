@@ -435,11 +435,23 @@ class Cargador:
             self.clientes[cliente["clave"]] = actual["id"]
         self.log(f"Clientes: {len(self.clientes)}.")
 
+    def operaciones_ya_cargadas(self) -> bool:
+        """Las operaciones de la demo ya se cargaron si algún proveedor de la demo tiene
+        órdenes de compra. Las órdenes de otros proveedores (por ejemplo, las de la
+        prueba E2E en un despliegue) no cuentan."""
+        return any(
+            self.admin.get(f"/api/v1/compras/ordenes?proveedorId={proveedor_id}&page=0&size=1")[
+                "totalElements"
+            ]
+            > 0
+            for proveedor_id in self.proveedores.values()
+        )
+
     def operaciones(self) -> bool:
-        if self.admin.get("/api/v1/compras/ordenes?page=0&size=1")["totalElements"] > 0:
+        if self.operaciones_ya_cargadas():
             self.log(
-                "La base ya tiene órdenes de compra: no se cargan compras, ventas, "
-                "salidas ni ajustes de demostración."
+                "Los proveedores de la demostración ya tienen órdenes de compra: no se "
+                "cargan de nuevo compras, ventas, salidas ni ajustes."
             )
             return False
         encargado = self.como("encargado.inventario@pixelvault.example")
