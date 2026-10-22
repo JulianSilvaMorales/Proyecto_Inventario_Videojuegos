@@ -69,7 +69,7 @@ tienda de consolas y videojuegos que vende en varios países. Hoy permite:
   moneda cambian sin recargar la página.
 
 La base de datos se describe en JSON (`db/model/`) y se crea solo con los
-scripts de Python. La calidad se comprueba con 173 pruebas automáticas en
+scripts de Python. La calidad se comprueba con 174 pruebas automáticas en
 cuatro suites (Python, backend, frontend y extremo a extremo) que se ejecutan
 con un solo comando y dejan sus logs en `logs/tests/` (ver
 [Pruebas y logs](#pruebas-y-logs-e8)).
@@ -879,15 +879,15 @@ existencia 3 y el movimiento "Salida por venta". Solo el tipo de producto, las
 categorías y el proveedor se preparan por API (son CRUD genéricos ya probados),
 para que la prueba sea corta.
 
-### Resultado de la última corrida completa (`logs/tests/20261021-184417/`, E2E sobre Docker Compose)
+### Resultado de la última corrida completa (`logs/tests/20261021-195236/`, E2E sobre Docker Compose)
 
 | Suite | Pruebas |
 |---|---:|
 | python | 62 |
 | backend | 74 |
-| frontend | 36 |
+| frontend | 37 |
 | e2e | 1 |
-| **Total** | **173, todas en verde** |
+| **Total** | **174, todas en verde** |
 
 ## Contenedores (E10)
 
@@ -1186,6 +1186,14 @@ schtasks /create /tn "PixelVault respaldo" /sc daily /st 02:00 /tr "C:\respaldos
 ```
 
 El equipo debe estar encendido y con Docker Desktop abierto a esa hora.
+
+### Problemas encontrados en el primer despliegue
+
+| Síntoma | Causa | Corrección |
+|---|---|---|
+| Render agregó un sufijo a los nombres (`pixelvault-api-ljq6`, `pixelvault-web-ceen`) y a la base (`inventario_xxxx`). | Los nombres ya estaban ocupados en Render. | Es normal: se usan las URL reales en `CORS_ORIGINS`, `VITE_API_URL` y `SPRING_DATASOURCE_URL` (paso 5), y el nombre real de la base en `restaurar --confirm-db`. |
+| En la URL pública, la E2E se detenía al crear la venta: "Bodega" quedaba desactivada. | El formulario de venta elegía el país único solo si la lista de países ya había llegado al abrirlo. En local llega al instante; en Render, que es más lento, llegaba después y el país quedaba vacío. | El formulario elige el país también cuando la lista llega tarde (prueba de regresión en `SalesPage.test.tsx` que simula el servidor lento). La E2E elige país y bodega de forma explícita, para no depender de la velocidad ni de que existan más países o bodegas. |
+| La consola del navegador muestra `401` en `/api/v1/auth/login`. | Respuesta normal a un correo o una contraseña incorrectos. | Ninguna: si después se entra con los datos correctos, no hay problema. |
 
 ### Si la base caduca (o hay que recrearla)
 

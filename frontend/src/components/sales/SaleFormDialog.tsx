@@ -61,7 +61,10 @@ export function SaleFormDialog({
   onCreated,
 }: SaleFormDialogProps) {
   const { t } = useTranslation()
-  const [paisId, setPaisId] = useState(paises.length === 1 ? paises[0].paisId : '')
+  const [paisElegido, setPaisId] = useState('')
+  // Con un solo país habilitado se elige solo, también si la lista llega después de
+  // abrir el formulario (en un servidor lento, como el plan gratuito de Render).
+  const paisId = paisElegido || (paises.length === 1 ? paises[0].paisId : '')
   const [cliente, setCliente] = useState<ClienteResumen | null>(null)
   const [clientOptions, setClientOptions] = useState<ClienteResumen[]>([])
   const [searchingClients, setSearchingClients] = useState(false)

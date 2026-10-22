@@ -136,6 +136,35 @@ describe('SalesPage', () => {
     expect(await within(detail).findByRole('button', { name: 'Ver recibo' })).toBeInTheDocument()
   })
 
+  it('selects the only country even when the list arrives after opening the form', async () => {
+    const user = userEvent.setup()
+    // Servidor lento (por ejemplo, Render): los países llegan con el formulario ya abierto.
+    let enviarPaises: () => void = () => undefined
+    const paisesListos = new Promise<void>((resolve) => {
+      enviarPaises = resolve
+    })
+    mockApi({ ...routes(), 'GET /api/v1/ventas/paises': () => paisesListos.then(() => [colombia]) })
+    render(
+      <SalesPage permissions={['VENTAS_GESTIONAR', 'CATALOGO_CONSULTAR']} onSelectEntity={vi.fn()} />,
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Nueva venta' }))
+    const form = await screen.findByRole('dialog')
+    expect(within(form).getByRole('combobox', { name: 'Bodega' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    )
+
+    enviarPaises()
+
+    expect(await within(form).findByDisplayValue('COP')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(within(form).getByRole('combobox', { name: 'Bodega' })).not.toHaveAttribute(
+        'aria-disabled',
+      ),
+    )
+  })
+
   it('formats the same amount differently when the language changes, without reloading', async () => {
     const user = userEvent.setup()
     mockApi({
