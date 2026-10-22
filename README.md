@@ -1,600 +1,267 @@
 # PixelVault — Sistema de inventario y ventas para consolas y videojuegos
 
-Aplicación web para administrar catálogo, inventario y ventas con soporte
-internacional. El alcance y las decisiones del proyecto están documentados en
-[`spec/REQUIREMENTS.md`](spec/REQUIREMENTS.md), el proceso de desarrollo en
-[`spec/GUIDE.md`](spec/GUIDE.md) y las instrucciones de trabajo por etapas en
-[`spec/INSTRUCTIONS.md`](spec/INSTRUCTIONS.md).
+> 🌐 **Aplicación desplegada (Render):** **https://pixelvault-web-ceen.onrender.com**
+>
+> API pública: https://pixelvault-api-ljq6.onrender.com
+> (estado en [`/actuator/health`](https://pixelvault-api-ljq6.onrender.com/actuator/health),
+> documentación en [`/swagger-ui`](https://pixelvault-api-ljq6.onrender.com/swagger-ui)).
+> El plan gratuito de Render suspende el backend tras 15 minutos sin uso: **la
+> primera visita puede tardar alrededor de un minuto** mientras despierta.
 
-El proyecto se usa en **Windows**: todos los comandos de este documento se
-escriben en el **Símbolo del sistema (`cmd`)**, desde la carpeta raíz del
-proyecto, y funcionan igual en PowerShell. No se necesita Linux ni Ubuntu en tu
-equipo (ver [¿Por qué aparece Linux en el CI?](#por-qué-aparece-linux-en-el-ci)).
+**PixelVault** es una aplicación web para una tienda de consolas y videojuegos
+que vende en varios países: administra el catálogo, las compras a proveedores,
+el inventario por bodega y las ventas en la moneda de cada país, con impuestos,
+tipos de cambio y textos configurables (español e inglés).
 
-## Estado
+Se construyó por etapas (E0 a E12) siguiendo [`spec/GUIDE.md`](spec/GUIDE.md),
+con los requisitos de [`spec/REQUIREMENTS.md`](spec/REQUIREMENTS.md) y las
+reglas de trabajo de [`spec/INSTRUCTIONS.md`](spec/INSTRUCTIONS.md). Este
+documento explica **qué se hizo, cómo, con qué herramienta y dónde está cada
+resultado**, para que alguien que llega por primera vez pueda instalarlo,
+probarlo y seguir el rastro de cada decisión.
 
-El proyecto avanza por etapas y cada una se revisa antes de comenzar la
-siguiente:
+> Todos los comandos están escritos para el **Símbolo del sistema de Windows
+> (`cmd`)** y se ejecutan desde la carpeta raíz del proyecto, salvo que se
+> indique otra. Funcionan igual en PowerShell. Las líneas que empiezan por
+> `rem` son comentarios.
 
-| Etapa | Alcance y resultado |
+## Índice
+
+1. [Qué hace la aplicación](#1-qué-hace-la-aplicación)
+2. [Enlaces y usuarios de prueba](#2-enlaces-y-usuarios-de-prueba)
+3. [Tecnologías y herramientas](#3-tecnologías-y-herramientas)
+4. [Instalación desde cero en otro equipo (`git clone`)](#4-instalación-desde-cero-en-otro-equipo-git-clone)
+5. [Cómo está construido](#5-cómo-está-construido)
+6. [Qué se hizo, etapa por etapa](#6-qué-se-hizo-etapa-por-etapa)
+7. [Pruebas: qué se probó, cómo, con qué y dónde están los resultados](#7-pruebas-qué-se-probó-cómo-con-qué-y-dónde-están-los-resultados)
+8. [Despliegue en Render, respaldo y restauración](#8-despliegue-en-render-respaldo-y-restauración)
+9. [Integración continua y protección de `main`](#9-integración-continua-y-protección-de-main)
+10. [Problemas encontrados y cómo se corrigieron](#10-problemas-encontrados-y-cómo-se-corrigieron)
+11. [Ramas, pull requests e historial](#11-ramas-pull-requests-e-historial)
+12. [Estructura del proyecto](#12-estructura-del-proyecto)
+13. [Decisiones técnicas](#13-decisiones-técnicas)
+14. [Cómo corregir a mano](#14-cómo-corregir-a-mano)
+15. [Fase 2 y pendientes conocidos](#15-fase-2-y-pendientes-conocidos)
+
+---
+
+## 1. Qué hace la aplicación
+
+| Módulo | Qué permite |
 |---|---|
-| E0 | Estructura inicial, documentación base, configuración local y controles de calidad. |
-| E1 | Análisis de requisitos, modelo conceptual, entidades, reglas de negocio y permisos. |
-| E2 | Modelo de datos modular en JSON, esquema de validación y pruebas del validador. |
-| E3 | Generación de SQL PostgreSQL, migraciones, semillas y CLI para crear, sembrar y reiniciar la base con protecciones. |
-| E4 | Backend Spring Boot, API `/api/v1`, errores Problem Details, configuración y verificación del esquema. |
-| E5.1 | Autenticación, JWT, permisos por rol, bloqueo de cuentas, sesiones y parametrización internacional. |
-| E5.2 | Países, monedas, idiomas, tipos de cambio, conversiones e impuestos con vigencia y auditoría. |
-| E5.3 | Catálogo de productos, categorías, tipos, atributos, traducciones y precios; productos desactivables, no borrables. |
-| E5.4 | Inventario: bodegas, proveedores oficiales, órdenes, recepciones parciales, salidas, saldos, movimientos y ajustes. Implementada y aprobada. |
-| E5.5 | Ventas básicas con confirmación de pago, impuestos y moneda; reportes paginados de existencias y movimientos con exportación CSV. Implementada y aprobada. |
-| E6.1 | Base web con React, TypeScript, Material UI, inicio de sesión, navegación por permisos, idiomas es/en y formatos localizados. Implementada y aprobada. |
-| E6.2 | CRUD genérico generado desde metadatos para parametrización, catálogo, bodegas, proveedores y clientes; API básica de clientes y referencias. Implementada y aprobada. |
-| E6.3 | Pantallas operativas de catálogo (productos con atributos dinámicos, traducciones y precios) e inventario (existencias, entradas, salidas, ajustes con aprobación e historial). Revisada y corregida durante E6.4. Implementada y aprobada. |
-| E6.4 | Ventas (desglose de impuestos, confirmación de pago, anulación y recibo simulado), reportes con exportación CSV y pantalla de parámetros por ámbito y vigencia. Implementada y aprobada. |
-| E7 | Verificación transversal: sin constantes de negocio en el código, importes como texto decimal en toda la API y prueba automatizada de un país y una moneda agregados solo con datos. Implementada y aprobada. |
-| E8 | Pruebas y logs: integraciones con PostgreSQL desechable (Testcontainers), pruebas reales de `crear-bd`, flujo E2E con Playwright y comando `probar` con `resumen.md`. Implementada y aprobada. |
-| E9 | Integración continua con GitHub Actions (python, backend, frontend y e2e) con logs como artefactos, control de archivos generados y hook local `pre-push`; `main` protegida con CI obligatorio. Implementada y aprobada. |
-| E10 | Contenedores: imágenes de backend, frontend y `db-init`, y `docker-compose.yml` que levanta todo con un solo comando; E2E del CI sobre Docker Compose. Incluye la revisión general del proyecto, la limpieza de archivos sin uso, el soporte de `cmd` (ver [Revisión y correcciones de E10](#revisión-y-correcciones-de-e10)), datos de demostración, la nueva identidad visual y la [pantalla de Compras](#compras-purchasespage). Implementada y pendiente de revisión. |
-| E11 | Despliegue de demostración en Render: `render.yaml` (base PostgreSQL 16, backend en Docker y frontend estático), `crear-bd` desde el equipo local contra la base de Render, comandos `respaldar` y `restaurar` con la retención de RNF-011 y E2E contra las URL públicas (`--e2e-entorno remoto`). Desplegada en Render y verificada con la E2E contra las URL públicas (ver [Despliegue de demostración en Render (E11)](#despliegue-de-demostración-en-render-e11)). Implementada y aprobada. |
-| E12 | Cierre: checklist de entrega verificado punto por punto, evidencias de la corrida final en `docs/evidencias/`, E2E también en USD, comando `verificar-roles`, README final y lista de fase 2 (ver [Entrega final (E12)](#entrega-final-e12)). Implementada y pendiente de revisión. |
+| **Acceso y roles** | Inicio de sesión con JWT; cinco roles (administrador, encargado de inventario, experto técnico, vendedor/cajero y gerente) con menú y acciones según sus permisos; bloqueo tras varios intentos fallidos y cierre por inactividad, ambos configurables; alcance por país (un vendedor de Colombia solo ve Colombia). |
+| **Configuración internacional** | Países, monedas, idiomas, tipos de cambio, impuestos por país y parámetros del negocio o de cada país con vigencia (por ejemplo, los medios de pago). Un país y una moneda nuevos se agregan solo con datos, sin programar. |
+| **Catálogo** | Productos con atributos según su tipo (consola, videojuego, tarjeta de regalo…), nombre y descripción en español e inglés, y precios por moneda con periodos de vigencia. Los productos se desactivan, nunca se borran. |
+| **Compras** | Productos oficiales de cada proveedor y órdenes de compra en la moneda del proveedor: borrador → enviada → recibida parcial o completa, o cancelada, con tipo de cambio hacia la moneda base. |
+| **Inventario** | Existencias por bodega, entradas contra órdenes de compra, salidas por pérdida, daño, robo o defecto, ajustes de conteo con aprobación del administrador e historial inmutable de movimientos. |
+| **Ventas** | Venta en la moneda local con el impuesto del país, confirmación de pago que descuenta inventario, anulación de ventas pendientes y recibo simulado. |
+| **Reportes** | Existencias y movimientos con filtros y exportación a CSV. |
+| **Auditoría** | Toda operación de escritura queda registrada (quién, cuándo, antes y después). |
+| **Idiomas** | Interfaz en español e inglés; el idioma y los formatos de fecha, número y moneda cambian sin recargar la página. |
 
-## Resumen de lo construido hasta ahora
-
-**PixelVault** es una aplicación web (React + Spring Boot + PostgreSQL) para una
-tienda de consolas y videojuegos que vende en varios países. Hoy permite:
-
-- **Acceso y roles:** inicio de sesión con JWT, cinco roles (administrador,
-  encargado de inventario, experto técnico, vendedor/cajero y gerente), menú y
-  acciones según permisos, bloqueo por intentos fallidos y sesión con
-  vencimiento por inactividad, ambos configurables.
-- **Configuración internacional:** países, monedas, idiomas, tipos de cambio,
-  impuestos por país y vigencia, y parámetros del negocio o de cada país con
-  vigencia (por ejemplo, los medios de pago). Un país y una moneda nuevos se
-  agregan solo con datos.
-- **Catálogo:** productos con atributos según su tipo, nombres y descripciones
-  en español e inglés, y precios por moneda con periodos de vigencia; los
-  productos se desactivan, no se borran.
-- **Compras:** productos oficiales de cada proveedor y órdenes de compra en la
-  moneda del proveedor (borrador → enviada → recibida parcial o completa, o
-  cancelada), con tipo de cambio hacia la moneda base.
-- **Inventario:** existencias por bodega, entradas contra órdenes de compra,
-  salidas por pérdida, daño, robo o defecto, ajustes con aprobación del
-  administrador e historial inmutable de movimientos, todo auditado.
-- **Ventas:** venta en la moneda local con el impuesto del país, confirmación
-  de pago que descuenta inventario, anulación de ventas pendientes y recibo
-  simulado.
-- **Reportes:** existencias y movimientos con filtros y exportación CSV.
-- **Interfaz en español e inglés:** el idioma y los formatos de fecha, número y
-  moneda cambian sin recargar la página.
-
-La base de datos se describe en JSON (`db/model/`) y se crea solo con los
-scripts de Python. La calidad se comprueba con 180 pruebas automáticas en
-cuatro suites (Python, backend, frontend y extremo a extremo) que se ejecutan
-con un solo comando y dejan sus logs en `logs/tests/` (ver
-[Pruebas y logs](#pruebas-y-logs-e8)).
-
-E6.2 incluye listados paginados con búsqueda, formularios y validación por
-metadatos, opciones de referencia y controles de permisos. La API de clientes
-filtra por país, registra el consentimiento, permite su revocación en
-actualizaciones y desactiva los registros en vez de borrarlos. La reclasificación
-automática y la política de retención/eliminación a 12 meses aún no están
-implementadas; deberán abordarse en una etapa posterior.
-
-## Entrega final (E12)
-
-Esta sección reúne lo necesario para revisar la entrega. El detalle de cada
-etapa está en las secciones siguientes.
-
-### Enlaces
+## 2. Enlaces y usuarios de prueba
 
 | Qué | Dónde |
 |---|---|
 | Aplicación pública (Render) | https://pixelvault-web-ceen.onrender.com |
-| API pública y su estado | https://pixelvault-api-ljq6.onrender.com/actuator/health (`{"status":"UP"}`) |
-| Documentación de la API (Swagger) | `/swagger-ui` en el backend, por ejemplo http://localhost:8080/swagger-ui |
+| API pública | https://pixelvault-api-ljq6.onrender.com (salud: `/actuator/health`; documentación: `/swagger-ui`) |
 | Aplicación local con Docker | http://localhost:8081 (API en http://localhost:8080) |
-| Código y CI | https://github.com/JulianSilvaMorales/Proyecto_Inventario_Videojuegos (pestaña *Actions*) |
+| Aplicación en desarrollo | http://localhost:5173 (API en http://localhost:8080) |
+| Repositorio y CI | https://github.com/JulianSilvaMorales/Proyecto_Inventario_Videojuegos (pestaña **Actions**) |
 | Evidencias de la corrida final | [`docs/evidencias/`](docs/evidencias/README.md) |
 
-Render suspende el backend tras 15 minutos sin uso: la primera visita puede
-tardar alrededor de un minuto (ver [condiciones del plan gratuito](#condiciones-del-plan-gratuito-verificadas-el-21-10-2026)).
-
-### Usuarios de prueba
+**Usuarios de prueba.** Las contraseñas **no están en el repositorio**: se
+definen en el archivo `.env` de cada equipo (ver
+[4.3](#43-crear-el-archivo-env)) o, en Render, en la consola al crear la base.
+Los usuarios de demostración existen después de cargar los datos de
+demostración ([4.4](#44-opción-a-ejecutar-todo-con-docker-recomendada), paso 4).
 
 | Rol | Correo | Contraseña | Qué puede hacer |
 |---|---|---|---|
-| Administrador | El de `ADMIN_EMAIL` al crear la base | `ADMIN_PASSWORD` | Todo: parametrización, catálogo, compras, inventario, ventas, clientes, aprobación de ajustes y reportes. |
+| Administrador | El de `ADMIN_EMAIL` | `ADMIN_PASSWORD` | Todo: parametrización, catálogo, compras, inventario, ventas, clientes, aprobación de ajustes y reportes. |
 | Encargado de inventario | `encargado.inventario@pixelvault.example` | `DEMO_PASSWORD` | Productos, proveedores, compras y entradas, salidas, solicitud de ajustes operativos y reportes de inventario. |
 | Experto técnico | `experto.tecnico@pixelvault.example` | `DEMO_PASSWORD` | Consultar catálogo e inventario y solicitar ajustes técnicos. |
 | Vendedor/cajero (Colombia) | `vendedor.bogota@pixelvault.example` | `DEMO_PASSWORD` | Ventas y clientes de Colombia; anular ventas pendientes. |
 | Vendedora (Estados Unidos, en inglés) | `ventas.miami@pixelvault.example` | `DEMO_PASSWORD` | Lo mismo, limitado a Estados Unidos. |
 | Gerente/propietario | `gerente@pixelvault.example` | `DEMO_PASSWORD` | Consultar catálogo, inventario y proveedores, y todos los reportes. |
 
-Las contraseñas no están en el repositorio: se definen en `.env` (local y
-Docker) o en la consola al preparar Render. Los usuarios de demostración existen
-después de cargar los [datos de demostración](#datos-de-demostración). La matriz
-completa está en el Anexo D de `spec/GUIDE.md`, y `python tools/cli.py
-verificar-roles --api <URL>` la comprueba contra cualquier backend en ejecución.
+La matriz completa de permisos es el Anexo D de [`spec/GUIDE.md`](spec/GUIDE.md).
+El comando `python tools/cli.py verificar-roles` la comprueba contra cualquier
+backend en ejecución (ver [7.6](#76-verificaciones-de-la-entrega)).
 
-### Instalación en tres pasos (Docker)
+## 3. Tecnologías y herramientas
+
+| Herramienta | Versión | Para qué se usó | Dónde |
+|---|---|---|---|
+| **Java** + **Spring Boot** | 17 · 3.5.6 | Backend: API REST, seguridad, transacciones y validación del esquema | `backend/` |
+| **Maven Wrapper** | Maven 3.9.11 | Compilar y probar el backend sin instalar Maven (`.\mvnw.cmd`) | `backend/mvnw.cmd` |
+| **PostgreSQL** | 16 | Base de datos | Docker (`postgres:16-alpine`), local o Render |
+| **Python** + Jinja2, jsonschema, psycopg, bcrypt | 3.12 | CLI del proyecto: validar el modelo, generar SQL, crear la base, sembrar datos, respaldar y orquestar las pruebas | `tools/` |
+| **React** + **TypeScript** + **Material UI** | 19 · 6 · 9 | Interfaz web | `frontend/src/` |
+| **Vite** | 8 | Servidor de desarrollo y compilación del frontend | `frontend/vite.config.ts` |
+| **i18next** | 26 | Textos en español e inglés | `frontend/src/i18n/` |
+| **pytest** | 8.3.5 | Pruebas de Python | `tools/tests/` |
+| **JUnit 5**, **Spring Boot Test**, **MockMvc**, **Testcontainers** | — | Pruebas del backend (unitarias e integración con PostgreSQL desechable) | `backend/src/test/` |
+| **Vitest** + **Testing Library** | 5 · 16 | Pruebas del frontend | `frontend/src/**/*.test.ts(x)` |
+| **Playwright** (Chromium) | 1.64.1 | Pruebas de extremo a extremo en el navegador | `e2e/` |
+| **ruff** · **oxlint** · **tsc** | 0.11.8 · 1.x · 6 | Estilo y errores de Python; lint y tipos del frontend | `pyproject.toml`, `frontend/.oxlintrc.json` |
+| **pre-commit** + **detect-secrets** | 4.2.0 · 1.5.0 | Revisiones antes de cada commit y push; bloquea secretos | `.pre-commit-config.yaml` |
+| **Docker** + **Docker Compose** | Docker Desktop | Contenedores de base, backend y frontend; base desechable de las pruebas; respaldos | `docker/`, `docker-compose.yml` |
+| **nginx** | 1.27 | Servir el frontend compilado dentro de Docker | `docker/nginx.conf` |
+| **GitHub Actions** | — | Integración continua: las cuatro suites en cada pull request | `.github/workflows/ci.yml` |
+| **Render** | Plan gratuito | Despliegue público de demostración | `render.yaml` |
+| **Git** + **GitHub** | — | Control de versiones, pull requests y protección de `main` | — |
+
+## 4. Instalación desde cero en otro equipo (`git clone`)
+
+Hay dos formas de ejecutar el proyecto:
+
+| Opción | Para qué | Qué hay que instalar |
+|---|---|---|
+| **A. Docker** (recomendada) | Usar o demostrar el sistema completo. | Git y Docker Desktop. |
+| **B. Desarrollo local** | Modificar el código con recarga rápida y ejecutar todas las pruebas. | Git, Docker Desktop, Python 3.12+, Java 17, Node.js 22 LTS y PostgreSQL 16. |
+
+### 4.1 Instalar los programas
+
+| Programa | Dónde descargarlo | Comprobar en `cmd` | Opción |
+|---|---|---|---|
+| Git | https://git-scm.com/download/win | `git --version` | A y B |
+| Docker Desktop | https://www.docker.com/products/docker-desktop/ | `docker --version` y `docker compose version` | A y B |
+| Python 3.12 o superior | https://www.python.org/downloads/ (marcar *Add python.exe to PATH*) | `py -3 --version` | B |
+| Java 17 (Temurin JDK) | https://adoptium.net/temurin/releases/?version=17 | `java -version` | B |
+| Node.js 22 LTS (incluye npm) | https://nodejs.org/ | `node --version` y `npm --version` | B |
+| PostgreSQL 16 | https://www.postgresql.org/download/windows/ (anotar la contraseña del usuario `postgres`) | `psql --version` | B |
+
+Después de instalar Docker Desktop, **ábrelo y espera a que diga que está en
+ejecución** (*Engine running*): lo necesitan los contenedores, las pruebas de
+integración y los respaldos.
+
+### 4.2 Clonar el repositorio
+
+Clona en una carpeta de ruta corta (por ejemplo, `C:\proyectos`): Windows
+limita las rutas a 260 caracteres y algunas del proyecto miden hasta 99.
+
+```bat
+mkdir C:\proyectos
+cd C:\proyectos
+git clone https://github.com/JulianSilvaMorales/Proyecto_Inventario_Videojuegos.git
+cd Proyecto_Inventario_Videojuegos
+```
+
+Si de todos modos aparece un error de rutas largas (`Filename too long`),
+actívalas en Git y vuelve a clonar:
+
+```bat
+git config --global core.longpaths true
+```
+
+### 4.3 Crear el archivo `.env`
+
+La configuración y las contraseñas de cada equipo van en un archivo `.env` que
+**nunca se sube a GitHub** (está en `.gitignore`). Se crea a partir de la
+plantilla `.env.example`:
 
 ```bat
 copy .env.example .env
-rem Completar en .env: DB_PASSWORD, JWT_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD y DEMO_PASSWORD
+notepad .env
+```
+
+Completa estos valores (formato `CLAVE=valor`, sin comillas ni espacios
+alrededor del `=`):
+
+| Variable | Qué poner | Ejemplo |
+|---|---|---|
+| `DB_PASSWORD` | Opción A: cualquier contraseña inventada para la base de Docker. Opción B: la contraseña de tu PostgreSQL local. | `ClaveBase2026` |
+| `DB_USER` | Opción A: déjalo en `inventario`. Opción B: el usuario de tu PostgreSQL local (normalmente `postgres`). | `inventario` |
+| `JWT_SECRET` | Una clave aleatoria en base64 de 32 bytes o más; genérala con el comando de abajo. | `kq3…==` (64 caracteres) |
+| `ADMIN_EMAIL` | El correo con el que entrará el administrador. | `admin@miempresa.com` |
+| `ADMIN_PASSWORD` | La contraseña del administrador (larga; sin `%` ni `"`). | `Admin-PixelVault-2026` |
+| `DEMO_PASSWORD` | La contraseña común de los usuarios de demostración (8 caracteres o más). | `Demo-PixelVault-26` |
+
+Las demás variables ya tienen un valor que funciona. Para generar
+`JWT_SECRET`, ejecuta esto en `cmd` y pega en `.env` el texto que imprime:
+
+```bat
+powershell -NoProfile -Command "$b = New-Object byte[] 48; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)"
+```
+
+### 4.4 Opción A: ejecutar todo con Docker (recomendada)
+
+Con Docker Desktop abierto, desde la carpeta del proyecto:
+
+```bat
+rem 1. Construir las imágenes y levantar la base, la creación de la base, el backend y el frontend.
+rem    La primera vez tarda varios minutos (descarga imágenes y compila); --wait espera a que todo esté sano.
 docker compose up --build -d --wait
+
+rem 2. Comprobar que los servicios están arriba (db, backend y frontend "healthy"; db-init "exited (0)" es lo esperado).
+docker compose ps -a
+
+rem 3. Comprobar la API: debe responder {"status":"UP"}.
+curl http://localhost:8080/actuator/health
+
+rem 4. (Opcional) Cargar los datos de demostración: usuarios por rol, productos, compras, ventas en COP y USD.
 docker compose run --rm db-init python tools/cli.py sembrar-demo --api http://backend:8080
 ```
 
-Luego, abrir http://localhost:8081. Para desarrollar sin Docker, ver
-[Preparación local](#preparación-local).
+5. Abre **http://localhost:8081** e inicia sesión con `ADMIN_EMAIL` y
+   `ADMIN_PASSWORD`, o con un usuario de demostración y `DEMO_PASSWORD`.
 
-### Checklist de entrega (sección 5 de la guía)
-
-| Punto | Estado | Cómo se comprobó |
-|---|---|---|
-| `python tools/cli.py todo` termina sin errores | ✅ | Corrida final de `todo` (validar, generar, crear-bd y las cuatro suites): ver `docs/evidencias/`. |
-| `docker compose up --build` deja el sistema funcionando | ✅ | E2E de la corrida sobre Docker Compose (también en el CI) y pila local en uso desde E10. |
-| Inicio de sesión con un usuario de cada rol y permisos correctos | ✅ | `verificar-roles`: 5 roles, 8 consultas y 8 permisos, todo coincide con el Anexo D ([informe](docs/evidencias/roles-y-permisos.md)). |
-| Flujo producto → entrada → venta (COP y USD) → saldo y movimiento | ✅ | E2E de Playwright: una prueba en COP (creando el producto en la interfaz) y otra en USD (compra con tipo de cambio, entrada en una bodega de Estados Unidos y venta con su impuesto). |
-| Cambio de idioma (es/en) y de moneda sin recargar | ✅ | Pruebas del frontend (`SalesPage.test.tsx`, `locales.test.ts`) y selector de idioma y de moneda de ejemplo en Inicio. |
-| Un país y una moneda nuevos agregados solo con datos | ✅ | `PaisMonedaPorConfiguracionPostgresIntegrationTest` (E7): agrega un país y una moneda solo con datos y vende con ellos. |
-| CI en verde y artefactos de logs descargables | ✅ | GitHub Actions: 4 trabajos obligatorios en `main`, con artefactos `logs-*` en cada ejecución. |
-| `docs/evidencias/` con los logs de la corrida final | ✅ | [`docs/evidencias/README.md`](docs/evidencias/README.md). |
-| URL públicas de demostración funcionando | ✅ | E2E remota contra Render (`--e2e-entorno remoto`) en verde. |
-| README completo; sin secretos en el repositorio | ✅ | Este documento; `detect-secrets` en cada commit y `.env` y `backups/` ignorados por Git. |
-
-### Decisiones técnicas
-
-| Decisión | Por qué |
+| Para… | Comando |
 |---|---|
-| El modelo de datos se describe en JSON (`db/model/modulos/`) y Python genera el SQL, los metadatos y el CRUD | Una sola fuente de verdad que una persona puede leer y corregir; el resto se regenera. |
-| La base se crea solo con `tools/cli.py crear-bd`; migraciones numeradas con checksum en `migracion_historial`, sin Flyway; el backend usa `ddl-auto=validate` | Lo exige la guía. El backend nunca altera el esquema, solo comprueba al arrancar que coincide con el modelo. |
-| Spring Boot con JDBC y SQL generado (sin entidades JPA) | El SQL se ve y se corrige; JPA solo se usa para validar el esquema. |
-| Importes y tasas como texto decimal en toda la API (`BigDecimal` ↔ texto) | Sin errores de redondeo de `float` entre Java, JSON y JavaScript. |
-| Nada de negocio en el código: países, monedas, impuestos, medios de pago y límites son datos con ámbito y vigencia | Agregar un país o cambiar un impuesto no requiere programar (verificado en E7). |
-| JWT sin estado más registro de sesiones (inactividad y cierre) y bloqueo por intentos, configurables | Seguridad acorde con RNF-003 sin depender de sesiones del servidor web. |
-| Front en React + Material UI con textos en `es.json`/`en.json` y formatos con `Intl` | Cambio de idioma y de formato al instante, sin recargar. |
-| Pruebas en cuatro suites con un solo comando (`probar`), PostgreSQL desechable (Testcontainers) y logs en `logs/tests/` | Se repiten igual en cualquier equipo y en el CI, sin tocar datos reales. |
-| CI con GitHub Actions en Linux y `main` protegida | Los contenedores son Linux; nada entra a `main` con pruebas en rojo. |
-| Docker Compose para local y Render (Blueprint) para la demostración; respaldos con `pg_dump` dentro de Docker | Mismo backend en contenedor en ambos sitios; la base gratuita caduca y se recupera en minutos. |
+| Detener (conserva los datos) | `docker compose down` |
+| Volver a arrancar | `docker compose up -d --wait` |
+| Aplicar cambios del código (después de `git pull`) | `docker compose up --build -d --wait` |
+| Ver los logs del backend (Ctrl+C para salir) | `docker compose logs -f backend` |
+| Borrar la base y empezar de cero | `docker compose down -v` |
 
-### Cómo corregir a mano
+Qué hace cada servicio y por qué `db-init` aparece detenido se explica en
+[6.8](#68-e10--contenedores-docker).
 
-| Quiero cambiar… | Dónde | Después |
-|---|---|---|
-| Países, monedas, idiomas, impuestos, tipos de cambio o parámetros (medios de pago, bloqueo, sesión…) | En la aplicación: **Configuración** (como administrador). | Nada más: son datos, con auditoría. |
-| Los datos iniciales de una base nueva | `db/seeds/inicial.json` | `python tools/cli.py crear-bd` (solo inserta lo que falta, no borra). |
-| Los datos de demostración | `db/seeds/demo.json` | `python tools/cli.py sembrar-demo` sobre una base limpia. |
-| Una tabla o columna | `db/model/modulos/*.json` | `python tools/cli.py validar` y `generar` (actualizan el modelo resuelto y el CRUD), escribir la migración `db/migrations/V004__<descripción>.sql` con el cambio, `crear-bd` para aplicarla y versionar todo junto. `V001` no se modifica: su checksum queda registrado en cada base. |
-| El SQL de CRUD o los metadatos del front | No a mano: vienen de `generar`. | El CI comprueba que lo generado coincide con el modelo; corrija el JSON o la plantilla (`tools/templates/`). |
-| Un texto de la interfaz | `frontend/src/i18n/locales/es.json` y `en.json` (las mismas claves en ambos) | `npm test` comprueba que no falten claves. |
-| Un mensaje de error del backend | `backend/src/main/resources/messages.properties` y `messages_en.properties` | Reiniciar el backend. |
-| Una variable de entorno | `.env` (local y Docker) o el panel de Render | Reiniciar el servicio; en Render, `VITE_API_URL` exige volver a desplegar el sitio. |
+### 4.5 Opción B: desarrollo local
 
-Si algo falla, los logs de cada comando están en `logs/tools/` y los de las
-pruebas en `logs/tests/<fecha-hora>/` (ver [Pruebas y logs](#pruebas-y-logs-e8)).
-
-### Fase 2 y pendientes conocidos
-
-Fuera de la primera entrega, según la sección 7.3 de los requisitos (solo
-documentado, no construido):
-
-| Requisito | Tema |
-|---|---|
-| RF-011 | Devoluciones (de clientes, con inspección, y a proveedores) |
-| RF-012 | Números de serie por unidad |
-| RF-013 | Garantías y servicio técnico |
-| RF-014 | Canal de comercio electrónico (tienda en línea para clientes) |
-| RF-016 | Recompra de productos usados |
-| RF-017 | Traslados entre bodegas |
-| RF-018 | Alertas de stock mínimo y máximo |
-| RF-019 | Preventas y reservas |
-| RF-024 | Envíos y logística de entrega |
-| RF-025 | Comercio exterior en ventas: aranceles, impuestos de importación y aduanas |
-| RF-026 | Importaciones en compras a proveedores de otros países |
-| — | Autenticación multifactor, facturación electrónica real (hoy, recibo simulado) y pasarela de pagos real |
-
-Pendientes detectados durante el desarrollo, dentro del alcance actual:
-
-- **Administración de usuarios:** no hay pantalla ni API para crear usuarios o
-  cambiar contraseñas; el administrador se crea con `crear-bd`, los usuarios de
-  demostración con `sembrar-demo` y solo existe el desbloqueo
-  (`POST /api/v1/admin/usuarios/{id}/desbloquear`).
-- **Clientes:** la reclasificación automática (frecuente/infrecuente) y la
-  política de retención o eliminación a 12 meses no están implementadas.
-- **Exportación CSV:** usa nombres de archivo fijos, porque CORS no expone
-  `Content-Disposition`.
-- **Frontend:** el paquete supera los 500 kB (aviso de Vite); se puede dividir
-  por pantallas.
-- **Render gratuito:** la base caduca a los 30 días y el backend se suspende sin
-  tráfico (ver E11 para recrearla y respaldarla).
-- **CI:** GitHub avisa que `actions/checkout@v4`, `setup-java@v4`,
-  `setup-python@v5` y `upload-artifact@v4` usan Node.js 20 (en desuso) y que
-  `ubuntu-latest` pasa a Ubuntu 26 desde el 19-10-2026. Hoy solo son avisos;
-  conviene actualizar esas versiones.
-
-## Requisitos previos
-
-- Java 17 (LTS) y Maven 3.9+
-- Python 3.12 o superior
-- PostgreSQL 16+
-- Node.js LTS y npm para el frontend
-- Docker (Docker Desktop en Windows) en ejecución: lo usan las pruebas de integración
-  del backend, las de base de datos de Python, la prueba E2E y la ejecución con
-  Docker Compose (E10)
-- Git
-
-## Preparación local
-
-En `cmd`, desde la carpeta del proyecto (una sola vez):
+**1. Entorno de Python** (una sola vez):
 
 ```bat
-py -3.12 -m venv .venv
+py -3 -m venv .venv
 .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
 python -m pip install -r requirements-dev.txt
 pre-commit install
-copy .env.example .env
 ```
 
-- `requirements-dev.txt` incluye `requirements.txt` (dependencias de ejecución)
-  y las herramientas de desarrollo.
-- `pre-commit install` instala los hooks de commit y de push (ver E9).
-- Completa en `.env` los valores de tu entorno (`DB_PASSWORD`, `JWT_SECRET`,
-  `ADMIN_EMAIL`, `ADMIN_PASSWORD`…), en formato `CLAVE=valor` y sin comillas.
-  Nunca lo subas al repositorio (está en `.gitignore`).
-- En cada consola nueva, activa el entorno con `.venv\Scripts\activate.bat`
-  (en PowerShell: `.venv\Scripts\Activate.ps1`).
+- `.venv` es un entorno aislado de Python para el proyecto. **En cada consola
+  nueva** hay que activarlo con `.venv\Scripts\activate.bat` (el indicador
+  `(.venv)` aparece al inicio de la línea).
+- `requirements-dev.txt` instala las dependencias de ejecución
+  (`requirements.txt`) y las de desarrollo (pytest, ruff, pre-commit,
+  detect-secrets).
+- `pre-commit install` activa las revisiones automáticas antes de cada commit y
+  de cada push (ver [9.2](#92-revisiones-locales-antes-de-cada-commit-y-push)).
 
-### Formas de ejecutar el sistema
-
-| Opción | Para qué | Cómo |
-|---|---|---|
-| Docker Compose | Usar o demostrar el sistema completo sin instalar nada más que Docker. | `docker compose up --build` (ver [Contenedores (E10)](#contenedores-e10)). |
-| Desarrollo local | Modificar el código con recarga rápida. Requiere PostgreSQL local. | `python tools/cli.py crear-bd`, luego el backend y el frontend (ver [Backend](#backend-e51e55) y [Frontend](#frontend-e61e64)). |
-
-## CLI de desarrollo
+**2. Base de datos local.** En `.env`, con PostgreSQL 16 instalado:
+`DB_HOST=localhost`, `DB_PORT=5432`, `DB_NAME=inventario`, `DB_USER=postgres` y
+`DB_PASSWORD=<contraseña de postgres>`. Luego:
 
 ```bat
-python tools/cli.py --help
-python tools/cli.py validar --help
-python tools/cli.py generar --help
+python tools/cli.py crear-bd
 ```
 
-`validar` comprueba esquema, tipos, nombres, claves, índices y referencias.
-`generar` produce la migración inicial y los metadatos resueltos desde el modelo
-JSON. `crear-bd` crea la base si falta, aplica migraciones, carga semillas y
-verifica el esquema. `sembrar` carga únicamente los datos iniciales y `sembrar-demo` los datos de demostración (ver [Datos de demostración](#datos-de-demostración)). Todos
-aceptan `--dry-run` y escriben sus logs en `logs/tools/`.
-`V001` es inmutable después de aplicarse para conservar su checksum; los cambios
-de esquema posteriores se agregan en una nueva migración versionada.
-`V003__bodega_pais_obligatorio.sql` exige el país de cada bodega, como define el
-modelo; si alguna bodega existente no tiene país, la migración se detiene con un
-mensaje y debe asignarse antes de volver a ejecutar `crear-bd`. La semilla de la
-bodega `GENERAL` indica su país con `pais_codigo`. `generar`
-actualiza el modelo resuelto y el CRUD sin reescribir esa migración.
+Crea la base `inventario` si no existe, aplica las migraciones, carga las
+semillas (países, monedas, impuestos, roles, permisos, bodega, parámetros y el
+administrador) y verifica el esquema. Deja su log en `logs/tools/`.
 
-`respaldar` y `restaurar` guardan y recuperan la base con `pg_dump` y
-`pg_restore` (ver [Respaldo y restauración](#respaldo-y-restauración)).
-`verificar-roles --api <URL> [--salida archivo.md]` inicia sesión con un usuario
-de cada rol en un backend en ejecución y comprueba sus accesos según el Anexo D;
-solo consulta, no modifica datos (necesita `ADMIN_EMAIL`, `ADMIN_PASSWORD` y
-`DEMO_PASSWORD`).
-
-Todos los comandos que usan la base toman la conexión de `DB_HOST`, `DB_PORT`,
-`DB_NAME`, `DB_USER` y `DB_PASSWORD` del `.env` o, si está definida,
-de `DATABASE_URL` (por ejemplo, la URL externa de la base de Render). Las
-variables definidas en la consola tienen prioridad sobre el `.env`.
-
-`reiniciar-bd` es destructivo: solo permite hosts de loopback y exige confirmar
-el nombre exacto de la base con `--confirm-db`. No lo ejecutes contra datos que
-necesites conservar. `probar` ejecuta todas las suites de prueba y `todo` encadena
-`validar` → `generar` → `crear-bd` → `probar` (ver la sección E8).
-
-## Datos de demostración
-
-Para probar o presentar el sistema con datos realistas existe una carga
-**manual** (no se ejecuta sola):
-
-```bat
-rem Con Docker Compose (la pila debe estar arriba: docker compose up -d --wait)
-docker compose run --rm db-init python tools/cli.py sembrar-demo --api http://backend:8080
-rem En desarrollo local (backend arrancado en http://localhost:8080)
-python tools/cli.py sembrar-demo
-rem Solo muestra lo que cargaría, sin conectarse
-python tools/cli.py sembrar-demo --dry-run
-```
-
-Requiere en `.env` las credenciales del administrador (`ADMIN_EMAIL`,
-`ADMIN_PASSWORD`) y `DEMO_PASSWORD`, la contraseña común de los usuarios de
-demostración (8 caracteres o más; no está en el repositorio).
-
-Los datos están en `db/seeds/demo.json` y la lógica en `tools/demo_seed.py`. Los
-usuarios se insertan directamente en la base (no hay API de usuarios); **todo lo
-demás se crea a través de la API del backend**, con sus reglas de negocio,
-movimientos de inventario y auditoría, exactamente como si se hiciera desde la
-interfaz.
-
-| Qué se carga | Detalle |
-|---|---|
-| Usuarios (contraseña `DEMO_PASSWORD`) | `encargado.inventario@pixelvault.example` (encargado de inventario), `experto.tecnico@pixelvault.example` (experto técnico), `vendedor.bogota@pixelvault.example` (vendedor, solo Colombia), `ventas.miami@pixelvault.example` (vendedora, solo Estados Unidos, en inglés) y `gerente@pixelvault.example` (gerente). |
-| Estados Unidos | Se habilita con un impuesto de ejemplo (*Sales tax Florida*, 6 %) y un tipo de cambio de ejemplo USD→COP (4.100); ambos se editan en Configuración. |
-| Catálogo | 7 tipos de producto con los atributos de RF-001 (videoconsola, videojuego, tarjeta de regalo, de suscripción, accesorio, retro y edición especial), 6 categorías con 11 subcategorías y 15 productos con nombre y descripción en español e inglés y precios en COP y USD. |
-| Inventario | Bodegas Bodega general (Colombia), Medellín (Colombia) y Miami (Estados Unidos); 3 proveedores con sus productos oficiales; 3 órdenes de compra recibidas (una parcialmente); una salida por daño; un ajuste aprobado y otro pendiente. |
-| Clientes y ventas | 5 clientes (frecuentes e infrecuentes, Colombia y Estados Unidos); 6 ventas: 3 confirmadas en COP, 1 confirmada en USD, 1 pendiente de pago y 1 anulada. |
-
-Las empresas, personas y correos son ficticios (dominio reservado
-`.example`); los productos y precios son realistas. La carga es idempotente:
-usuarios y datos maestros se buscan antes de crearlos, y las operaciones
-(compras, ventas, salidas y ajustes) solo se cargan si los proveedores de la
-demostración aún no tienen órdenes de compra, así que repetirla no duplica nada.
-Las órdenes de otros proveedores, como las que deja la prueba E2E en un
-despliegue, no cuentan: en Render la demostración se puede cargar después de la
-E2E y queda completa.
-
-## Backend (E5.1–E5.5)
-
-El backend Spring Boot está en `backend/`, usa Java 17, valida el esquema al
-arrancar y no modifica la base (`ddl-auto=validate`). Lee automáticamente el
-`.env` de la raíz del proyecto (`spring.config.import` en `application.yml`),
-así que no hace falta cargar variables a mano; si una variable también existe
-en el entorno del sistema, prevalece la del sistema. Con PostgreSQL local y la
-base creada (`python tools/cli.py crear-bd`), en `cmd`:
+**3. Backend** (en una consola):
 
 ```bat
 cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-Para detenerlo, `Ctrl+C`. Las pruebas del backend se ejecutan con
-`.\mvnw.cmd verify` desde `backend` (necesitan Docker; ver
-[Pruebas y logs](#pruebas-y-logs-e8)). Se escribe `.\mvnw.cmd` con `.\` para
-que funcione igual en `cmd` y en PowerShell.
+Lee el `.env` de la raíz automáticamente. Queda en http://localhost:8080; se
+detiene con `Ctrl+C`.
 
-Maven Wrapper descarga Maven 3.9.11; requiere que Java 17 esté instalado. La
-aplicación expone
-`http://localhost:8080/actuator/health`, `http://localhost:8080/swagger-ui` y
-`http://localhost:8080/api/v1`. Usa los perfiles `local` y `produccion`. La
-autenticación se inicia en `POST /api/v1/auth/login`, el cierre de sesión en
-`POST /api/v1/auth/logout` y el desbloqueo administrativo en
-`POST /api/v1/admin/usuarios/{usuarioId}/desbloquear`. Define `JWT_SECRET` en
-`.env` con una clave aleatoria base64 de 32 bytes o más. No la compartas ni la
-subas al repositorio.
-
-Las respuestas de inicio de sesión y las respuestas autenticadas usan
-`Cache-Control: no-store` para evitar almacenar credenciales y tokens en caché.
-Las sesiones se conservan en memoria: reiniciar el backend cierra todas las
-sesiones activas. Las solicitudes autenticadas renuevan el tiempo de inactividad
-y devuelven el token actualizado en `X-Auth-Token`; el cliente debe reemplazar
-el token anterior por ese valor. La aplicación sigue en desarrollo y no debe
-exponerse como sistema operativo en producción.
-
-#### E5.2 — Países, monedas, idiomas, tipos de cambio e impuestos
-
-Los catálogos se administran bajo `/api/v1/configuracion`: `paises`, `monedas`,
-`idiomas`, `tipos-cambio` e `impuestos` ofrecen operaciones paginadas (`page`,
-`size`, `buscar`) y CRUD. Países, monedas, idiomas e impuestos requieren el
-permiso `PARAMETROS_GESTIONAR`; los tipos de cambio y las conversiones requieren
-`TIPOS_CAMBIO_GESTIONAR`. Cada cambio queda registrado en auditoría.
-
-Las sentencias SQL de lectura y escritura para estos CRUD se generan desde las
-entidades `generar_crud` del modelo cuando ejecutas `python tools/cli.py generar`.
-Las validaciones de negocio, los permisos y la auditoría permanecen en los
-servicios tipados del backend.
-
-Los tipos de cambio se ingresan manualmente con una fecha de vigencia. La
-conversión en `POST /api/v1/conversiones/moneda` usa la tasa directa vigente o,
-si no existe, invierte la tasa disponible; redondea según la moneda de destino.
-`POST /api/v1/impuestos/calcular` busca el impuesto vigente específico de la
-categoría y, si no existe, usa el general del país; desglosa o agrega el
-impuesto según `incluidoEnPrecio`. Un país solo puede habilitarse cuando tenga
-moneda, idioma, zona horaria e impuesto vigente configurados.
-
-Para validar el modelo:
-
-```bat
-python tools/cli.py validar
-python tools/cli.py validar --dry-run
-```
-
-Para generar el esquema y preparar PostgreSQL:
-
-1. Copia `.env.example` a `.env` y configura `DB_HOST`, `DB_PORT`, `DB_NAME`,
-   `DB_USER`, `DB_PASSWORD`, `ADMIN_EMAIL` y `ADMIN_PASSWORD`; alternativamente, <!-- pragma: allowlist secret -->
-   define `DATABASE_URL` y las dos variables del administrador.
-2. Genera la migración y crea/siembra la base:
-
-```bat
-python tools/cli.py generar
-python tools/cli.py crear-bd
-```
-
-El usuario inicial se crea con contraseña BCrypt desde el entorno; nunca se
-guarda la contraseña en las semillas. Colombia se inicializa habilitada con IVA
-del 19%. EE. UU. queda deshabilitado hasta que el administrador configure una
-tarifa; no se carga un tipo de cambio COP/USD de ejemplo. Esto bloquea las
-operaciones que no tengan la configuración requerida.
-
-#### E5.3 — Catálogo de productos
-
-El catálogo se administra bajo `/api/v1/catalogo`. Las lecturas requieren
-`CATALOGO_CONSULTAR`; las operaciones de gestión requieren
-`PRODUCTOS_GESTIONAR` (administrador o encargado de inventario). Las listas
-aceptan `page`, `size` y `buscar`.
-
-| Recurso | Operaciones |
-|---|---|
-| `/categorias` | Consultar, crear, actualizar y desactivar categorías raíz o subcategorías. |
-| `/tipos-producto` | Consultar, crear, actualizar y desactivar tipos. |
-| `/definiciones-atributos` | Consultar, crear y actualizar definiciones; se pueden filtrar con `tipoProductoId`. |
-| `/productos` | Consultar, crear, actualizar y desactivar productos. |
-| `/productos/{id}/traducciones` | Consultar y agregar traducciones; se actualizan con `/{traduccionId}`. |
-| `/productos/{id}/precios` | Consultar precios y agregar un precio con periodo de vigencia. |
-
-Una categoría raíz usa `padreId: null`; una subcategoría debe tener como padre
-una categoría raíz activa. Los productos requieren tipo activo, categoría raíz
-activa y subcategoría hija activa. Las definiciones admiten `TEXTO`, `ENTERO`,
-`DECIMAL`, `BOOLEANO` y `JSON`; `opciones`, si se indica, es una lista de
-valores permitidos del tipo declarado. `atributos` debe ser un objeto JSON con
-solo atributos definidos para su tipo, respetando valores obligatorios, tipos
-y opciones.
-
-`POST /productos` recibe `tipoProductoId`, `categoriaId`, `subcategoriaId`,
-`atributos`, una lista no vacía `traducciones` (`idiomaId`, `nombre`,
-`descripcion`) y una lista no vacía `precios` (`monedaId`, `importe`,
-`vigenteDesde`, `vigenteHasta`). La creación y sus traducciones/precios se
-guardan en una sola transacción. El código interno `PRD-<UUID>` lo asigna el
-sistema. Solo se aceptan idiomas y monedas existentes; los idiomas deben estar
-habilitados. Los precios no pueden tener periodos superpuestos para el mismo
-producto y moneda. Para cambiar el precio, se agrega un nuevo periodo; los
-registros anteriores no se editan ni eliminan.
-
-Los productos se desactivan con `DELETE /productos/{id}`; no se eliminan
-físicamente. Las categorías y tipos también se desactivan, y no se permite
-desactivar una categoría con subcategorías o productos activos, ni un tipo con
-productos activos. Cada operación de gestión queda registrada en auditoría.
-El comando `python tools/cli.py generar` genera las sentencias JDBC de
-categorías, tipos, definiciones y productos a partir de `generar_crud` en el
-modelo; el producto no tiene sentencia generada de borrado. Traducciones y
-precios conservan las operaciones específicas de vigencia definidas por el
-repositorio.
-
-#### E5.4 — Inventario
-
-El inventario se administra bajo `/api/v1/inventario`, las compras bajo
-`/api/v1/compras` y los proveedores bajo `/api/v1/proveedores`. Las consultas de
-existencias, bodegas, movimientos y ajustes requieren `INVENTARIO_CONSULTAR`.
-La gestión de bodegas y compras/recepciones requiere `COMPRAS_GESTIONAR`;
-proveedores y su relación oficial con productos requieren
-`PROVEEDORES_GESTIONAR` (la consulta admite `PROVEEDORES_CONSULTAR`). Las
-salidas documentadas requieren `SALIDAS_INVENTARIO_GESTIONAR`, asignado al
-administrador y al encargado de inventario.
-Las solicitudes de bodega incluyen `paisId`; usuarios con países asignados solo
-consultan y operan bodegas de esos países. Un usuario sin países asignados
-conserva el alcance global.
-
-| Recurso | Operaciones |
-|---|---|
-| `/api/v1/inventario/bodegas` | Consultar, crear y actualizar bodegas con país; la asignación no se cambia una vez establecida. No se eliminan físicamente ni se desactivan si conservan saldo positivo o ajustes abiertos. |
-| `/api/v1/proveedores` | Consultar, crear y actualizar proveedores; vincular un producto con un proveedor oficial y listar sus productos oficiales (`GET /{id}/productos`). |
-| `/api/v1/compras/ordenes` | Crear borrador, enviar al proveedor, consultar (filtros `estado` y `proveedorId`) y cancelar antes de recibir. |
-| `/api/v1/compras/contexto` | Moneda base del negocio, para saber cuándo la tasa de la orden es `1`. |
-| `/api/v1/compras/entradas` | Registrar y consultar recepciones parciales o completas con documento, tasa aplicada y costos. |
-| `/api/v1/inventario/saldos` | Consultar por producto, bodega o país y filtrar saldos positivos. |
-| `/api/v1/inventario/salidas` | Registrar pérdidas, daños, robos o defectos con reporte al proveedor oficial. |
-| `/api/v1/inventario/movimientos` | Consultar historial por producto, bodega, usuario, tipo y periodo; los movimientos son inmutables. |
-| `/api/v1/inventario/ajustes` | Solicitar conteos operativos/técnicos, aprobar y aplicar ajustes; solo el administrador puede aprobar/aplicar. |
-
-El flujo de entrada requiere un proveedor activo vinculado al producto, una
-orden enviada y una bodega activa. La orden se crea en `BORRADOR`; solo se
-reciben órdenes `ENVIADA_AL_PROVEEDOR` o `RECIBIDA_PARCIAL`. Una recepción puede
-ser parcial, no puede exceder la cantidad pendiente ni repetir el documento de
-la orden. El costo en moneda base se calcula con la tasa guardada en cada
-recepción (la tasa de la moneda base debe ser `1`). Una línea de orden recibe
-`productoId`, `cantidadPedida` y `costoUnitario`; la recepción recibe
-`ordenCompraId`, `bodegaId`, `numeroDocumento`, `tipoCambioAplicado` y líneas
-con `ordenCompraLineaId` y `cantidad`.
-
-Las salidas usan los tipos `PERDIDA`, `DANO`/`DAÑO`, `ROBO` o `DEFECTO`, una
-cantidad entera positiva, `proveedorId`, `numeroReporteProveedor` y una nota
-opcional. Cada cambio de saldo se serializa por producto y bodega; no se permite
-un saldo negativo. Entradas, salidas y ajustes actualizan el saldo, añaden un
-movimiento inmutable y escriben auditoría en la misma transacción.
-
-Los ajustes operativos solo los solicita el encargado de inventario y los
-técnicos solo el experto técnico. Ambos requieren aprobación administrativa antes de
-aplicarse. Si el saldo cambió después del conteo, la aplicación se bloquea; un
-administrador puede usar `POST /api/v1/inventario/ajustes/{id}/revalidar` para
-actualizar la cantidad del sistema y devolver el ajuste a aprobación pendiente.
-Las sentencias JDBC de bodega se generan en `InventarioCrudSql.java`; no se
-genera una operación de borrado.
-En una base existente, ejecuta `python tools/cli.py sembrar` para agregar el
-permiso nuevo y su asignación de roles; la carga es idempotente y usa las
-credenciales configuradas localmente en `.env`.
-La migración `V002__pais_bodega.sql` agrega el país a las bodegas y conserva la
-restricción de no borrar bodegas. En instalaciones previas, asigna un país a
-cada bodega existente antes de restringir usuarios por país; la migración deja
-ese dato pendiente para no asumir a qué país pertenece una bodega.
-El alcance por país también se aplica a proveedores, órdenes de compra,
-recepciones, ajustes, ventas y reportes. Una recepción debe usar una bodega del
-mismo país que la orden; el país de un proveedor ya asignado no se puede cambiar.
-
-#### E5.5 — Ventas y reportes
-
-Las ventas se administran bajo `/api/v1/ventas`. `POST /api/v1/ventas` crea una
-venta pendiente con país, moneda local, cliente opcional y líneas de producto,
-bodega y cantidad. Cada bodega debe pertenecer al mismo país de la venta. El
-precio vigente, el impuesto del país, el tipo de cambio
-hacia la moneda base y los importes calculados se guardan como datos de esa
-operación. El borrador comprueba existencias pero no modifica saldos ni crea
-movimientos.
-
-`POST /api/v1/ventas/{id}/confirmar` recibe `medioPago`; en una sola transacción
-marca el pago y confirma la venta, descuenta todas las líneas, registra los
-movimientos `SALIDA_VENTA` y escribe auditoría. Si una bodega ya no está activa
-o no hay saldo suficiente, la transacción completa se revierte. Una venta solo
-se anula mediante `POST /api/v1/ventas/{id}/anular` mientras siga pendiente y
-sin pago recibido. El vendedor requiere `VENTAS_GESTIONAR`; anular requiere
-además `VENTAS_ANULAR_PENDIENTES`.
-
-`GET /api/v1/ventas/{id}` consulta la operación y
-`GET /api/v1/ventas/{id}/recibo` devuelve el recibo simulado después de
-confirmarla. No se conecta a una pasarela de pagos ni se genera facturación
-fiscal electrónica.
-
-Los reportes requieren `REPORTES_INVENTARIO` o `REPORTES_TODOS`. Los países
-asignados al usuario limitan las existencias, movimientos y ventas visibles;
-los filtros `paisId` refinan el reporte dentro de ese alcance:
-
-| Recurso | Filtros y exportación |
-|---|---|
-| `GET /api/v1/reportes/inventario/existencias` | Paginado; `productoId`, `bodegaId`, `paisId`, `soloConExistencia`. |
-| `GET /api/v1/reportes/inventario/existencias.csv` | Exporta todas las existencias que coincidan con esos filtros. |
-| `GET /api/v1/reportes/inventario/movimientos` | Paginado; `productoId`, `bodegaId`, `usuarioId`, `tipo`, `desde`, `hasta`; para movimientos de venta, también `paisId` y `monedaId`. |
-| `GET /api/v1/reportes/inventario/movimientos.csv` | Exporta los movimientos que coincidan con los mismos filtros. |
-
-Las exportaciones se transmiten como CSV UTF-8, entrecomillan y escapan los
-campos, y neutralizan valores de texto que podrían interpretarse como fórmulas
-al abrir el archivo en una hoja de cálculo. La transmisión usa un despacho
-asíncrono del servidor; la configuración de seguridad lo permite porque solo
-continúa una petición ya autenticada y autorizada.
-
-#### Ampliaciones de API para E6.4
-
-| Recurso | Uso |
-|---|---|
-| `GET /api/v1/ventas` | Lista paginada de ventas (más recientes primero) filtrable por `estado` (`PENDIENTE_DE_PAGO`, `CONFIRMADA`, `ANULADA`) y limitada al alcance por país. Requiere `VENTAS_GESTIONAR`. |
-| `GET /api/v1/ventas/paises` | Países habilitados dentro del alcance del usuario, con su moneda local (código y decimales) y los medios de pago del parámetro `ventas.medios_pago` resuelto para el país. Requiere `VENTAS_GESTIONAR`. |
-| `GET/POST /api/v1/parametros`, `GET/PUT /api/v1/parametros/{id}` | Administración de parámetros: clave, tipo, valor, mínimo y máximo, ámbito (`NEGOCIO` o `PAIS`) y vigencia, sin periodos superpuestos para la misma clave, ámbito y país. Requiere `PARAMETROS_GESTIONAR`; cada cambio invalida la caché y queda en auditoría. Los valores `DECIMAL` y los límites se aceptan como texto decimal. |
-| `GET /api/v1/referencias/producto` | Productos activos con su nombre en el idioma de la solicitud (`Accept-Language`). Requiere `CATALOGO_CONSULTAR` o `PRODUCTOS_GESTIONAR`. |
-| `GET /api/v1/referencias/usuario` | Usuarios (nombre y correo) para filtrar reportes. Requiere `REPORTES_TODOS` o `REPORTES_INVENTARIO`. |
-
-#### Ampliaciones de API para la pantalla de Compras
-
-La pantalla de Compras usa la API de E5.4 tal cual; solo se añadieron dos
-consultas de lectura, sin cambios en la base de datos:
-
-| Recurso | Uso |
-|---|---|
-| `GET /api/v1/proveedores/{id}/productos` | Productos oficiales (activos) del proveedor, con su nombre en el idioma de la solicitud (`Accept-Language`): `[{ "id", "codigo", "nombre" }]`. Requiere `PROVEEDORES_CONSULTAR` o `PROVEEDORES_GESTIONAR` y respeta el alcance por país: un usuario de Estados Unidos no puede ver los de un proveedor de Colombia (403). |
-| `GET /api/v1/compras/contexto` | `{ "monedaBaseCodigo": "COP" }`, leído del parámetro `moneda.base_codigo_iso`. Requiere `COMPRAS_GESTIONAR`. Con él la pantalla fija la tasa en `1` cuando el proveedor compra en la moneda base, sin escribir "COP" en el código. |
-
-Ambas quedan cubiertas en `InventarioPostgresIntegrationTest` (listado,
-rechazo fuera del país, llamada HTTP con permisos y moneda base sembrada).
-
-Las referencias `idioma` y `moneda` también se permiten a `PRODUCTOS_GESTIONAR`
-(formulario de productos del encargado de inventario), y `pais` y `moneda` a
-los permisos de reportes (filtros). Los medios de pago se configuran como datos:
-la semilla define `ventas.medios_pago` para todo el negocio (efectivo, tarjeta y
-transferencia bancaria) y para Colombia (además PSE, Nequi y Daviplata), según
-la sección de pagos de los requisitos. Otro país o medio se agrega con un
-parámetro, sin cambiar código.
-
-## Frontend (E6.1–E6.4)
-
-El cliente React + TypeScript está en `frontend/`. Con el backend iniciado en
-`http://localhost:8080`, en `cmd`:
+**4. Frontend** (en otra consola):
 
 ```bat
 cd frontend
@@ -602,884 +269,442 @@ npm ci
 npm run dev
 ```
 
-El servidor de desarrollo usa `http://localhost:5173`; el backend permite ese
-origen por defecto. Si la API está en otra dirección, configura
-`VITE_API_URL` en `frontend/.env.local` (por ejemplo,
-`VITE_API_URL=http://localhost:8080`). No incluyas credenciales en variables
-`VITE_*`: se incorporan al bundle del navegador.
+Queda en http://localhost:5173 y se recarga solo al guardar cambios.
 
-### Identidad visual
-
-La interfaz usa un tema oscuro propio (`src/theme.ts`, `src/App.css`): fondo
-azul noche (`#0B0D17`), superficies `#141829`, acentos violeta neón (`#8B5CF6`)
-y cian (`#22D3EE`), con contraste suficiente para el texto. El logo
-(`PixelVaultLogo`) es la puerta de una bóveda (*vault*) dibujada en *pixel art*
-de 16 × 16, en coherencia con el nombre **PixelVault**; la misma figura es el
-favicon (`public/favicon.svg`). El recibo simulado se imprime en blanco y negro.
-
-### E6.1 — Base web
-
-La aplicación usa React, TypeScript, Vite y Material UI. La pantalla de acceso
-se conecta al backend y la sesión controla la navegación según los permisos
-del usuario. La interfaz admite español e inglés, localiza fechas y números, y
-centraliza las solicitudes, los errores de API y la renovación del token de
-sesión. Las credenciales se envían únicamente al backend; no deben almacenarse
-en variables `VITE_*`.
-
-La página de **Inicio** muestra el usuario, sus roles y permisos, y una tarjeta
-de **formatos de ejemplo** (un importe, el número `1.234.567,89` y una fecha).
-No son datos del negocio: enseñan cómo cambian los formatos al elegir el idioma
-o la moneda. En inglés, el mismo número se muestra como `1,234,567.89`.
-
-### E6.2 — CRUD genérico dirigido por metadatos
-
-`python tools/cli.py generar` produce `frontend/src/generated/entidades.json`
-y `entidades.ts` desde el modelo modular de `db/model/`. Los metadatos incluyen
-las rutas y permisos de cada entidad, etiquetas en español e inglés, campos y
-tipos, valores iniciales, campos de solo lectura, referencias y validaciones.
-`CrudPage` consume esa salida para presentar tablas paginadas, búsqueda,
-formularios de creación y edición, validación y confirmación antes de eliminar
-o desactivar. Así, las reglas comunes se mantienen en el modelo y las reglas
-operativas particulares siguen en los servicios tipados del backend.
-
-La interfaz cubre estas entidades y API:
-
-| Entidad | API |
-|---|---|
-| Países, monedas, idiomas, tipos de cambio e impuestos | `/api/v1/configuracion/{paises,monedas,idiomas,tipos-cambio,impuestos}` |
-| Categorías | `/api/v1/catalogo/categorias` |
-| Bodegas | `/api/v1/inventario/bodegas` |
-| Proveedores | `/api/v1/proveedores` |
-| Clientes | `/api/v1/clientes` |
-
-Las opciones de referencia para formularios se consultan en
-`/api/v1/referencias/{entidad}`. El backend verifica permisos en cada recurso y
-limita los países disponibles al alcance asignado al usuario. Los registros
-que no deben borrarse físicamente se desactivan mediante el flujo de edición;
-el comportamiento de borrado se define por entidad.
-
-#### API y reglas de clientes
-
-`/api/v1/clientes` ofrece consulta paginada (`page`, `size` y `buscar`),
-consulta por identificador, creación, actualización y desactivación lógica.
-Todas las operaciones exigen `CLIENTES_GESTIONAR` y respetan el alcance por
-país del usuario; el país de un cliente existente no se puede cambiar. La
-creación exige registrar el consentimiento. En una actualización se permite
-registrar su revocación. Los clientes frecuentes requieren apellidos, código
-postal, dirección y teléfono; los infrecuentes requieren documento. La
-auditoría almacena un resumen del cambio, no los datos personales completos.
-
-La reclasificación automática de clientes y la política de retención o
-eliminación de datos infrecuentes a los 12 meses no están implementadas en esta
-etapa. Deben resolverse antes de considerar completo ese ciclo de vida de
-datos.
-
-### E6.3 — Catálogo e inventario
-
-- **Catálogo (`CatalogPage`):** tabla paginada con nombre del producto en el
-  idioma de la interfaz, búsqueda por código interno, estado y desactivación
-  lógica con confirmación. `ProductFormDialog` genera los campos según las
-  definiciones de atributos del tipo (texto, entero, decimal, sí/no, JSON y
-  listas de opciones), edita nombre y descripción por idioma (actualiza las
-  traducciones existentes y crea las que faltan) y agrega precios como nuevos
-  periodos de vigencia; los precios registrados se muestran sin editarse.
-- **Inventario (`InventoryPage`):** las pestañas se muestran según los permisos
-  del rol. Existencias con filtros por bodega, país y saldo positivo; entradas
-  contra órdenes enviadas o parciales con bodega del país de la orden y tasa
-  como texto decimal; salidas por pérdida, daño, robo o defecto; ajustes con
-  solicitud por el rol correspondiente (operativo o técnico) y aprobación,
-  aplicación y revalidación por el administrador; historial de movimientos con
-  filtros por bodega, producto, tipo y periodo.
-
-### E6.4 — Ventas, reportes y parámetros
-
-- **Ventas (`SalesPage`):** lista con filtro de estado y acceso al CRUD de
-  clientes. Una venta nueva toma el país (y con él su moneda local), un cliente
-  opcional del país y productos con bodega y cantidad; al calcularla se crea
-  pendiente de pago y se muestra el desglose de precio, impuesto aplicado,
-  subtotal, total en la moneda de la venta, tipo de cambio y total en moneda
-  base. El pago se confirma con un medio de pago del país; solo quien tiene
-  `VENTAS_ANULAR_PENDIENTES` ve la anulación de ventas pendientes. Las ventas
-  confirmadas muestran el recibo simulado, imprimible.
-- **Reportes (`ReportsPage`):** existencias y movimientos paginados con filtros
-  (producto, bodega, país, moneda, usuario, tipo y periodo) y botón de
-  exportación CSV que descarga el archivo con la sesión del usuario. Los
-  filtros cuyas referencias no están permitidas para el rol no se muestran.
-- **Configuración (`SettingsPage`):** pantalla de parámetros con filtro por
-  clave y ámbito, valor según su tipo, límites, ámbito (negocio o país) y
-  vigencia; y accesos a los CRUD de países, monedas, idiomas, tipos de cambio e
-  impuestos.
-
-Los importes y tasas se envían a la API como texto decimal y se muestran con
-`Intl` en la moneda de la transacción y el idioma activo; al cambiar de idioma
-los textos y formatos se actualizan sin recargar la página.
-
-### Compras (`PurchasesPage`)
-
-Hasta E10 el menú **Compras** solo mostraba "Esta sección se habilitará en la
-siguiente subetapa", y las órdenes de compra únicamente se podían crear llamando
-a la API. Como sin orden enviada no se puede registrar ninguna entrada de
-inventario, se completó esta pantalla antes de cerrar E10. Está en
-`frontend/src/components/purchases/` y aparece para quien tiene
-`COMPRAS_GESTIONAR` (administrador y encargado de inventario).
-
-**Pestaña "Órdenes de compra"**
-
-- Lista de órdenes con número, proveedor, estado, moneda, tipo de cambio y
-  fecha, filtrable por estado y por proveedor.
-- **Nueva orden de compra:**
-  1. Se elige el proveedor (solo los activos). La moneda es la de compra del
-     proveedor y se muestra sin poder cambiarla.
-  2. **Tipo de cambio:** si el proveedor compra en la moneda base (COP en la
-     semilla), el campo queda fijo en `1`, como exige el backend. Si compra en
-     otra moneda (por ejemplo, USD), hay que escribir cuántos COP vale 1 USD
-     (hasta 11 enteros y 8 decimales; se acepta punto o coma).
-  3. Se agregan líneas: producto, cantidad (entero mayor que cero) y costo
-     unitario en la moneda del proveedor (mayor o igual que cero, hasta 4
-     decimales). **Solo se ofrecen los productos oficiales del proveedor** y no
-     se puede repetir un producto en dos líneas.
-  4. **Crear borrador** guarda la orden en estado `BORRADOR` y abre su detalle.
-- **Detalle de la orden:** datos generales y, por línea, cantidad pedida,
-  recibida, pendiente y costo unitario (con sus 4 decimales, sin redondear).
-  Según el estado ofrece:
-  - `BORRADOR` → **Enviar al proveedor** (pasa a `ENVIADA_AL_PROVEEDOR`).
-  - `BORRADOR` o `ENVIADA_AL_PROVEEDOR` → **Cancelar orden**, con
-    confirmación. El backend la rechaza si ya tiene entradas.
-  - `ENVIADA_AL_PROVEEDOR` o `RECIBIDA_PARCIAL` → aviso con el botón **Ir a
-    Inventario**, porque la mercancía se recibe en *Inventario → Entradas de
-    compra* (allí se elige bodega, documento y cantidades).
-
-**Pestaña "Productos por proveedor"**
-
-Muestra los productos oficiales del proveedor elegido. Quien tiene
-`PROVEEDORES_GESTIONAR` puede **vincular** un producto más (la lista solo ofrece
-los que aún no están vinculados); un proveedor inactivo no admite vínculos.
-Estos vínculos son los que limitan qué se puede pedir en una orden y qué
-proveedor se puede indicar en una salida por pérdida, daño, robo o defecto.
-
-**Flujo completo de una compra, de principio a fin**
-
-1. *Proveedores* (CRUD): crear el proveedor con su país y moneda de compra.
-2. *Compras → Productos por proveedor*: vincular sus productos oficiales.
-3. *Compras → Órdenes de compra*: crear la orden y enviarla al proveedor.
-4. *Inventario → Entradas de compra*: registrar lo recibido (puede ser en
-   varias entregas parciales); la existencia aumenta y queda el movimiento
-   `ENTRADA`.
-
-Todos los textos están en español e inglés, los importes y tasas viajan como
-texto decimal y cada acción (vincular, crear, enviar y cancelar) queda en la
-auditoría del backend.
-
-### Revisión y correcciones de E6.3 y E6.4
-
-E6.3 y la primera parte de E6.4 llegaron sin versionar y con trabajo parcial de
-otra herramienta. Antes de completar E6.4 se revisó el código, se ejecutaron
-todas las suites y se corrigió lo siguiente.
-
-#### Errores encontrados y corregidos
-
-| Área | Problema | Corrección |
-|---|---|---|
-| Backend | No compilaba: `ParametroAdminRepository` llamaba a un método inexistente (`safeMap`). | El repositorio usa su propio `RowMapper` de instancia. |
-| Backend | El listado de parámetros fallaba: la consulta `COUNT` no tenía cláusula `FROM`. | Consulta corregida; cubierta por prueba de integración. |
-| Backend | Un usuario limitado por país podía crear o mover un parámetro a un país fuera de su alcance. | Se valida el país destino al crear y al actualizar. |
-| Backend | Los valores `DECIMAL` de parámetros llegaban como `double` y perdían precisión. | Se aceptan como texto decimal y se guardan sin pasar por `double`. |
-| Backend | `GET /api/v1/ventas` aceptaba cualquier `estado`. | Valida `PENDIENTE_DE_PAGO`, `CONFIRMADA` o `ANULADA` (400 en otro caso). |
-| Backend (E5.5) | La exportación CSV se cortaba: el despacho asíncrono del streaming se rechazaba en Spring Security con la respuesta ya iniciada. | Se permiten los despachos `ASYNC` y `ERROR`, que continúan una petición ya autorizada. Verificado contra el servidor real. |
-| Base de datos | El backend no arrancaba sobre una base creada por los scripts: el modelo exige `bodega.pais_id`, las migraciones lo dejaban nulo y la semilla insertaba la bodega `GENERAL` sin país. | Migración `V003__bodega_pais_obligatorio.sql` y `pais_codigo` en la semilla de bodegas (validado por el cargador). |
-| Inventario | No se podían aprobar ajustes: el front esperaba `PENDIENTE_APROBACION` y el backend usa `PENDIENTE_DE_APROBACION` (la prueba simulaba el valor equivocado). | Estados tomados del modelo; prueba corregida. |
-| Inventario | La página fallaba para experto técnico y vendedor: cargaba proveedores sin permiso y un 403 tumbaba toda la pantalla. | Referencias opcionales tolerantes y pestañas según permisos. |
-| Inventario | El administrador veía "Solicitar ajuste", pero el backend exige el rol de encargado o experto. | El botón depende del permiso y del rol, como el backend y el Anexo D. |
-| Inventario | Filtro de movimientos con tipos inexistentes (`ENTRADA_COMPRA`, `AJUSTE_POSITIVO`…) y sin filtro de fechas. | Tipos del modelo y filtros desde/hasta. |
-| Inventario | La tasa de una entrada se convertía con `parseFloat` y un valor vacío se enviaba como tasa 1. | Tasa como texto decimal validado (máx. 11 enteros y 8 decimales). |
-| Catálogo | Al editar un producto se reenviaban traducciones y precios ignorando los errores: los cambios de nombre no se guardaban y se mostraba "guardado". | Las traducciones existentes se actualizan con `PUT` y las nuevas con `POST`; los precios registrados son de solo lectura y los errores se muestran. |
-| Catálogo | El encargado de inventario no podía abrir el formulario (403 al consultar idiomas y monedas). | Las referencias `idioma` y `moneda` admiten `PRODUCTOS_GESTIONAR`. |
-| Front | Las referencias leían `etiqueta`, pero la API devuelve `nombre`; los productos solo se veían como `PRD-<UUID>`. | Contrato corregido y referencia `producto` con nombre en el idioma de la solicitud. |
-| Front | Textos fijos en español fuera de i18n, claves inexistentes (`inventory.filterByCountry`) y errores de validación ocultos detrás de los diálogos. | Todo el texto en `es.json`/`en.json` (verificado que no faltan claves) y errores dentro de cada diálogo. |
-| Front | Listas pedidas con `size=200` cuando el backend limita a 100. | Tamaños dentro del máximo. |
-| Front | 13 advertencias de lint (efectos con estado síncrono y dependencias faltantes). | Hook común `useApiQuery`; lint sin advertencias. |
-
-#### Funcionalidad añadida para completar E6.4
-
-- **Backend:** listado de ventas; `GET /api/v1/ventas/paises` (moneda local y
-  medios de pago por país); API de parámetros; referencias `producto` y
-  `usuario`; parámetro `ventas.medios_pago` sembrado para todo el negocio y
-  para Colombia, con soporte de parámetros por país en las semillas.
-- **Front:** pantallas de ventas, reportes y configuración; descarga CSV
-  autenticada (`apiDownload`); utilidades de decimales sin `float`
-  (`utils/decimal.ts`) y formato de importes en texto (`formatMoney`);
-  encabezado de página común y accesos a los CRUD genéricos por módulo.
-- **Marca:** se mantiene **PixelVault** y quedó registrada en la especificación,
-  la guía, las instrucciones y el modelo conceptual.
-
-#### Pruebas añadidas
-
-- Backend: `VentasListadoTest`, nuevos casos en `ParametroAdminServiceTest` y
-  `ReferenciasServiceTest`, e integración PostgreSQL en
-  `ParametroVentasPostgresIntegrationTest` (parámetros, listado y países de
-  venta, referencias y decimales como texto vía HTTP). Total: 72 pruebas.
-- Front: catálogo, inventario, ventas, reportes, configuración y utilidades de
-  decimales y formatos. Total: 29 pruebas en 11 archivos.
-- Python: semillas de bodega con país y parámetros por país. Total: 37 pruebas.
-
-#### Pendientes conocidos al cerrar E6.4
-
-- La serialización de `BigDecimal` como número JSON y la lista fija de monedas
-  del `Dashboard` se resolvieron en E7 (ver la sección siguiente).
-- El paquete del front supera los 500 kB (aviso de Vite).
-- La descarga CSV usa nombres fijos (`existencias.csv`, `movimientos.csv`)
-  porque CORS no expone `Content-Disposition`.
-- La exportación CSV no tiene prueba automática que reproduzca el despacho
-  asíncrono real; se verificó manualmente contra el servidor.
-
-## E7 — Verificación de parametrización e internacionalización
-
-### Revisión de constantes de negocio
-
-Se buscaron en el backend y el frontend porcentajes, plazos, monedas, países,
-medios de pago y textos fijos:
-
-- **Backend:** los plazos e intentos (`sesion.inactividad_minutos`,
-  `seguridad.intentos_fallidos_max`, caché de parámetros) y la moneda base
-  (`moneda.base_codigo_iso`) se leen de parámetros; impuestos, tipos de cambio,
-  precios, países y monedas son datos. Las constantes que quedan son técnicas:
-  escalas decimales de la base de datos, tamaños de página y límites de
-  consulta, y los idiomas con archivos de mensajes (`es` por defecto, `en`).
-  Los mensajes al usuario salen de `messages*.properties`.
-- **Frontend:** se eliminaron los últimos valores fijos:
-  - El selector de moneda del panel de inicio usaba `['COP', 'USD', 'EUR']`;
-    ahora carga las monedas configuradas (`/api/v1/referencias/moneda`, abierta
-    a cualquier rol con `CATALOGO_CONSULTAR`).
-  - El cliente HTTP mostraba mensajes fijos en inglés ("The request failed."…)
-    cuando el servidor no enviaba detalle; ahora se muestra el detalle
-    localizado del servidor o un texto traducido (`apiErrorMessage`, también en
-    `CrudPage` y en el inicio/cierre de sesión). Un cuerpo de error que no sea
-    Problem Details ya no se muestra en crudo.
-  - Se eliminó `formatCurrency` (recibía `number`); todos los importes se
-    formatean con `formatMoney` a partir del texto decimal.
-
-### Importes como texto decimal en toda la API
-
-`config/JacksonConfig.java` serializa todos los `BigDecimal` como texto decimal
-sin notación científica (por ejemplo `"232.0000"`), como pide la convención de
-la guía. Los valores JSON libres (valor de un parámetro, atributos de producto)
-conservan su tipo JSON. `CrudPage` envía los campos decimales como texto, y el
-backend acepta texto decimal en todas las solicitudes con `BigDecimal`.
-
-### Prueba "agregar un país y una moneda por configuración"
-
-`PaisMonedaPorConfiguracionPostgresIntegrationTest` configura, solo mediante la
-API de administración y sin cambiar código, una moneda nueva, un país nuevo con
-esa moneda local, su impuesto, su habilitación y el tipo de cambio hacia la
-moneda base; crea un producto con precio en la moneda nueva y una bodega en el
-país nuevo, y verifica que:
-
-- el país aparece entre los países de venta con su moneda local;
-- la venta calcula subtotal, impuesto (16 %), total y total en moneda base con
-  el tipo de cambio configurado, y devuelve los importes como texto;
-- la confirmación descuenta el inventario y registra el movimiento
-  `SALIDA_VENTA`.
-
-La prueba se ejecuta en una transacción que se revierte; no deja datos.
-
-### Prueba de traducciones
-
-`frontend/src/i18n/locales.test.ts` comprueba que `es.json` y `en.json` tienen
-las mismas claves y que toda clave `t('…')` usada en la interfaz existe.
-
-### Resultados
-
-| Suite | Resultado |
-|---|---|
-| Backend `mvn clean verify` con PostgreSQL | 73 pruebas, todas en verde |
-| Front: lint, tipos, pruebas y build | 0 advertencias · 31 pruebas en verde · build correcto |
-| Python: `validar` y `pytest` | 37 pruebas en verde |
-| `pre-commit run --all-files` | Correcto |
-
-
-## Pruebas y logs (E8)
-
-### Requisitos
-
-- **Docker en ejecución** (Docker Desktop en Windows). Las pruebas no usan tu
-  base local: cada corrida crea un PostgreSQL 16 desechable y lo elimina al
-  terminar (requisito documentado en la sección 2.6 de la guía).
-- El entorno `.venv` del proyecto con `requirements-dev.txt` instalado.
-- Java 17, Node LTS y npm. El navegador de Playwright lo instala `probar`.
-
-### Comando `probar`
+**5. (Opcional) Datos de demostración** (en una tercera consola, con el backend
+arrancado y el entorno de Python activado):
 
 ```bat
-rem Todas las suites
-python tools/cli.py probar
-rem Solo algunas suites
-python tools/cli.py probar --suites python,frontend
-rem Muestra qué se ejecutaría, sin ejecutar nada
-python tools/cli.py probar --dry-run
-rem E2E sobre Docker Compose (como en el CI)
-python tools/cli.py probar --suites e2e --e2e-entorno compose
-rem E2E contra un despliegue publicado (Render), ver E11
-python tools/cli.py probar --suites e2e --e2e-entorno remoto
-rem validar, generar, crear-bd y probar, en ese orden
-python tools/cli.py todo
+python tools/cli.py sembrar-demo
 ```
 
-Cada ejecución crea `logs/tests/<AAAAMMDD-HHMMSS>/` con:
+### 4.6 Comprobar que todo funciona
 
-- `<suite>.log`: salida de consola de cada paso de la suite;
-- `<suite>/`: reportes JUnit XML (pytest, Surefire, Vitest y Playwright; en la
-  E2E también capturas y traza si falla);
-- `resumen.md`: estado, pruebas, fallos, errores, omitidas y duración por suite,
-  con el commit evaluado y cada paso con su código de salida.
+Con la opción B instalada y Docker Desktop abierto:
 
-El comando devuelve código distinto de cero si falla cualquier paso o prueba.
+```bat
+rem Las cuatro suites de pruebas (unos 4 minutos); resultados en logs\tests\<fecha-hora>\resumen.md
+python tools/cli.py probar
 
-| Suite | Qué ejecuta |
+rem Todo el ciclo: validar el modelo, generar, crear la base y probar
+python tools/cli.py todo
+
+rem Un usuario de cada rol contra el backend en ejecución (requiere los datos de demostración)
+python tools/cli.py verificar-roles --api http://localhost:8080
+```
+
+Qué ejecuta cada comando y dónde deja sus resultados: [sección 7](#7-pruebas-qué-se-probó-cómo-con-qué-y-dónde-están-los-resultados).
+
+### 4.7 Problemas frecuentes
+
+| Síntoma | Solución |
 |---|---|
-| `python` | `ruff check`, `ruff format --check` y `pytest` (validación, generación, semillas, CLI y base de datos real). |
-| `backend` | `mvnw clean verify`: unitarias e integración con PostgreSQL desechable. |
-| `frontend` | `npm ci`, lint, typecheck, Vitest y build. |
-| `e2e` | Por defecto (`--e2e-entorno local`): base desechable creada con `crear-bd`, backend (JAR) y front (`vite preview`) en puertos libres. Con `--e2e-entorno compose`: `docker-compose.yml` en un proyecto aislado con puertos y secretos propios, que se elimina al terminar. Con `--e2e-entorno remoto`: no levanta nada; despierta y usa el despliegue indicado en `E2E_BASE_URL` y `E2E_API_URL` con el administrador de `E2E_ADMIN_EMAIL` y `E2E_ADMIN_PASSWORD` (crea datos de prueba en esa base). En todos los casos, Playwright con Chromium. |
+| `docker compose` dice que falta una variable (`Defina DB_PASSWORD en .env`) | Completa esa variable en `.env` (ver [4.3](#43-crear-el-archivo-env)). |
+| `error during connect` o "Docker no está disponible" | Abre Docker Desktop y espera a *Engine running*. |
+| El puerto 8080 u 8081 está ocupado | Cambia `BACKEND_PORT` o `FRONTEND_PORT` en `.env` y vuelve a ejecutar `docker compose up --build -d --wait`. |
+| `Filename too long` al clonar | `git config --global core.longpaths true` y clona en una ruta corta. |
+| El backend se detiene al arrancar avisando que el esquema no coincide con el modelo | Ejecuta `python tools/cli.py crear-bd` (opción B) o `docker compose up -d --wait` (opción A) para aplicar las migraciones. |
+| `python` no se reconoce | Activa el entorno: `.venv\Scripts\activate.bat`. |
+| La aplicación de Render tarda en abrir | Es normal: el backend gratuito se suspende sin uso; espera alrededor de un minuto. |
+| Inicio de sesión bloqueado tras varios intentos | El administrador lo desbloquea con `POST /api/v1/admin/usuarios/{id}/desbloquear` (por ejemplo, desde `/swagger-ui`). El número de intentos es el parámetro `seguridad.intentos_fallidos_max` (Configuración → Parámetros). |
 
-### Dónde quedan los logs y reportes
+---
 
-Nada de `logs/` se versiona; las evidencias de la
-corrida final están copiadas en [`docs/evidencias/`](docs/evidencias/README.md).
-
-| Origen | Ubicación |
-|---|---|
-| `python tools/cli.py probar` | `logs/tests/<AAAAMMDD-HHMMSS>/resumen.md` (resumen), `<suite>.log` (consola) y `<suite>/` (JUnit XML) |
-| Capturas y trazas de la E2E cuando falla | `logs/tests/<AAAAMMDD-HHMMSS>/e2e/artefactos/` (abrir la traza con `npx playwright show-trace <trace.zip>` desde `e2e/`) |
-| Comandos del CLI (`validar`, `generar`, `crear-bd`, `sembrar`, `reiniciar-bd`, `respaldar`, `restaurar`, `verificar-roles`) | `logs/tools/<comando>-<marca de tiempo>.log` |
-| Respaldos de la base (`respaldar`) | `backups/<base>-<AAAAMMDD-HHMMSS>.dump` (no versionado: contiene datos) |
-| `mvnw verify` ejecutado a mano | `backend/target/surefire-reports/` |
-| Playwright ejecutado a mano | `e2e/reports/` |
-
-Ejemplo de `resumen.md`:
+## 5. Cómo está construido
 
 ```text
-| Suite | Estado | Pruebas | Fallos | Errores | Omitidas | Duración | Log |
-| python | ✅ correcto | 48 | 0 | 0 | 0 | 10 s | python.log |
-| backend | ✅ correcto | 73 | 0 | 0 | 0 | 21 s | backend.log |
-...
-### e2e
-- empaquetar backend: ✅ — 3 s
-- crear-bd: ✅ — 1 s
-- playwright: ✅ — 10 s
+ Navegador ──► Frontend (React + MUI, Vite)          frontend/
+                 │  HTTP JSON, token JWT
+                 ▼
+             Backend (Spring Boot, /api/v1)          backend/
+               controller → service → repository (JDBC + SQL generado)
+                 │
+                 ▼
+             PostgreSQL 16  ◄── creado SOLO por  python tools/cli.py crear-bd
+                 ▲                                  (migraciones + semillas)
+                 │
+ Modelo JSON (db/model/modulos) ──generar──► migración V001, modelo resuelto,
+                                             SQL de CRUD del backend y
+                                             metadatos del frontend
 ```
 
-Cada suite lista sus pasos con el código de salida; si un paso falla, su
-`<suite>.log` muestra la salida completa de ese paso entre marcas `=====`.
+- **Una sola fuente de verdad:** las tablas se describen en JSON
+  (`db/model/modulos/*.json`). El CLI de Python genera a partir de él la
+  migración inicial, el modelo resuelto que valida el backend, las sentencias
+  SQL de CRUD del backend y los metadatos del CRUD genérico del frontend.
+- **La base la crea solo Python** (`crear-bd`); el backend nunca modifica el
+  esquema: al arrancar comprueba que coincide con el modelo y, si no, se detiene.
+- **Capas del backend:** `controller` (valida y autoriza), `service` (reglas,
+  transacciones y auditoría), `repository` (SQL con JDBC), `domain` y `dto`
+  (datos internos y contratos de la API).
+- **Frontend:** una pantalla por módulo (`components/<módulo>/`), cliente HTTP
+  común (`api/`), textos en `i18n/locales/` y formatos con `Intl` (`utils/`).
 
-### Qué cubre cada suite
+---
 
-| Suite | Archivos | Cobertura |
+## 6. Qué se hizo, etapa por etapa
+
+Cada etapa se entregó con un informe y se aprobó antes de pasar a la siguiente.
+
+| Etapa | Qué se hizo | Cómo y con qué herramienta | Dónde está | Resultado o evidencia | Estado |
+|---|---|---|---|---|---|
+| E0 | Estructura del repositorio, configuración local y controles de calidad | Git, pre-commit, ruff, detect-secrets, `.env.example` | Raíz del proyecto | `pre-commit run --all-files` en verde | Aprobada |
+| E1 | Análisis de requisitos: entidades, reglas, estados y permisos | Lectura de `spec/REQUIREMENTS.md`; documento en Markdown | `spec/modelo-conceptual.md` | Modelo conceptual revisado | Aprobada |
+| E2 | Modelo de datos modular en JSON con su esquema y validador | JSON Schema + Python (`jsonschema`) | `db/model/`, `tools/model_validator.py` | `python tools/cli.py validar` → 33 entidades válidas | Aprobada |
+| E3 | Generación de SQL, migraciones con checksum, semillas y CLI de base de datos | Python + Jinja2 + psycopg | `tools/`, `db/migrations/`, `db/seeds/` | `crear-bd` idempotente (pruebas con base real) | Aprobada |
+| E4 | Backend base: API `/api/v1`, errores Problem Details, verificación del esquema | Spring Boot 3.5.6 (Java 17), Maven Wrapper | `backend/` | Backend arranca y valida el esquema | Aprobada |
+| E5.1–E5.5 | Autenticación y roles; parametrización; catálogo; inventario y compras; ventas y reportes | Spring Boot, Spring Security (JWT), JDBC | `backend/src/main/java/com/inventario/` | Pruebas unitarias y de integración del backend | Aprobada |
+| E6.1–E6.4 | Interfaz web: base, CRUD genérico, catálogo, inventario, ventas, reportes y configuración | React 19, TypeScript, Material UI 9, Vite, i18next | `frontend/src/` | Pruebas de Vitest | Aprobada |
+| E7 | Verificación: nada de negocio fijo en el código, importes como texto decimal, país y moneda nuevos solo con datos | Revisión del código + prueba de integración | `config/JacksonConfig.java`, `PaisMonedaPorConfiguracionPostgresIntegrationTest` | Prueba en verde | Aprobada |
+| E8 | Pruebas con base desechable, E2E con Playwright y comando `probar` con logs | Testcontainers, pytest, Vitest, Playwright, Python | `tools/test_runner.py`, `e2e/` | `logs/tests/<fecha-hora>/resumen.md` | Aprobada |
+| E9 | Integración continua y protección de `main` | GitHub Actions, rulesets de GitHub | `.github/workflows/ci.yml` | 4 checks obligatorios en verde | Aprobada |
+| E10 | Contenedores, pantalla de Compras, datos de demostración y nueva identidad visual | Docker, Docker Compose, nginx | `docker/`, `docker-compose.yml`, `frontend/src/components/purchases/`, `db/seeds/demo.json` | `docker compose up --build` funcionando; E2E sobre Compose | Aprobada |
+| E11 | Despliegue de demostración, respaldo y restauración | Render (Blueprint), `pg_dump`/`pg_restore` en Docker | `render.yaml`, `tools/respaldo.py` | URL públicas; E2E remota en verde ([`docs/evidencias/render/`](docs/evidencias/render/resumen.md)) | Aprobada |
+| E12 | Cierre: checklist, evidencias, E2E en USD, verificación de roles y README final | Python, Playwright | `docs/evidencias/`, `tools/verificar_roles.py`, este README | 180 pruebas en verde ([`docs/evidencias/final/`](docs/evidencias/final/resumen.md)) | Finalizada |
+
+### 6.1 E0 y E1 — Base del repositorio y análisis
+
+- **E0:** estructura de carpetas, `.gitignore`, `.env.example` (variables
+  documentadas, sin secretos), `pyproject.toml` (configuración de ruff y
+  pytest) y `.pre-commit-config.yaml` (revisiones automáticas).
+- **E1:** [`spec/modelo-conceptual.md`](spec/modelo-conceptual.md) recoge las
+  entidades, relaciones, estados (de compra, venta, pago y ajuste), reglas de
+  negocio y la matriz de permisos derivadas de los requisitos. La marca
+  **PixelVault** quedó registrada en la especificación, la guía, las
+  instrucciones y el modelo conceptual.
+
+### 6.2 E2 y E3 — Modelo de datos, generación de SQL y CLI
+
+**Modelo (E2).** Cada módulo (`catalogo`, `inventario`, `parametrizacion`,
+`seguridad`, `terceros`, `transversal` y `ventas`) es un archivo JSON en
+`db/model/modulos/` con sus entidades, campos, claves, índices, referencias y
+etiquetas en español e inglés. `db/model/model.schema.json` (JSON Schema)
+define su formato y `tools/model_validator.py` comprueba además tipos, nombres,
+claves e integridad de las referencias.
+
+**Generación y base de datos (E3).** El CLI único `tools/cli.py` reúne todas
+las operaciones:
+
+| Comando | Qué hace | Resultado |
 |---|---|---|
-| python | `tools/tests/test_model_validator.py`, `test_sql_generator.py`, `test_database.py` | Validación del modelo, generación de SQL y metadatos, semillas, CLI y migraciones con checksum. |
-| python | `tools/tests/test_database_integracion.py` | Base real: idempotencia de `crear-bd`, `reiniciar-bd`, saldo no negativo e inmutabilidad. |
-| python | `tools/tests/test_test_runner.py` | Conteo de JUnit, `resumen.md` y opciones de `probar` (incluida la E2E remota sin variables). |
-| python | `tools/tests/test_verificar_roles.py` | Informe de `verificar-roles`: sin diferencias con el Anexo D, un acceso indebido detectado y el correo del administrador fuera del informe. |
-| python | `tools/tests/test_respaldo.py` | Retención de RNF-011, contraseña fuera de la línea de comandos, confirmación de `restaurar` y respaldo y restauración reales en un contenedor. |
-| backend | `src/test/java/.../service/*Test.java` | Unitarias: autenticación, JWT, sesiones, parámetros, impuestos, conversión, catálogo, clientes, inventario, ventas, referencias y reportes. |
-| backend | `src/test/java/.../service/*PostgresIntegrationTest.java` | Integración con API y base: permisos, alcance por país, catálogo, clientes, compras, ventas, ajustes, parámetros y país/moneda agregados solo con datos. |
-| frontend | `src/**/*.test.ts(x)` | Inicio de sesión, cliente HTTP, navegación por permisos, CRUD genérico, catálogo, inventario, compras, ventas, reportes, configuración, formatos, decimales y traducciones. |
-| e2e | `e2e/tests/flujo-venta.spec.ts` | Dos flujos completos en la interfaz, en COP y en USD (ver abajo). |
+| `python tools/cli.py validar` | Valida el modelo JSON. | `logs/tools/validar-<fecha>.log` |
+| `python tools/cli.py generar` | Genera `db/migrations/V001__modelo_inicial.sql` (solo si no existe), `db/model/schema-resuelto.json`, el SQL de CRUD del backend (`backend/.../generated/`) y los metadatos del frontend (`frontend/src/generated/`). | Archivos generados + log |
+| `python tools/cli.py crear-bd` | Crea la base si falta, aplica las migraciones pendientes (registradas con checksum en `migracion_historial`), carga las semillas de `db/seeds/inicial.json` y verifica el esquema. Es idempotente. | Base lista + log |
+| `python tools/cli.py sembrar` | Solo carga las semillas iniciales que falten. | Log |
+| `python tools/cli.py reiniciar-bd --confirm-db <nombre>` | **Borra y recrea** una base local. Solo permite hosts locales y exige escribir el nombre exacto de la base. | Log |
+| `python tools/cli.py sembrar-demo [--api URL]` | Carga los datos de demostración (ver [6.8](#68-e10--contenedores-docker)). | Log |
+| `python tools/cli.py respaldar [--podar]` · `restaurar --archivo X --confirm-db <nombre>` | Respaldo y restauración (ver [8.3](#83-respaldo-y-restauración)). | `backups/` + log |
+| `python tools/cli.py verificar-roles [--api URL] [--salida archivo.md]` | Comprueba un usuario de cada rol contra el Anexo D (ver [7.6](#76-verificaciones-de-la-entrega)). | Informe + log |
+| `python tools/cli.py probar [--suites …] [--e2e-entorno local\|compose\|remoto]` | Ejecuta las pruebas (ver [7](#7-pruebas-qué-se-probó-cómo-con-qué-y-dónde-están-los-resultados)). | `logs/tests/<fecha-hora>/` |
+| `python tools/cli.py todo` | `validar` → `generar` → `crear-bd` → `probar`. | Todo lo anterior |
 
-### Si algo falla
+Todos aceptan `--dry-run` (muestra lo que haría sin conectarse ni modificar
+nada), `--help` y escriben su log en `logs/tools/<comando>-<fecha>.log`. Los
+comandos que usan la base toman la conexión de `DB_HOST`, `DB_PORT`, `DB_NAME`,
+`DB_USER` y `DB_PASSWORD` del `.env`, o de `DATABASE_URL` si está definida; las
+variables de la consola tienen prioridad sobre el `.env`.
 
-- **"Docker no está disponible"** o integraciones omitidas: inicia Docker
-  Desktop y espera a que indique que está en ejecución.
-- **Testcontainers no encuentra Docker** con un error 400: la versión de Docker
-  Engine exige otra API; ajusta `api.version` en
-  `backend/src/test/resources/docker-java.properties`.
-- **Una suite concreta:** repítela sola con `--suites <nombre>` y revisa su
-  `<suite>.log`.
+**Migraciones.** `V001__modelo_inicial.sql` se genera desde el modelo y no se
+vuelve a modificar (su checksum queda registrado en cada base).
+`V002__pais_bodega.sql` agrega el país a las bodegas y
+`V003__bodega_pais_obligatorio.sql` lo hace obligatorio (si alguna bodega
+existente no tiene país, se detiene con un mensaje). Las tablas de movimientos
+de inventario son inmutables (un trigger rechaza `UPDATE` y `DELETE`) y el saldo
+nunca puede ser negativo.
 
-### Integración del backend con Testcontainers
+**Semillas iniciales** (`db/seeds/inicial.json`): Colombia (COP, IVA 19 %,
+habilitado) y Estados Unidos (USD, deshabilitado hasta configurar su impuesto),
+español e inglés, los cinco roles con sus permisos, la bodega `GENERAL`, los
+parámetros (moneda base `COP`, intentos de inicio de sesión, inactividad, medios
+de pago por país…) y el administrador, cuya contraseña se guarda con BCrypt a
+partir de `ADMIN_PASSWORD` (nunca en el archivo).
 
-Las pruebas de integración heredan de `support/PostgresIntegrationTest`: en cada
-ejecución se inicia un PostgreSQL 16 desechable y se crea con
-`python tools/cli.py crear-bd`, igual que en cualquier otro entorno (sin Flyway).
-Ya no usan la base local ni requieren `.env`; `JWT_SECRET` y las credenciales del
-administrador de prueba se generan al vuelo. Sin Docker, esas pruebas se omiten.
-Python se toma de la variable `PYTHON` o del entorno `.venv` del proyecto.
-`src/test/resources/docker-java.properties` fija la versión de la API de Docker
-que exige Docker Engine 29.
+### 6.3 E4 y E5 — Backend
 
-### Base de datos real en pytest
-
-`tools/tests/test_database_integracion.py` usa un contenedor desechable
-(`tools/postgres_desechable.py`) para comprobar los criterios de E3: `crear-bd`
-aplica las tres migraciones y es idempotente, `reiniciar-bd` recrea la base, un
-saldo negativo se rechaza y `UPDATE`/`DELETE` sobre `movimiento_inventario`
-fallan por el trigger de inmutabilidad.
-
-### Prueba de extremo a extremo
-
-`e2e/tests/flujo-venta.spec.ts` recorre en la interfaz, en español: inicio de
-sesión → crear producto con precio en COP → en *Compras*, vincular el producto
-al proveedor, crear la orden de 5 unidades (tasa fija en 1 por ser COP) y
-enviarla → registrar la entrada de las 5 unidades → vender 2 unidades (total
-357.000 COP con IVA del 19 %) → confirmar el pago y ver el recibo → comprobar
-existencia 3 y el movimiento "Salida por venta". Solo el tipo de producto, las
-categorías y el proveedor se preparan por API (son CRUD genéricos ya probados),
-para que la prueba sea corta.
-
-La segunda prueba repite el flujo **en USD**: habilita Estados Unidos si hace
-falta (impuesto de ejemplo del 6 % y tipo de cambio USD→COP, igual que la
-demostración), crea una orden a un proveedor que compra en USD **escribiendo el
-tipo de cambio en la interfaz**, registra la entrada en una bodega de Estados
-Unidos con la tasa de la orden, vende 1 unidad a 100 USD (total 106 USD con el
-impuesto), confirma el pago y comprueba el saldo (3 − 1 = 2).
-
-### Resultado de la corrida final (`python tools/cli.py todo`, copiada en `docs/evidencias/corrida-final/`)
-
-| Suite | Pruebas |
-|---|---:|
-| python | 67 |
-| backend | 74 |
-| frontend | 37 |
-| e2e | 2 |
-| **Total** | **180, todas en verde** |
-
-## Contenedores (E10)
-
-### Puesta en marcha con un solo comando
-
-Requisitos: Docker Desktop en ejecución y un `.env` con `DB_PASSWORD`,
-`JWT_SECRET`, `ADMIN_EMAIL` y `ADMIN_PASSWORD` (ver `.env.example`).
+El backend Spring Boot (`backend/`, Java 17) expone la API en `/api/v1`,
+responde los errores con *Problem Details* (`application/problem+json`) en el
+idioma de la petición y valida el esquema al arrancar (`ddl-auto=validate`).
+Lee el `.env` de la raíz (`spring.config.import` en `application.yml`). Perfiles:
+`local` (desarrollo) y `produccion` (Docker y Render).
 
 ```bat
-rem Primer arranque, o después de cambiar el código (construye las imágenes)
-docker compose up --build
-rem En segundo plano: devuelve la consola cuando todo está sano
+rem Arrancar (con PostgreSQL y la base creada)
+cd backend
+.\mvnw.cmd spring-boot:run
+rem Compilar y ejecutar sus pruebas (necesita Docker)
+.\mvnw.cmd clean verify
+```
+
+Rutas útiles: `/actuator/health` (salud), `/swagger-ui` (documentación
+interactiva de la API) y `/v3/api-docs` (OpenAPI).
+
+#### E5.1 — Autenticación, roles y sesiones
+
+- `POST /api/v1/auth/login` devuelve un JWT y el usuario con sus roles,
+  permisos y países; `POST /api/v1/auth/logout` cierra la sesión.
+- Cada petición autenticada renueva el tiempo de inactividad y devuelve el
+  token actualizado en la cabecera `X-Auth-Token`.
+- Tras `seguridad.intentos_fallidos_max` intentos fallidos la cuenta se
+  bloquea; el administrador la desbloquea con
+  `POST /api/v1/admin/usuarios/{id}/desbloquear`.
+- `JWT_SECRET` (base64, 32 bytes o más) firma los tokens. Las sesiones viven en
+  memoria: reiniciar el backend las cierra todas.
+- Las respuestas con credenciales o datos usan `Cache-Control: no-store`.
+
+#### E5.2 — Países, monedas, idiomas, tipos de cambio e impuestos
+
+`/api/v1/configuracion/{paises,monedas,idiomas,tipos-cambio,impuestos}`: listas
+paginadas (`page`, `size`, `buscar`) y CRUD, con auditoría. Requieren
+`PARAMETROS_GESTIONAR` (los tipos de cambio, `TIPOS_CAMBIO_GESTIONAR`).
+
+- Los tipos de cambio son manuales y con vigencia;
+  `POST /api/v1/conversiones/moneda` usa la tasa directa o invierte la
+  disponible y redondea según la moneda de destino.
+- `POST /api/v1/impuestos/calcular` usa el impuesto de la categoría o, si no
+  hay, el general del país, incluido o no en el precio.
+- Un país solo se habilita con moneda, idioma, zona horaria e impuesto vigente.
+
+#### E5.3 — Catálogo
+
+`/api/v1/catalogo/{categorias,tipos-producto,definiciones-atributos,productos}`.
+Lectura con `CATALOGO_CONSULTAR`; gestión con `PRODUCTOS_GESTIONAR`.
+
+- Un producto tiene tipo, categoría y subcategoría activos, atributos según las
+  definiciones de su tipo (`TEXTO`, `ENTERO`, `DECIMAL`, `BOOLEANO`, `JSON`, con
+  opciones permitidas), traducciones por idioma y precios por moneda con
+  vigencia sin superposición. El código interno `PRD-<UUID>` lo asigna el
+  sistema.
+- Para cambiar un precio se agrega un periodo nuevo; los anteriores no se
+  editan. Productos, categorías y tipos se **desactivan** (`DELETE` lógico),
+  nunca se borran.
+
+#### E5.4 — Inventario, proveedores y compras
+
+| Recurso | Operaciones |
+|---|---|
+| `/api/v1/inventario/bodegas` | Consultar, crear y actualizar bodegas con país (el país no cambia después). |
+| `/api/v1/proveedores` | Proveedores; vincular productos oficiales (`POST /{id}/productos/{productoId}`) y listarlos (`GET /{id}/productos`). |
+| `/api/v1/compras/ordenes` | Crear borrador, enviar, consultar (filtros `estado`, `proveedorId`) y cancelar antes de recibir. |
+| `/api/v1/compras/contexto` | Moneda base del negocio (para saber cuándo la tasa es `1`). |
+| `/api/v1/compras/entradas` | Recepciones parciales o completas con documento y tasa aplicada. |
+| `/api/v1/inventario/saldos` | Existencias por producto, bodega o país. |
+| `/api/v1/inventario/salidas` | Pérdidas, daños, robos o defectos con reporte al proveedor oficial. |
+| `/api/v1/inventario/movimientos` | Historial inmutable con filtros. |
+| `/api/v1/inventario/ajustes` | Solicitar conteos (operativo: encargado; técnico: experto), aprobar, aplicar y revalidar (administrador). |
+
+Reglas: solo se pide a un proveedor activo lo que tiene vinculado; solo se
+reciben órdenes `ENVIADA_AL_PROVEEDOR` o `RECIBIDA_PARCIAL`; una recepción no
+supera lo pendiente ni repite documento y usa una bodega del país de la orden;
+la tasa de la moneda base debe ser `1`. Cada cambio de saldo se serializa por
+producto y bodega, crea un movimiento inmutable y escribe auditoría en la misma
+transacción. El alcance por país se aplica a bodegas, proveedores, órdenes,
+recepciones, ajustes, ventas y reportes.
+
+#### E5.5 — Ventas y reportes
+
+- `POST /api/v1/ventas` crea una venta **pendiente de pago** con país, moneda
+  local, cliente opcional y líneas (producto, bodega del mismo país, cantidad);
+  guarda precio, impuesto, tipo de cambio e importes calculados, y comprueba
+  existencias sin descontarlas.
+- `POST /api/v1/ventas/{id}/confirmar` (con `medioPago`) confirma el pago y, en
+  una sola transacción, descuenta el inventario, crea los movimientos
+  `SALIDA_VENTA` y audita. `POST /{id}/anular` anula una venta pendiente
+  (`VENTAS_ANULAR_PENDIENTES`). `GET /{id}/recibo` devuelve el recibo simulado.
+- `GET /api/v1/ventas` lista por estado; `GET /api/v1/ventas/paises` da los
+  países de venta con su moneda y medios de pago (parámetro
+  `ventas.medios_pago`).
+- Reportes (`REPORTES_INVENTARIO` o `REPORTES_TODOS`):
+  `/api/v1/reportes/inventario/{existencias,movimientos}` paginados y sus
+  versiones `.csv` (UTF-8, campos escapados y fórmulas neutralizadas).
+- Parámetros: `/api/v1/parametros` (clave, tipo, valor, límites, ámbito
+  `NEGOCIO` o `PAIS` y vigencia, sin periodos superpuestos).
+- Referencias para formularios: `/api/v1/referencias/{pais,moneda,idioma,categoria,producto,usuario}`,
+  con permisos por referencia.
+
+### 6.4 E6 — Interfaz web
+
+```bat
+cd frontend
+npm ci
+npm run dev
+```
+
+| Pantalla | Archivo | Qué hace |
+|---|---|---|
+| Inicio de sesión | `components/LoginPage.tsx` | Correo y contraseña; selector de idioma. |
+| Marco y menú | `components/AppShell.tsx`, `navigation.ts` | Menú lateral según los permisos del usuario. |
+| Inicio | `components/Dashboard.tsx` | Usuario, roles, permisos y una tarjeta de **formatos de ejemplo** (no son datos reales: muestra cómo cambian importe, número y fecha con el idioma y la moneda). |
+| CRUD genérico | `components/CrudPage.tsx` + `frontend/src/generated/` | Tablas, búsqueda y formularios generados desde el modelo para países, monedas, idiomas, tipos de cambio, impuestos, categorías, bodegas, proveedores y clientes. |
+| Catálogo | `components/catalog/` | Productos con atributos dinámicos según su tipo, nombres por idioma y precios con vigencia. |
+| Inventario | `components/inventory/` | Pestañas de existencias, entradas de compra, salidas, ajustes (solicitud, aprobación, aplicación y revalidación) y movimientos, según el rol. |
+| Compras | `components/purchases/` | Órdenes de compra y productos por proveedor (detalle abajo). |
+| Ventas | `components/sales/` | Nueva venta con desglose de impuestos, confirmación de pago, anulación y recibo imprimible. |
+| Reportes | `components/reports/` | Existencias y movimientos con filtros y descarga CSV. |
+| Configuración | `components/settings/` | Parámetros por ámbito y vigencia, y accesos a los CRUD de configuración. |
+
+**Compras** (`components/purchases/`), completada al cerrar E10:
+
+1. *Productos por proveedor*: elegir el proveedor y vincular sus productos
+   oficiales (solo ellos se le pueden pedir).
+2. *Órdenes de compra → Nueva orden*: el proveedor define la moneda; si es la
+   moneda base (COP), el tipo de cambio queda fijo en `1`; si no (por ejemplo,
+   USD), se escribe cuántos COP vale 1 USD. Cada línea: producto oficial,
+   cantidad y costo unitario (hasta 4 decimales). Se crea en **borrador**.
+3. *Detalle de la orden*: **Enviar al proveedor**, **Cancelar orden** (si no
+   tiene entradas) o **Ir a Inventario** para registrar la recepción en
+   *Inventario → Entradas de compra*.
+
+**Identidad visual:** tema oscuro propio (`theme.ts`: fondo `#0B0D17`, acentos
+violeta `#8B5CF6` y cian `#22D3EE`) y logo de una bóveda en *pixel art* 16 × 16
+(`PixelVaultLogo.tsx`, también `public/favicon.svg`).
+
+**Textos y formatos:** todos los textos están en `i18n/locales/es.json` y
+`en.json`; los importes viajan como texto decimal (`utils/decimal.ts`) y se
+muestran con `Intl` (`utils/formatters.ts`) sin pasar por `float`.
+
+### 6.5 E7 — Verificación de parametrización e internacionalización
+
+- **Sin negocio fijo en el código:** se revisaron backend y frontend en busca
+  de porcentajes, plazos, monedas, países y medios de pago. Los plazos, intentos
+  y la moneda base salen de parámetros; impuestos, tasas, precios, países y
+  monedas son datos. Se eliminó la lista fija de monedas del inicio y los
+  mensajes fijos en inglés del cliente HTTP.
+- **Importes como texto:** `config/JacksonConfig.java` serializa todos los
+  `BigDecimal` como texto decimal (por ejemplo `"232.0000"`) y el frontend los
+  envía igual.
+- **País y moneda nuevos solo con datos:**
+  `PaisMonedaPorConfiguracionPostgresIntegrationTest` crea por la API una
+  moneda, un país, su impuesto y tipo de cambio, un producto y una bodega, y
+  vende con ellos (ver [7.3](#73-detalle-por-suite)).
+
+### 6.6 E8 — Pruebas y logs
+
+Se creó el comando `python tools/cli.py probar`, que ejecuta las cuatro suites
+con un PostgreSQL desechable y deja todos los resultados en `logs/tests/`. Todo
+el detalle está en la [sección 7](#7-pruebas-qué-se-probó-cómo-con-qué-y-dónde-están-los-resultados).
+
+### 6.7 E9 — Integración continua
+
+GitHub Actions ejecuta las cuatro suites en cada pull request y `main` solo
+acepta cambios con todo en verde. Detalle en la [sección 9](#9-integración-continua-y-protección-de-main).
+
+### 6.8 E10 — Contenedores (Docker)
+
+```bat
 docker compose up --build -d --wait
 ```
 
-Después se entra en `http://localhost:8081` con `ADMIN_EMAIL` y
-`ADMIN_PASSWORD`. La API queda en `http://localhost:8080` (salud en
-`/actuator/health`).
-
-### Servicios
-
-| Servicio | Imagen | Función | Arranca cuando |
+| Servicio | Imagen (archivo) | Función | Arranca cuando |
 |---|---|---|---|
 | `db` | `postgres:16-alpine` | Base de datos con volumen persistente `db-data`. | — |
-| `db-init` | `docker/db-init.Dockerfile` (Python 3.12) | Ejecuta `python tools/cli.py crear-bd`: crea la base si falta, aplica migraciones pendientes, carga semillas y verifica; termina con código 0. | `db` está sana (`pg_isready`). |
-| `backend` | `docker/backend.Dockerfile` | API Spring Boot con perfil `produccion`; publica `BACKEND_PORT` (8080). | `db-init` terminó bien. |
-| `frontend` | `docker/frontend.Dockerfile` | Sitio estático compilado con Vite y servido por nginx; publica `FRONTEND_PORT` (8081). | `backend` está sano (`/actuator/health`). |
+| `db-init` | `docker/db-init.Dockerfile` (Python 3.12) | Ejecuta `python tools/cli.py crear-bd` y termina (código 0). | `db` está sana. |
+| `backend` | `docker/backend.Dockerfile` (compila con JDK 17, ejecuta con JRE 21) | API con perfil `produccion` en el puerto `BACKEND_PORT` (8080). | `db-init` terminó bien. |
+| `frontend` | `docker/frontend.Dockerfile` (compila con Node 22, sirve con nginx) | Sitio web en el puerto `FRONTEND_PORT` (8081). | `backend` está sano. |
 
-### Imágenes
+- **¿Por qué `db-init` aparece detenido?** El proyecto exige que la base se
+  cree solo con los scripts de Python. `db-init` es ese script empaquetado: crea
+  o actualiza la base, verifica el esquema y termina. "Exited (0)" es lo
+  correcto; en cada arranque vuelve a correr sin duplicar nada.
+- La JVM del backend está ajustada para poca memoria
+  (`-XX:MaxRAMPercentage=65 -XX:+UseSerialGC -XX:TieredStopAtLevel=1`).
+- `docker/nginx.conf` sirve el frontend con respaldo a `index.html` y caché
+  larga para `/assets/`. `.dockerignore` deja fuera `.env`, dependencias,
+  compilaciones y logs; `.gitattributes` fuerza saltos de línea LF en los
+  archivos que usan los contenedores.
+- La pila no tiene reinicio automático: solo corre cuando se levanta con
+  `docker compose up`.
 
-- **Backend:** etapa de compilación con JDK 17 y el Maven Wrapper (Maven
-  3.9.11); ejecución con JRE 21, usuario sin privilegios y JVM para poca
-  memoria (`-XX:MaxRAMPercentage=65 -XX:+UseSerialGC
-  -XX:TieredStopAtLevel=1`). Incluye `db/model/schema-resuelto.json` para validar
-  el esquema al arrancar. En reposo usa unos 250 MiB.
-- **Frontend:** `npm ci` y `npm run build` con `VITE_API_URL` como argumento de
-  construcción (la URL que usa el navegador; no debe contener secretos), servido
-  por nginx con respaldo a `index.html` para las rutas de la aplicación, caché
-  larga para `/assets/` y sin caché para `index.html`.
-- **db-init:** Python 3.12 con solo las dependencias de ejecución
-  (`requirements.txt`), `tools/` y `db/`.
-
-`.dockerignore` deja fuera del contexto `.env`, dependencias instaladas,
-compilaciones, logs y documentación.
-
-### Configuración
-
-Docker Compose lee el `.env` de la raíz. Dentro de la red de Docker la base es
-el servicio `db` (el `DB_HOST` del `.env` no se usa). `CORS_ORIGINS` del backend
-y `VITE_API_URL` del frontend se derivan de `FRONTEND_PORT` y `BACKEND_PORT`, de
-modo que no chocan con los valores de desarrollo (`5173`). Si falta una variable
-obligatoria, `docker compose` se detiene con un mensaje que la nombra.
-
-### ¿Para qué sirve `db-init`? ¿Es necesario?
-
-Sí. El proyecto exige que **la base se cree solo con los scripts de Python**
-(sin Flyway ni que el backend modifique el esquema). `db-init` es ese script
-empaquetado: un contenedor de un solo uso que ejecuta `python tools/cli.py
-crear-bd` contra la base de Docker (crea la base si falta, aplica las
-migraciones pendientes, carga las semillas iniciales y verifica el esquema) y
-termina. El backend no arranca hasta que `db-init` termina bien, porque al
-iniciar valida que el esquema coincida con el modelo. Por eso en Docker Desktop
-aparece como **detenido (exited 0)**: es lo esperado. También se reutiliza para
-la carga manual de datos de demostración (`docker compose run --rm db-init …`).
-
-### Cuándo reconstruir o borrar los contenedores
-
-- **Después de cambiar el código** (o de traer cambios con `git pull`):
-  `docker compose up --build -d --wait`. Reconstruye las imágenes y recrea solo
-  los contenedores que cambiaron; los datos se conservan. No hace falta borrar
-  nada.
-- **Para empezar con una base limpia** (por ejemplo, antes de una
-  demostración): `docker compose down -v` y luego `up --build`; después, si se
-  quieren, los datos de demostración.
-- **Para liberar espacio** de imágenes antiguas: `docker compose down --rmi local`.
-
-### Reinicios y datos
-
-`db-init` se ejecuta en cada arranque y es idempotente: en un segundo arranque
-no aplica migraciones ni inserta semillas, así que no duplica datos.
+#### Datos de demostración
 
 ```bat
-rem Ver los logs de un servicio (Ctrl+C para salir)
-docker compose logs -f backend
-rem Detener y conservar los datos (volumen db-data)
-docker compose down
-rem Detener y BORRAR la base para empezar de cero
-docker compose down -v
+rem Con Docker (pila arriba)
+docker compose run --rm db-init python tools/cli.py sembrar-demo --api http://backend:8080
+rem En desarrollo local (backend en http://localhost:8080)
+python tools/cli.py sembrar-demo
+rem Solo mostrar lo que cargaría
+python tools/cli.py sembrar-demo --dry-run
 ```
 
-La pila no arranca sola al abrir Docker Desktop: solo corre cuando la levantas
-con `docker compose up`, así que no ocupa los puertos 8080/8081 mientras
-desarrollas con el backend y el frontend locales.
+Datos en `db/seeds/demo.json`; lógica en `tools/demo_seed.py`. Los usuarios se
+insertan en la base (con `DEMO_PASSWORD` cifrada con BCrypt); **todo lo demás
+se crea por la API**, con sus reglas, movimientos y auditoría, igual que desde
+la interfaz.
 
-### Verificación de la etapa
-
-| Comprobación | Resultado |
+| Qué se carga | Detalle |
 |---|---|
-| `docker compose up --build --wait` desde cero | Los cuatro servicios en orden; `db-init` aplicó V001–V003 y cargó las semillas. |
-| Inicio de sesión del administrador, CORS desde el frontend, rutas de la aplicación y URL de la API en el bundle | Correcto. |
-| `docker compose down` + `up` | `db-init`: 0 migraciones y 0 semillas nuevas; conteos sin cambios. |
-| E2E de Playwright sobre la pila (`probar --suites e2e --e2e-entorno compose`) | Correcta; la pila aislada se elimina al terminar. |
+| Usuarios | Los cinco de la tabla de la [sección 2](#2-enlaces-y-usuarios-de-prueba). |
+| Estados Unidos | Impuesto de ejemplo (*Sales tax Florida*, 6 %), país habilitado y tipo de cambio USD→COP de 4.100 (editables en Configuración). |
+| Catálogo | 7 tipos de producto, 6 categorías con 11 subcategorías y 15 productos en español e inglés con precios en COP y USD. |
+| Inventario | 3 bodegas (General y Medellín en Colombia, Miami en Estados Unidos), 3 proveedores con sus productos oficiales, 3 órdenes recibidas (una parcial), 1 salida por daño y 2 ajustes. |
+| Clientes y ventas | 5 clientes y 6 ventas: 3 confirmadas en COP, 1 en USD, 1 pendiente y 1 anulada. |
 
-### Revisión y correcciones de E10
+La carga es **idempotente**: busca antes de crear, y las operaciones solo se
+cargan si los proveedores de la demostración aún no tienen órdenes. Empresas,
+personas y correos son ficticios (dominio `.example`).
 
-Antes de aprobar E10 se revisó todo el proyecto y se aplicaron estas
-correcciones:
+### 6.9 E11 — Despliegue en Render
 
-| Tema | Hallazgo | Corrección |
-|---|---|---|
-| Resumen del CI | En la página de una ejecución apareció un resumen con "e2e ❌ fallido" y "python 42 pruebas". **No era una ejecución real**: lo escribía la prueba unitaria `test_resumen_lista_cada_suite_y_marca_los_fallos`, que fabrica a propósito un resultado fallido para comprobar el formato de `resumen.md`, y al estar definida la variable `GITHUB_STEP_SUMMARY` en el CI lo añadía al resumen de GitHub. La E2E real pasó. | Las pruebas del orquestador borran esa variable antes de ejecutarse (fixture `sin_resumen_de_github`); comprobado que ya no escriben nada en el resumen del CI. |
-| Windows (`cmd`) | Arrancar el backend en local exigía un bloque de PowerShell para cargar `.env`, y el README usaba comandos de PowerShell (`Push-Location`, `;`, comentarios con `#`). | El backend lee `.env` por sí mismo (`spring.config.import`); todos los comandos del README están en sintaxis de `cmd` y se verificaron en `cmd.exe` (CLI, `probar`, `pre-commit`, pruebas del front, Docker Compose y arranque del backend leyendo solo `.env`). |
-| Docker Compose | Con `restart: unless-stopped`, la pila volvía a arrancar sola al abrir Docker Desktop y ocupaba los puertos 8080/8081. | Sin política de reinicio: la pila solo corre cuando se levanta con `docker compose up`. |
-| Detección de secretos | detect-secrets marcaba la URL de conexión con credenciales que armaba la base de pruebas de Testcontainers. | La conexión se pasa con variables `DB_*` y `DATABASE_URL` vacía. |
-| Código sin uso | `ParametroService.invalidar(clave)` no se usaba (la caché se invalida completa con `invalidarTodo()`); 7 claves de traducción ya no las usaba ninguna pantalla. | Eliminados. Se comprobó además que todas las clases y métodos públicos del backend, todas las funciones de `tools/`, todas las exportaciones y clases CSS del front y todos los mensajes del backend se usan. |
-| Archivos sin uso | Copias duplicadas de la especificación en la raíz (`GUIDE.md` desactualizada y `REQUIREMENTS.md`); restos de la plantilla de Vite (`frontend/README.md`, `public/favicon.svg` y `public/icons.svg` con el logo de Vite, sin enlazar; `src/assets/hero.png`); 13 archivos `.gitkeep` en carpetas que ya tienen contenido o que el código crea solo (`logs/`). | Eliminados. `INSTRUCTIONS.md` se movió a `spec/`, junto a los demás documentos de referencia. `logs/` queda ignorado por completo en `.gitignore`. |
-| Definiciones de atributos | Al preparar los datos de demostración apareció un error de E5.3: una definición sin opciones enviada con `"opciones": null` se rechazaba como "no es una lista" (Jackson lo recibe como nodo JSON nulo). | `null` explícito equivale a no indicar opciones; prueba unitaria añadida. |
-| Documentación | El CI se describía "sobre Ubuntu" sin explicar por qué. | Nueva sección [¿Por qué aparece Linux en el CI?](#por-qué-aparece-linux-en-el-ci). |
+Blueprint `render.yaml` con base PostgreSQL 16, backend en Docker y frontend
+estático; la base se crea con `crear-bd` desde el equipo local. Paso a paso,
+variables, respaldo y recuperación en la [sección 8](#8-despliegue-en-render-respaldo-y-restauración).
 
-## Despliegue de demostración en Render (E11)
+### 6.10 E12 — Cierre de la entrega
 
-El objetivo de E11 es una **URL pública para demostrar** el sistema. Se usa
-[Render](https://render.com) con su plan gratuito y un *Blueprint*:
-`render.yaml`, en la raíz, describe los tres recursos y Render los crea juntos.
+- **Checklist de la sección 5 de la guía**, verificado punto por punto
+  ([7.6](#76-verificaciones-de-la-entrega)).
+- **E2E también en USD** (antes solo COP): compra con tipo de cambio escrito en
+  la interfaz, entrada en una bodega de Estados Unidos y venta con su impuesto.
+- **`verificar-roles`**: nuevo comando que comprueba los accesos de cada rol.
+- **Evidencias** de la corrida final en `docs/evidencias/`, revisadas sin
+  secretos.
+- **Este README** reorganizado para un lector nuevo.
 
-### Condiciones del plan gratuito (verificadas el 21-10-2026)
+---
 
-Según la [documentación de Render](https://render.com/docs/free):
+## 7. Pruebas: qué se probó, cómo, con qué y dónde están los resultados
 
-| Recurso | Condición | Qué implica para la demostración |
-|---|---|---|
-| Servicio web (backend) | Se **suspende tras 15 minutos sin tráfico** y tarda **alrededor de 1 minuto** en despertar. 512 MB de memoria. | Abrir la aplicación 2 minutos antes de presentar. La primera petición tras la pausa es lenta. |
-| Base PostgreSQL | **Caduca 30 días después de crearla**; luego hay 14 días para pasarla a un plan pago y después Render la borra con sus datos. 1 GB. Solo una base gratuita activa por cuenta. | Respaldar con frecuencia y saber recrearla (ver más abajo). |
-| Sitio estático (frontend) | Gratuito; consume el ancho de banda y los minutos de compilación incluidos. | Sin pausas: siempre responde. |
-| Cuenta | 750 horas de instancia gratuitas al mes. | Suficiente para un servicio encendido todo el mes. |
+### 7.1 Resumen
 
-Estas condiciones cambian con el tiempo: revísalas antes de una entrega.
+| Suite | Herramienta | Qué prueba | Archivos | Pruebas |
+|---|---|---|---|---:|
+| `python` | **pytest** (+ ruff) | CLI, modelo, generador de SQL, semillas, base de datos real, respaldos, orquestador de pruebas y verificación de roles | `tools/tests/` | 67 |
+| `backend` | **JUnit 5**, Spring Boot Test, MockMvc, **Testcontainers** | Reglas de negocio (unitarias) y la API completa contra PostgreSQL real | `backend/src/test/java/com/inventario/service/` | 74 |
+| `frontend` | **Vitest** + Testing Library (+ oxlint y tsc) | Pantallas, cliente HTTP, permisos, formatos, decimales y traducciones | `frontend/src/**/*.test.ts(x)` | 37 |
+| `e2e` | **Playwright** (Chromium) | Dos flujos completos en el navegador, en COP y en USD | `e2e/tests/flujo-venta.spec.ts` | 2 |
+| **Total** | | | | **180, todas en verde** |
 
-### Qué define `render.yaml`
+Corrida final (`python tools/cli.py todo`, 21-10-2026):
+[`docs/evidencias/final/resumen.md`](docs/evidencias/final/resumen.md).
 
-| Recurso | Nombre | Detalle |
-|---|---|---|
-| Base de datos | `pixelvault-db` | PostgreSQL **16** (igual que Docker Compose y el `pg_dump` de los respaldos), base `inventario`, usuario `inventario`, región `virginia` (la más cercana a Colombia de las disponibles). |
-| Backend | `pixelvault-api` | Servicio web con la imagen de `docker/backend.Dockerfile` (la misma de E10), perfil `produccion`, comprobación de salud en `/actuator/health` y región `virginia`, para hablar con la base por la red interna. |
-| Frontend | `pixelvault-web` | Sitio estático: `npm ci` y `npm run build` en `frontend/` con Node 22; publica `frontend/dist` y reescribe cualquier ruta a `index.html`. |
+### 7.2 Cómo se ejecutan
 
-Cada servicio se vuelve a desplegar solo cuando cambian sus archivos (`buildFilter`)
-en la rama `main` **y el CI de GitHub pasó** en ese commit (`autoDeployTrigger:
-checksPass`). Si un servicio no se actualiza después de fusionar un PR, revisa en
-su panel *Settings* → *Auto-Deploy* que esté en **After CI Checks Pass** (u **On
-Commit**) y despliega a mano con *Manual Deploy* → *Deploy latest commit*. **La base no se crea en Render**: como pide la guía, se crea
-con `crear-bd` desde el equipo local, igual que en cualquier otro entorno.
-
-Variables de entorno:
-
-| Variable | Servicio | Valor | Cómo se define |
-|---|---|---|---|
-| `SPRING_DATASOURCE_URL` | backend | Formato **JDBC** con el host **interno** de la base: `jdbc:postgresql://dpg-xxxxxxxx-a:5432/inventario` | A mano (`sync: false`): Render da la URL como `postgresql://usuario:clave@host/base` y Spring necesita la forma JDBC, sin usuario ni clave. |
-| `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD` | backend | Usuario y contraseña de la base | Automático, desde la base (`fromDatabase`). |
-| `JWT_SECRET` | backend | Clave aleatoria de 256 bits en base64 | Automático: Render la genera una vez (`generateValue`). |
-| `CORS_ORIGINS` | backend | URL pública del frontend, por ejemplo `https://pixelvault-web.onrender.com` | A mano (`sync: false`). |
-| `SPRING_PROFILES_ACTIVE`, `PORT`, `SERVER_PORT` | backend | `produccion`, `8080`, `8080` | Fijos en `render.yaml`. |
-| `VITE_API_URL` | frontend | URL pública del backend, por ejemplo `https://pixelvault-api.onrender.com` | A mano (`sync: false`). Vite la incorpora al compilar: si cambia, hay que volver a desplegar el sitio. |
-| `NODE_VERSION` | frontend | `22` | Fijo en `render.yaml`. |
-
-Ningún secreto queda en el repositorio: los valores manuales se escriben en el
-panel de Render y las credenciales de la base las inyecta Render.
-
-### Paso a paso (una sola vez)
-
-**1. Crear el Blueprint.** En el panel de Render: *New* → *Blueprint* → elegir
-el repositorio de GitHub → rama `main`. Render lee `render.yaml` y pide los
-valores manuales. Si aún no conoces las URL, escribe las esperadas
-(`https://pixelvault-api.onrender.com`, `https://pixelvault-web.onrender.com`) y
-en `SPRING_DATASOURCE_URL` un valor provisional
-(`jdbc:postgresql://pendiente:5432/inventario`). Pulsa *Apply*.
-
-**2. Copiar las URL de la base.** En *pixelvault-db* → *Connections* están la
-*Internal Database URL* (para el backend) y la *External Database URL* (para tu
-equipo). Son secretas: no las pegues en archivos versionados.
-
-**3. Crear la base desde el equipo local**, en `cmd`, con el entorno activado.
-Las variables `set` solo duran mientras la ventana esté abierta, y las comillas
-alrededor de `NOMBRE=valor` evitan problemas con caracteres especiales:
+Requisitos: opción B instalada ([4.5](#45-opción-b-desarrollo-local)) y
+**Docker Desktop abierto**. Las pruebas **no usan tu base**: cada corrida crea un
+PostgreSQL 16 desechable en Docker y lo elimina al terminar.
 
 ```bat
-.venv\Scripts\activate.bat
-set "DATABASE_URL=postgresql://inventario:CLAVE@dpg-xxxxxxxx-a.virginia-postgres.render.com/inventario?sslmode=require"
-set "ADMIN_EMAIL=admin@tu-dominio.com"
-set "ADMIN_PASSWORD=una-clave-larga-solo-para-render"
-python tools/cli.py crear-bd
-```
-
-Usa para Render una contraseña de administrador distinta de la local. `crear-bd`
-se conecta directamente a la base `inventario` (Render no permite crear bases
-ni entrar a `postgres`), aplica las migraciones, carga las semillas y verifica
-el esquema. Es idempotente: repetirlo no duplica nada.
-
-**4. Conectar el backend.** En *pixelvault-api* → *Environment*, cambia
-`SPRING_DATASOURCE_URL` por la forma JDBC de la URL **interna**. Por ejemplo,
-`postgresql://inventario:CLAVE@dpg-xxxxxxxx-a/inventario` se convierte en
-`jdbc:postgresql://dpg-xxxxxxxx-a:5432/inventario`. Guarda y elige *Save, rebuild
-and deploy*. El primer despliegue del paso 1 falla con seguridad, porque la base
-aún no tenía esquema: es lo esperado.
-
-**5. Revisar las URL.** Si Render asignó nombres con sufijo (por ejemplo,
-`pixelvault-api-x1y2.onrender.com`), corrige `CORS_ORIGINS` en el backend y
-`VITE_API_URL` en el frontend, y vuelve a desplegar ambos.
-
-**6. Verificar.**
-
-```bat
-curl https://pixelvault-api.onrender.com/actuator/health
-```
-
-Debe responder `{"status":"UP"}` (la primera vez puede tardar un minuto si el
-servicio estaba suspendido). Luego abre `https://pixelvault-web.onrender.com` y
-entra con el administrador del paso 3.
-
-**7. Repetir el flujo de E8 en la URL pública** (revisión de la etapa), con logs
-en `logs/tests/` como cualquier otra corrida:
-
-```bat
-set "E2E_BASE_URL=https://pixelvault-web.onrender.com"
-set "E2E_API_URL=https://pixelvault-api.onrender.com"
-set "E2E_ADMIN_EMAIL=admin@tu-dominio.com"
-set "E2E_ADMIN_PASSWORD=una-clave-larga-solo-para-render"
-python tools/cli.py probar --suites e2e --e2e-entorno remoto
-```
-
-Primero despierta el backend y el sitio (espera hasta 5 minutos) y luego ejecuta
-el mismo flujo de Playwright: crear producto, vincularlo al proveedor, orden de
-compra, entrada, venta, pago, recibo, saldo y movimiento. Deja esos datos de
-prueba en la base de Render.
-
-**8. (Opcional) Datos de demostración**, con `DATABASE_URL`, `ADMIN_EMAIL` y
-`ADMIN_PASSWORD` del paso 3 y `DEMO_PASSWORD` definidos en la consola:
-
-```bat
-set "DEMO_PASSWORD=clave-comun-de-los-usuarios-demo"
-python tools/cli.py sembrar-demo --api https://pixelvault-api.onrender.com
-```
-
-### Antes de cada demostración
-
-1. Abrir `https://pixelvault-web.onrender.com` y entrar, unos 2 minutos antes,
-   para despertar el backend.
-2. Revisar la fecha de caducidad de la base en el panel (*pixelvault-db*) y
-   tener un respaldo reciente.
-
-### Respaldo y restauración
-
-Cumplen RNF-011 en la versión académica: un script de respaldo y restauración
-con copias en otra ubicación (tu equipo). Ambos comandos ejecutan `pg_dump` y
-`pg_restore` dentro de la imagen oficial `postgres:16-alpine`, así que **no hace
-falta instalar PostgreSQL**, basta con Docker en ejecución, y la versión siempre
-coincide con la de la base. La contraseña pasa al contenedor como variable de
-entorno, nunca en la línea de comandos.
-
-```bat
-rem Respaldar la base de .env, o la de DATABASE_URL si está definida
-python tools/cli.py respaldar
-rem Respaldar y aplicar la retención (ver abajo)
-python tools/cli.py respaldar --podar
-rem Restaurar: reemplaza TODO el contenido de la base; exige confirmar su nombre
-python tools/cli.py restaurar --archivo backups\inventario-20261021-020000.dump --confirm-db inventario
-```
-
-- `respaldar` crea `backups/<base>-<AAAAMMDD-HHMMSS>.dump` (formato comprimido
-  de `pg_dump`, hora UTC). La carpeta `backups/` está en `.gitignore` porque
-  contiene datos reales.
-- `--podar` aplica la retención de RNF-011: conserva **todas las copias de los
-  últimos 35 días** y, de las anteriores, **la primera de cada mes durante 12
-  meses**; borra el resto.
-- `restaurar` usa `pg_restore --clean --if-exists` en **una sola transacción**:
-  si algo falla, la base queda como estaba. Al terminar verifica el esquema
-  contra el modelo, igual que `crear-bd`.
-- Los dos aceptan `--dry-run` y dejan su log en `logs/tools/`.
-- Para respaldar la base de Docker Compose, publica su puerto o usa
-  `docker compose exec db pg_dump`; los comandos del CLI apuntan a la base de
-  `.env` o de `DATABASE_URL`.
-
-**Respaldo automático diario.** RNF-011 pide una copia diaria. En Windows se
-programa con el Programador de tareas. Crea, fuera del repositorio (por ejemplo,
-en `C:\respaldos-pixelvault\respaldar-render.cmd`), un archivo con la URL
-externa de la base:
-
-```bat
-@echo off
-cd /d C:\ruta\al\Proyecto_Inventario_Videojuegos
-set "DATABASE_URL=postgresql://inventario:CLAVE@dpg-xxxxxxxx-a.virginia-postgres.render.com/inventario?sslmode=require"
-.venv\Scripts\python.exe tools\cli.py respaldar --podar
-```
-
-y prográmalo una vez al día, por ejemplo a las 02:00:
-
-```bat
-schtasks /create /tn "PixelVault respaldo" /sc daily /st 02:00 /tr "C:\respaldos-pixelvault\respaldar-render.cmd"
-```
-
-El equipo debe estar encendido y con Docker Desktop abierto a esa hora.
-
-### Problemas encontrados en el primer despliegue
-
-| Síntoma | Causa | Corrección |
-|---|---|---|
-| Render agregó un sufijo a los nombres (`pixelvault-api-ljq6`, `pixelvault-web-ceen`) y a la base (`inventario_xxxx`). | Los nombres ya estaban ocupados en Render. | Es normal: se usan las URL reales en `CORS_ORIGINS`, `VITE_API_URL` y `SPRING_DATASOURCE_URL` (paso 5), y el nombre real de la base en `restaurar --confirm-db`. |
-| En la URL pública, la E2E se detenía al crear la venta: "Bodega" quedaba desactivada. | El formulario de venta elegía el país único solo si la lista de países ya había llegado al abrirlo. En local llega al instante; en Render, que es más lento, llegaba después y el país quedaba vacío. | El formulario elige el país también cuando la lista llega tarde (prueba de regresión en `SalesPage.test.tsx` que simula el servidor lento). La E2E elige país y bodega de forma explícita, para no depender de la velocidad ni de que existan más países o bodegas. |
-| El CI falló en el backend (`error.catalog.price.not-found`) sin cambios en el backend. | Error de la prueba `InventarioPostgresIntegrationTest`, no del sistema: la venta toma la fecha local del país (Colombia) y la prueba guardaba el precio con la fecha del equipo. El CI usa UTC; entre las 00:00 y las 05:00 UTC en Colombia aún es el día anterior y el precio quedaba vigente "desde mañana". | La prueba usa la zona horaria del país. Verificado con el reloj en UTC, en UTC+14 y en la hora local. |
-| En Render, `sembrar-demo` cargó usuarios, catálogo y clientes, pero no compras, ventas, salidas ni ajustes. | La carga omitía las operaciones si la base tenía cualquier orden de compra, y la E2E del paso 7 ya había creado una. | Solo cuentan las órdenes de los proveedores de la demostración (pruebas en `test_demo_seed.py`). Comprobado en una pila de Docker aislada: con una orden previa de otro proveedor se cargan las 3 compras, 6 ventas, 1 salida y 2 ajustes; sobre una base que ya tiene la demostración, no se duplica nada. Basta con repetir el paso 8. |
-| En **Inicio**, la tarjeta "Cantidad 1.234.567,89" parecía un dato real. | Es un ejemplo de formato numérico de E6.1 con una etiqueta ambigua. | La etiqueta dice "Número de ejemplo" y la descripción aclara que son ejemplos. |
-| La consola del navegador muestra `401` en `/api/v1/auth/login`. | Respuesta normal a un correo o una contraseña incorrectos. | Ninguna: si después se entra con los datos correctos, no hay problema. |
-
-### Si la base caduca (o hay que recrearla)
-
-1. Crear una base nueva: en el panel, *New* → *Postgres* con el mismo nombre
-   `pixelvault-db`, base `inventario`, usuario `inventario`, versión 16 y región
-   `virginia`, o volver a sincronizar el Blueprint.
-2. Con la nueva URL externa en `DATABASE_URL`, restaurar el último respaldo:
-   `python tools/cli.py restaurar --archivo backups\<último>.dump --confirm-db inventario`.
-   Si no hay respaldo, `python tools/cli.py crear-bd` deja la base vacía con el
-   administrador y las semillas.
-3. Actualizar `SPRING_DATASOURCE_URL` del backend con el nuevo host interno y
-   volver a desplegar. Si la base nueva no quedó enlazada al Blueprint, copia
-   también su usuario y contraseña del panel en `SPRING_DATASOURCE_USERNAME` y
-   `SPRING_DATASOURCE_PASSWORD`.
-
-Con el respaldo a mano, todo el proceso toma unos minutos, muy por debajo de
-las 3 horas de RNF-011.
-
-## Integración continua (E9)
-
-`.github/workflows/ci.yml` se ejecuta una vez por cambio: con `pull_request` en
-los pull requests y con `push` solo en `main` (después de fusionar), para que
-los checks no aparezcan duplicados. Las ramas sin pull request no ejecutan el
-CI. Son cuatro trabajos en paralelo en los servidores de GitHub. Cada uno usa el mismo comando que en local,
-`python tools/cli.py probar --suites <suite>`, y sube sus logs como artefacto
-aunque falle.
-
-| Trabajo | Qué comprueba | Artefacto |
-|---|---|---|
-| `python` | `validar`; que `generar` no produzca diferencias con lo versionado (migraciones, modelo resuelto, SQL de CRUD y metadatos del front); ruff, formato y pytest con PostgreSQL desechable. | `logs-python` |
-| `backend` | `mvnw clean verify`: pruebas unitarias e integración con Testcontainers (los runners de GitHub traen Docker). | `logs-backend` |
-| `frontend` | `npm ci`, lint, typecheck, Vitest y build. | `logs-frontend` |
-| `e2e` | Instala Chromium con sus dependencias, construye las imágenes de E10 y ejecuta el flujo producto → entrada → venta sobre Docker Compose (`--e2e-entorno compose`). | `logs-e2e` (incluye capturas, traza si falla y los logs de los contenedores) |
-
-Cada artefacto contiene `logs/tests/<fecha-hora>/` (`resumen.md`, `<suite>.log`
-y JUnit XML) y, cuando aplica, `logs/tools/`. Se descargan desde la pestaña
-**Actions** del repositorio → ejecución → sección **Artifacts**. El
-`resumen.md` de cada trabajo también se muestra en la página de la ejecución
-(resumen del trabajo). Si se envía otro `push` a la misma rama, la ejecución
-anterior se cancela.
-
-Verificación de la etapa: el CI pasó en verde con los cuatro trabajos y sus
-artefactos, y en una rama temporal con una prueba rota a propósito el trabajo
-`python` falló (la ejecución quedó en rojo y el artefacto con el log se subió
-igual); esa rama se eliminó después.
-
-Desde E10 la prueba E2E del CI se ejecuta sobre Docker Compose, como pide la
-guía; así el CI también comprueba que las imágenes se construyen y arrancan.
-
-### ¿Por qué aparece Linux en el CI?
-
-El proyecto se desarrolla y se usa en **Windows**; tú no necesitas Linux ni
-Ubuntu. Lo único que corre en Linux son los **servidores de GitHub** que
-ejecutan el CI (`runs-on: ubuntu-latest` en `ci.yml`), por dos motivos:
-
-- Las pruebas de integración, la base de pruebas y Docker Compose usan
-  contenedores **Linux** (`postgres:16-alpine`, las imágenes de E10). En tu
-  equipo, Docker Desktop los ejecuta sin que tengas que hacer nada; en los
-  servidores Windows de GitHub, Docker solo admite contenedores Windows, así que
-  esas pruebas no podrían correr allí.
-- Son los servidores más rápidos y gratuitos para repositorios públicos.
-
-Los comandos que ejecuta el CI son los mismos que usas en Windows
-(`python tools/cli.py probar --suites <suite>`); `tools/test_runner.py` elige
-automáticamente `mvnw.cmd` en Windows y `mvnw` en Linux.
-
-### Hook local antes de cada push
-
-`pre-commit install` instala dos tipos de hook (`default_install_hook_types`):
-
-- **pre-commit:** ruff, formato y detección de secretos.
-- **pre-push:** `validar`, `pytest` y las pruebas de Vitest. La E2E y el
-  backend completo quedan para el CI por su duración.
-
-Para ejecutarlos a mano: `pre-commit run --all-files` y
-`pre-commit run --hook-stage pre-push --all-files`.
-
-### Protección de la rama `main`
-
-`main` está protegida por el *branch ruleset* **"Proteger main - CI
-obligatorio."** (activo, configurado en **Settings → Rules → Rulesets**). Ningún
-cambio entra en `main` sin pasar por un pull request con el CI en verde:
-
-| Regla | Efecto |
-|---|---|
-| Pull request obligatorio | No se puede hacer `push` directo a `main`; todo cambio llega desde otra rama mediante un pull request. No se exigen aprobaciones de revisores (0), adecuado para un equipo de una persona. |
-| Checks de estado obligatorios | La fusión se bloquea hasta que terminen en verde los cuatro trabajos del CI: `Python (ruff, pytest, validar y generado)`, `Backend (mvn verify con Testcontainers)`, `Frontend (lint, typecheck, test y build)` y `Extremo a extremo (Playwright)`. Si alguno falla o sigue en curso, el botón de fusión queda deshabilitado. |
-| Sin borrado de la rama | `main` no se puede eliminar. |
-| Sin *force push* | No se puede reescribir el historial de `main`. |
-
-Métodos de fusión permitidos: *merge*, *squash* y *rebase*. No se exige que la
-rama esté al día con `main` antes de fusionar (opción *Require branches to be
-up to date* desactivada).
-
-#### Flujo de trabajo
-
-1. Crear una rama nueva desde `main` actualizada: `git switch -c mi-cambio`.
-2. Hacer los cambios y probarlos en local: `python tools/cli.py probar`.
-3. Publicar la rama: `git push -u origin mi-cambio`.
-4. En GitHub, abrir el pull request de `mi-cambio` hacia `main` (el enlace
-   aparece al hacer `push` o en la pestaña **Pull requests**).
-5. Esperar a que los cuatro checks terminen en verde; si alguno falla, revisar
-   su artefacto de logs, corregir en la misma rama y volver a hacer `push`.
-6. Fusionar el pull request y actualizar la copia local:
-   `git switch main` y `git pull`.
-
-#### Cómo se configuró
-
-En GitHub: **Settings → Rules → Rulesets → New branch ruleset**, con destino la
-rama `main` y *Enforcement status* **Active**, activando **Restrict
-deletions**, **Block force pushes**, **Require a pull request before merging**
-y **Require status checks to pass** con los cuatro trabajos anteriores (sus
-nombres aparecen después de la primera ejecución del CI). En repositorios
-privados, las reglas requieren un plan de GitHub que las incluya; en
-repositorios públicos, como este, están en el plan gratuito.
-
-## Verificaciones
-
-```bat
-python tools/cli.py --help
-python tools/cli.py validar
-python tools/cli.py generar --dry-run
+rem Las cuatro suites
 python tools/cli.py probar
-pre-commit run --all-files
+rem Solo algunas
+python tools/cli.py probar --suites python,frontend
+rem Qué se ejecutaría, sin ejecutar nada
+python tools/cli.py probar --dry-run
+rem La E2E sobre Docker Compose (como en el CI)
+python tools/cli.py probar --suites e2e --e2e-entorno compose
+rem La E2E contra un despliegue publicado (Render); ver 8.2, paso 7
+python tools/cli.py probar --suites e2e --e2e-entorno remoto
+rem validar + generar + crear-bd + probar
+python tools/cli.py todo
 ```
 
-Cada suite también se puede ejecutar por separado:
+| Suite | Pasos que ejecuta `probar` |
+|---|---|
+| `python` | `ruff check`, `ruff format --check` y `pytest`. |
+| `backend` | `mvnw clean verify` (compila y ejecuta las pruebas con Testcontainers). |
+| `frontend` | `npm ci`, `npm run lint` (oxlint), `npm run typecheck` (tsc), `npm test` (Vitest) y `npm run build`. |
+| `e2e` | Instala Chromium y, según `--e2e-entorno`: **`local`** (por defecto) crea una base desechable con `crear-bd`, arranca el backend (JAR) y el frontend (`vite preview`) en puertos libres; **`compose`** levanta `docker-compose.yml` en un proyecto aislado con puertos y secretos propios y lo borra al final; **`remoto`** usa un despliegue ya publicado (`E2E_BASE_URL`, `E2E_API_URL`, `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`). Después, Playwright. |
+
+También se pueden ejecutar por separado, sin `probar`:
 
 ```bat
 python -m pytest
@@ -1487,133 +712,561 @@ cd backend && .\mvnw.cmd clean verify && cd ..
 cd frontend && npm run lint && npm run typecheck && npm test && npm run build && cd ..
 ```
 
-Las pruebas de integración y la E2E necesitan Docker en ejecución; no usan la
-base local de `.env`.
+La E2E necesita una base, el backend y el frontend en marcha, por eso se ejecuta
+siempre con `probar` (que los prepara) y no sola.
 
-Los logs locales se guardan en `logs/` (ver
-[Dónde quedan los logs y reportes](#dónde-quedan-los-logs-y-reportes)); las
-evidencias de la corrida final están en [`docs/evidencias/`](docs/evidencias/README.md) (E12).
+### 7.3 Detalle por suite
 
-## Estructura
+#### Python (pytest)
 
-Estructura actual del repositorio (sin dependencias instaladas ni salidas de
-compilación):
+| Archivo | Pruebas | Qué verifica |
+|---|---:|---|
+| `test_model_validator.py` | 8 | El modelo JSON válido pasa; errores de tipos, nombres, claves y referencias se detectan. |
+| `test_sql_generator.py` | 13 | SQL, metadatos del frontend y CRUD del backend generados desde el modelo; idempotencia de `generar`. |
+| `test_database.py` | 17 | Conexión (`DB_*` y `DATABASE_URL`), protecciones de `reiniciar-bd`, migraciones con checksum, semillas y CLI. |
+| `test_database_integracion.py` | 5 | **Base real en Docker:** `crear-bd` aplica V001–V003 y es idempotente, `reiniciar-bd` recrea, el saldo no puede ser negativo y los movimientos no se pueden modificar ni borrar. |
+| `test_demo_seed.py` | 6 | Coherencia de `demo.json`, que no guarda contraseñas, y la regla para no duplicar operaciones. |
+| `test_respaldo.py` | 7 | Retención de RNF-011, contraseña fuera de la línea de comandos, confirmación de `restaurar` y **respaldo y restauración reales** en un contenedor. |
+| `test_test_runner.py` | 8 | Conteo de JUnit, `resumen.md` y opciones de `probar`. |
+| `test_verificar_roles.py` | 3 | Informe de roles sin diferencias, detección de un acceso indebido y correo del administrador oculto. |
+
+#### Backend (JUnit 5 · Spring Boot Test · MockMvc · Testcontainers)
+
+Las clases `*PostgresIntegrationTest` heredan de `support/PostgresIntegrationTest`:
+inician un **PostgreSQL 16 desechable** con Testcontainers, lo crean con
+`python tools/cli.py crear-bd` (igual que en producción) y prueban la API con
+MockMvc y los permisos reales. El resto son pruebas unitarias de servicios.
+
+| Clase | Pruebas | Qué verifica |
+|---|---:|---|
+| `AutenticacionServiceTest` | 6 | Inicio de sesión, bloqueo por intentos y desbloqueo. |
+| `JwtServiceTest` · `SesionTrackerTest` | 1 · 2 | Firma de tokens; sesiones e inactividad. |
+| `ParametroServiceTest` · `ParametroAdminServiceTest` | 3 · 10 | Resolución de parámetros por ámbito y vigencia; administración y validaciones. |
+| `ImpuestoServiceTest` · `ConversionMonedaServiceTest` | 3 · 4 | Cálculo de impuestos; conversión y redondeo de monedas. |
+| `CatalogoServiceTest` · `CatalogoPostgresIntegrationTest` | 7 · 2 | Reglas de productos, atributos, traducciones y precios; API del catálogo. |
+| `ClienteServiceTest` · `ClientePostgresIntegrationTest` | 4 · 1 | Reglas de clientes y consentimiento; API con alcance por país. |
+| `InventarioEtapaServiceTest` · `InventarioPostgresIntegrationTest` | 6 · 2 | Reglas de inventario; flujo completo de compra, recepción, venta y ajuste con permisos, país y auditoría. |
+| `VentasServiceTest` · `VentasListadoTest` | 4 · 5 | Cálculo y confirmación de ventas; listado y filtros. |
+| `ReportesServiceTest` · `ReferenciasServiceTest` | 2 · 4 | Reportes; permisos de las referencias. |
+| `ParametroVentasPostgresIntegrationTest` | 4 | Parámetros, países de venta y decimales como texto por HTTP. |
+| `PaisMonedaPorConfiguracionPostgresIntegrationTest` | 1 | **País y moneda nuevos solo con datos**, con venta completa (E7). |
+| `DatabaseSchemaVerifierTest` | 3 | Detección de diferencias entre la base y el modelo. |
+
+#### Frontend (Vitest + Testing Library)
+
+Las pruebas renderizan cada pantalla en un navegador simulado (jsdom) y
+reemplazan la API con `src/test/mockApi.ts`, que también registra las
+peticiones para comprobar qué se envió.
+
+| Archivo | Pruebas | Qué verifica |
+|---|---:|---|
+| `api/apiClient.test.ts` | 2 | Envía el token y guarda el renovado; muestra el detalle localizado de los errores. |
+| `components/LoginPage.test.tsx` | 1 | Envío de credenciales sin mostrar la contraseña. |
+| `navigation.test.ts` | 2 | Menú según permisos; Inicio siempre visible sin dar acceso al negocio. |
+| `components/CrudPage.test.tsx` | 4 | CRUD genérico: listado paginado, validación y envío del formulario, controles ocultos con solo lectura y campos de clientes. |
+| `components/catalog/CatalogPage.test.tsx` | 3 | Traducciones (actualiza las existentes y crea las que faltan), errores al guardar visibles y precios como texto decimal. |
+| `components/inventory/InventoryPage.test.tsx` | 3 | Aprobación de ajustes, pantalla del experto técnico sin referencias prohibidas y filtro de movimientos por tipo y fechas. |
+| `components/purchases/PurchasesPage.test.tsx` | 5 | Orden en moneda base (tasa 1) y en USD (tasa obligatoria), envío, cancelación y vínculo de productos. |
+| `components/sales/SalesPage.test.tsx` | 3 | Venta con desglose y pago, cambio de idioma sin recargar y país elegido aunque la lista llegue tarde. |
+| `components/reports/ReportsPage.test.tsx` | 2 | Filtros aplicados al reporte y al CSV; filtros ocultos según permisos. |
+| `components/settings/SettingsPage.test.tsx` | 3 | Parámetros con ámbito y vigencia, valor decimal enviado como texto y validación de JSON. |
+| `utils/decimal.test.ts` · `utils/formatters.test.ts` | 4 · 3 | Decimales sin `float`; formatos por idioma. |
+| `i18n/locales.test.ts` | 2 | `es.json` y `en.json` tienen las mismas claves y existen todas las usadas. |
+
+#### Extremo a extremo (Playwright)
+
+`e2e/tests/flujo-venta.spec.ts` abre Chromium y usa la aplicación como una
+persona, en español:
+
+1. **COP:** iniciar sesión → crear un producto en el catálogo → en *Compras*,
+   vincularlo al proveedor, crear la orden de 5 unidades (tasa fija en 1) y
+   enviarla → registrar la entrada → vender 2 unidades (357.000 COP con IVA del
+   19 %) → confirmar el pago y ver el recibo → comprobar existencia 3 y el
+   movimiento "Salida por venta".
+2. **USD:** orden a un proveedor en USD **escribiendo el tipo de cambio** →
+   entrada en una bodega de Estados Unidos → venta de 1 unidad a 100 USD (106
+   USD con el impuesto del 6 %) → pago → existencia 2.
+
+Solo el tipo de producto, las categorías, el proveedor y la bodega se preparan
+por la API (son CRUD genéricos ya probados), para que la prueba sea corta.
+
+### 7.4 Dónde quedan los resultados
+
+| Origen | Ubicación |
+|---|---|
+| `python tools/cli.py probar` | `logs/tests/<AAAAMMDD-HHMMSS>/`: `resumen.md` (estado, pruebas, fallos y duración por suite, con el commit evaluado), `<suite>.log` (salida completa de cada paso) y `<suite>/` (reportes JUnit XML). |
+| Capturas y traza de la E2E si falla | `logs/tests/<fecha-hora>/e2e/artefactos/` (abrir con `npx playwright show-trace <trace.zip>` desde `e2e/`). |
+| Comandos del CLI | `logs/tools/<comando>-<fecha>.log` |
+| `mvnw verify` ejecutado a mano | `backend/target/surefire-reports/` |
+| Playwright ejecutado a mano | `e2e/reports/` |
+| CI de GitHub | Artefactos `logs-python`, `logs-backend`, `logs-frontend` y `logs-e2e` de cada ejecución (pestaña **Actions** → ejecución → **Artifacts**), y el `resumen.md` en la página de la ejecución. |
+| **Evidencias de la entrega** (versionadas) | [`docs/evidencias/`](docs/evidencias/README.md): `final/` (corrida final de `todo`), `render/` (E2E contra Render) y `roles-y-permisos.md`. |
+
+`logs/` y `backups/` no se versionan (están en `.gitignore`); por eso las
+evidencias de la entrega se copiaron a `docs/evidencias/`. Ejemplo de
+`resumen.md` de la corrida final:
 
 ```text
-.
+| Suite | Estado | Pruebas | Fallos | Errores | Omitidas | Duración | Log |
+| python | ✅ correcto | 67 | 0 | 0 | 0 | 18 s | python.log |
+| backend | ✅ correcto | 74 | 0 | 0 | 0 | 30 s | backend.log |
+| frontend | ✅ correcto | 37 | 0 | 0 | 0 | 73 s | frontend.log |
+| e2e | ✅ correcto | 2 | 0 | 0 | 0 | 44 s | e2e.log |
+```
+
+### 7.5 Si una prueba falla
+
+- **"Docker no está disponible"** o pruebas de integración omitidas: abre Docker
+  Desktop.
+- **Testcontainers no encuentra Docker (error 400):** ajusta `api.version` en
+  `backend/src/test/resources/docker-java.properties` (hoy `1.44`, la que exige
+  Docker Engine 29).
+- Repite solo esa suite (`--suites <nombre>`) y revisa su `<suite>.log`; en la
+  E2E, la captura y la traza de `e2e/artefactos/`.
+
+### 7.6 Verificaciones de la entrega
+
+Checklist de la sección 5 de [`spec/GUIDE.md`](spec/GUIDE.md):
+
+| Punto | Estado | Cómo se comprobó | Evidencia |
+|---|---|---|---|
+| `python tools/cli.py todo` termina sin errores | ✅ | `todo` completo: modelo válido, `generar` sin diferencias, base al día y 180 pruebas en verde. | [`final/todo.txt`](docs/evidencias/final/todo.txt) |
+| `docker compose up --build` deja el sistema funcionando | ✅ | E2E sobre Docker Compose (local y en el CI) y una instalación desde `git clone` en una carpeta nueva. | Trabajo `e2e` del CI |
+| Un usuario de cada rol con los permisos correctos | ✅ | `python tools/cli.py verificar-roles`: 5 roles, 8 consultas y 8 permisos, todo coincide con el Anexo D. | [`roles-y-permisos.md`](docs/evidencias/roles-y-permisos.md) |
+| Producto → entrada → venta (COP y USD) → saldo y movimiento | ✅ | Las dos pruebas E2E. | [`final/e2e.log`](docs/evidencias/final/e2e.log) |
+| Cambio de idioma y de moneda sin recargar | ✅ | `SalesPage.test.tsx` y `locales.test.ts`; selector de idioma y de moneda en Inicio. | [`final/frontend.log`](docs/evidencias/final/frontend.log) |
+| País y moneda nuevos solo con datos | ✅ | `PaisMonedaPorConfiguracionPostgresIntegrationTest`. | [`final/backend/`](docs/evidencias/final/backend/) |
+| CI en verde y artefactos descargables | ✅ | 4 trabajos obligatorios en `main`, con artefactos `logs-*`. | Pestaña **Actions** |
+| `docs/evidencias/` con los logs de la corrida final | ✅ | Copiados y revisados sin secretos. | [`docs/evidencias/`](docs/evidencias/README.md) |
+| URL públicas funcionando | ✅ | `probar --e2e-entorno remoto` contra Render. | [`render/resumen.md`](docs/evidencias/render/resumen.md) |
+| README completo y sin secretos en el repositorio | ✅ | Este documento; `detect-secrets` en cada commit; `.env` y `backups/` ignorados. | `.secrets.baseline` |
+
+```bat
+rem Repetir la verificación de roles contra Docker y guardar el informe
+python tools/cli.py verificar-roles --api http://localhost:8080 --salida docs\evidencias\roles-y-permisos.md
+```
+
+---
+
+## 8. Despliegue en Render, respaldo y restauración
+
+### 8.1 Qué se despliega
+
+[Render](https://render.com) crea los tres recursos de `render.yaml` (un
+*Blueprint*):
+
+| Recurso | Nombre | Detalle | URL actual |
+|---|---|---|---|
+| Base de datos | `pixelvault-db` | PostgreSQL 16 gratuito, región `virginia`. | (privada) |
+| Backend | `pixelvault-api` | La misma imagen de `docker/backend.Dockerfile`, salud en `/actuator/health`. | https://pixelvault-api-ljq6.onrender.com |
+| Frontend | `pixelvault-web` | Sitio estático: `npm ci && npm run build` en `frontend/` con Node 22; reescribe cualquier ruta a `index.html`. | https://pixelvault-web-ceen.onrender.com |
+
+Render agregó sufijos (`-ljq6`, `-ceen`) porque los nombres ya estaban ocupados.
+Cada servicio se vuelve a desplegar solo cuando cambian sus archivos en `main`
+**y el CI pasó** (`autoDeployTrigger: checksPass`). Si un servicio no se
+actualiza tras fusionar un PR: en su panel, *Settings* → *Auto-Deploy* en
+**After CI Checks Pass**, y luego *Manual Deploy* → *Deploy latest commit*.
+
+**Condiciones del plan gratuito** (verificadas el 21-10-2026 en
+https://render.com/docs/free): el backend se suspende tras **15 minutos sin
+tráfico** y tarda **alrededor de 1 minuto** en despertar; la base **caduca a los
+30 días** (14 días de gracia y luego se borra); 1 GB de base; 750 horas de
+servicio al mes.
+
+| Variable | Servicio | Cómo se define |
+|---|---|---|
+| `SPRING_DATASOURCE_URL` | backend | A mano: forma **JDBC** del host **interno** de la base, por ejemplo `jdbc:postgresql://dpg-xxxx-a:5432/inventario_xxxx`. |
+| `SPRING_DATASOURCE_USERNAME` · `SPRING_DATASOURCE_PASSWORD` | backend | Automático desde la base (`fromDatabase`). |
+| `JWT_SECRET` | backend | Automático: Render genera 256 bits en base64 (`generateValue`). |
+| `CORS_ORIGINS` | backend | A mano: URL del frontend. |
+| `SPRING_PROFILES_ACTIVE`, `PORT`, `SERVER_PORT` | backend | Fijos: `produccion`, `8080`, `8080`. |
+| `VITE_API_URL` | frontend | A mano: URL del backend (si cambia, hay que volver a desplegar el sitio). |
+| `NODE_VERSION` | frontend | Fijo: `22`. |
+
+### 8.2 Paso a paso para desplegar en una cuenta nueva
+
+1. **Crear el Blueprint:** en https://dashboard.render.com → **New** →
+   **Blueprint** → elegir el repositorio y la rama `main`. Render pide tres
+   valores; si aún no conoces las URL, escribe
+   `https://pixelvault-web.onrender.com` (`CORS_ORIGINS`),
+   `https://pixelvault-api.onrender.com` (`VITE_API_URL`) y
+   `jdbc:postgresql://pendiente:5432/inventario` (`SPRING_DATASOURCE_URL`).
+   Pulsa **Apply**. El primer despliegue del backend fallará: es normal, la base
+   aún está vacía.
+2. **Copiar las URL de la base:** en **pixelvault-db** → **Connections**:
+   *Internal Database URL* (para el backend) y *External Database URL* (para tu
+   equipo). Son secretas: guárdalas fuera del proyecto.
+3. **Crear la base desde tu equipo** (`cmd`, con el entorno de Python activado;
+   los `set` duran mientras la ventana esté abierta):
+
+   ```bat
+   .venv\Scripts\activate.bat
+   set "DATABASE_URL=<External Database URL>?sslmode=require"
+   set "ADMIN_EMAIL=<correo del administrador de Render>"
+   set "ADMIN_PASSWORD=<contraseña distinta de la local, sin % ni comillas>"
+   python tools/cli.py crear-bd
+   ```
+
+4. **Conectar el backend:** en **pixelvault-api** → **Environment**, cambia
+   `SPRING_DATASOURCE_URL` por la forma JDBC de la URL **interna**:
+   `postgresql://usuario:clave@dpg-xxxx-a/inventario_xxxx` →
+   `jdbc:postgresql://dpg-xxxx-a:5432/inventario_xxxx` (antepón `jdbc:`, quita
+   `usuario:clave@` y agrega `:5432`). **Save, rebuild and deploy**.
+5. **Revisar las URL reales:** si Render agregó sufijos, corrige `CORS_ORIGINS`
+   (backend) y `VITE_API_URL` (frontend) y vuelve a desplegar ambos.
+6. **Verificar:**
+
+   ```bat
+   curl https://pixelvault-api-ljq6.onrender.com/actuator/health
+   ```
+
+   Debe responder `{"status":"UP"}`. Luego entra a la URL del frontend con el
+   administrador del paso 3.
+7. **Repetir la E2E en la URL pública** (deja datos de prueba con "E2E" en el
+   nombre):
+
+   ```bat
+   set "E2E_BASE_URL=https://pixelvault-web-ceen.onrender.com"
+   set "E2E_API_URL=https://pixelvault-api-ljq6.onrender.com"
+   set "E2E_ADMIN_EMAIL=<correo del paso 3>"
+   set "E2E_ADMIN_PASSWORD=<contraseña del paso 3>"
+   python tools/cli.py probar --suites e2e --e2e-entorno remoto
+   ```
+
+8. **(Opcional) Datos de demostración**, en la misma ventana:
+
+   ```bat
+   set "DEMO_PASSWORD=<contraseña común de los usuarios demo>"
+   python tools/cli.py sembrar-demo --api https://pixelvault-api-ljq6.onrender.com
+   ```
+
+**Antes de cada demostración:** abrir la aplicación unos 2 minutos antes y
+revisar en el panel la fecha de caducidad de la base.
+
+### 8.3 Respaldo y restauración
+
+Cumplen RNF-011 en la versión académica. `pg_dump` y `pg_restore` se ejecutan
+**dentro de la imagen Docker `postgres:16-alpine`** (no hace falta instalar
+PostgreSQL y la versión coincide con la de la base); la contraseña viaja como
+variable de entorno, nunca en la línea de comandos. Código: `tools/respaldo.py`.
+
+```bat
+rem Respaldar la base de .env (o la de DATABASE_URL si está definida)
+python tools/cli.py respaldar
+rem Respaldar y aplicar la retención: todas las copias de 35 días y una mensual durante 12 meses
+python tools/cli.py respaldar --podar
+rem Restaurar: reemplaza TODO el contenido de la base, exige confirmar su nombre exacto
+python tools/cli.py restaurar --archivo backups\inventario-20261021-020000.dump --confirm-db inventario
+```
+
+- Los respaldos quedan en `backups/<base>-<AAAAMMDD-HHMMSS>.dump` (hora UTC),
+  carpeta ignorada por Git porque contiene datos reales.
+- `restaurar` usa una sola transacción (si falla, la base queda como estaba) y
+  al final verifica el esquema.
+- **Respaldo diario automático** con el Programador de tareas de Windows: crear
+  fuera del repositorio `C:\respaldos-pixelvault\respaldar-render.cmd` con:
+
+  ```bat
+  @echo off
+  cd /d C:\proyectos\Proyecto_Inventario_Videojuegos
+  set "DATABASE_URL=<External Database URL>?sslmode=require"
+  .venv\Scripts\python.exe tools\cli.py respaldar --podar
+  ```
+
+  y programarlo: `schtasks /create /tn "PixelVault respaldo" /sc daily /st 02:00 /tr "C:\respaldos-pixelvault\respaldar-render.cmd"`
+  (el equipo debe estar encendido y con Docker Desktop abierto).
+
+**Si la base de Render caduca:** crear una nueva (*New* → *Postgres*, versión
+16, región `virginia`), restaurar el último respaldo con su URL externa en
+`DATABASE_URL` (o, sin respaldo, `crear-bd`), y actualizar
+`SPRING_DATASOURCE_URL` (y usuario y contraseña si la base no quedó enlazada al
+Blueprint). Toma minutos, muy por debajo de las 3 horas de RNF-011.
+
+---
+
+## 9. Integración continua y protección de `main`
+
+### 9.1 GitHub Actions
+
+`.github/workflows/ci.yml` se ejecuta en cada pull request y en cada fusión a
+`main`. Son cuatro trabajos en paralelo; cada uno ejecuta el mismo comando que
+en local (`python tools/cli.py probar --suites <suite>`) y sube sus logs como
+artefacto aunque falle:
+
+| Trabajo | Qué comprueba | Artefacto |
+|---|---|---|
+| Python (ruff, pytest, validar y generado) | `validar`; que `generar` no cambie nada de lo versionado; ruff y pytest con base desechable. | `logs-python` |
+| Backend (mvn verify con Testcontainers) | Compilación y pruebas del backend. | `logs-backend` |
+| Frontend (lint, typecheck, test y build) | oxlint, tsc, Vitest y compilación. | `logs-frontend` |
+| Extremo a extremo (Playwright) | Construye las imágenes de Docker y ejecuta la E2E sobre Docker Compose. | `logs-e2e` |
+
+El CI corre en servidores Linux de GitHub porque las pruebas usan contenedores
+Linux (PostgreSQL y las imágenes del proyecto); **en tu equipo no necesitas
+Linux**: Docker Desktop los ejecuta en Windows.
+
+### 9.2 Revisiones locales antes de cada commit y push
+
+`pre-commit install` activa:
+
+- **Antes de cada commit:** ruff, formato y `detect-secrets` (bloquea
+  contraseñas o claves).
+- **Antes de cada push:** `validar`, `pytest` y las pruebas de Vitest.
+
+```bat
+pre-commit run --all-files
+pre-commit run --hook-stage pre-push --all-files
+```
+
+### 9.3 Protección de `main`
+
+Ruleset de GitHub **"Proteger main - CI obligatorio."** (*Settings → Rules →
+Rulesets*): no se puede hacer `push` directo a `main`; todo cambio llega por
+pull request y solo se puede fusionar con los **cuatro trabajos del CI en
+verde**; `main` no se puede borrar ni reescribir (*force push*).
+
+Flujo de trabajo para un cambio:
+
+```bat
+git switch main
+git pull
+git switch -c mi-cambio
+rem ...editar y probar: python tools/cli.py probar
+git add -A
+git commit -m "descripción del cambio"
+git push -u origin mi-cambio
+rem En GitHub: abrir el pull request hacia main, esperar los 4 checks en verde y fusionar.
+git switch main
+git pull
+git branch -d mi-cambio
+```
+
+---
+
+## 10. Problemas encontrados y cómo se corrigieron
+
+| Etapa | Problema | Causa | Corrección |
+|---|---|---|---|
+| E6.3/E6.4 | El backend no compilaba. | `ParametroAdminRepository` llamaba a un método inexistente. | `RowMapper` propio. |
+| E6.3/E6.4 | El listado de parámetros fallaba. | Consulta `COUNT` sin `FROM`. | Consulta corregida y probada. |
+| E6.3/E6.4 | Un usuario limitado por país podía crear parámetros de otro país. | Faltaba validar el país destino. | Validación al crear y actualizar. |
+| E6.3/E6.4 | Decimales de parámetros perdían precisión. | Llegaban como `double`. | Texto decimal. |
+| E6.3/E6.4 | La exportación CSV se cortaba. | Spring Security rechazaba el despacho asíncrono. | Se permiten `ASYNC` y `ERROR` de una petición ya autorizada. |
+| E6.3/E6.4 | El backend no arrancaba sobre una base nueva. | `bodega.pais_id` obligatorio en el modelo, nulo en las migraciones. | Migración V003 y país en la semilla. |
+| E6.3/E6.4 | No se podían aprobar ajustes. | Estado mal escrito en el frontend (`PENDIENTE_APROBACION`). | Estados tomados del modelo. |
+| E6.3/E6.4 | Inventario fallaba para experto técnico y vendedor. | Se pedían proveedores sin permiso. | Referencias opcionales y pestañas según permisos. |
+| E6.3/E6.4 | Cambios de nombre de productos no se guardaban. | Errores ignorados al reenviar traducciones. | `PUT`/`POST` correctos y errores visibles. |
+| E6.3/E6.4 | Productos visibles solo como `PRD-<UUID>`. | Contrato de referencias equivocado. | Referencia `producto` con nombre por idioma. |
+| E6.3/E6.4 | 13 advertencias de lint y textos fuera de i18n. | Efectos y textos fijos. | Hook `useApiQuery`; todo en `es.json`/`en.json`. |
+| E10 | Resumen falso "e2e ❌" en GitHub. | Una prueba unitaria escribía en `GITHUB_STEP_SUMMARY`. | La prueba borra esa variable. |
+| E10 | Instrucciones en PowerShell y carga manual del `.env`. | — | Comandos en `cmd`; el backend lee `.env` solo. |
+| E10 | La pila de Docker arrancaba sola. | `restart: unless-stopped`. | Sin reinicio automático. |
+| E10 | Definición de atributo con `"opciones": null` rechazada. | Jackson lo recibe como nodo nulo. | `null` equivale a sin opciones. |
+| E10 | Archivos sin uso (copias de la especificación, restos de Vite, `.gitkeep`). | — | Eliminados. |
+| E11 | E2E en Render se detenía al vender ("Bodega" desactivada). | El país se elegía solo si la lista ya había llegado; Render es más lento. | El formulario elige el país aunque la lista llegue tarde; prueba de regresión. |
+| E11 | El CI falló en el backend a las 00:59 UTC. | La prueba guardaba el precio con la fecha del equipo y la venta usa la de Colombia. | La prueba usa la zona horaria del país (verificada en UTC, UTC+14 y local). |
+| E11 | En Render, `sembrar-demo` no cargó compras ni ventas. | Se omitían si existía cualquier orden (la de la E2E). | Solo cuentan las órdenes de los proveedores de la demo. |
+| E11 | Render no se actualizaba tras fusionar. | Despliegue automático no activo. | `autoDeployTrigger: checksPass` en `render.yaml` y ajuste en el panel. |
+| E11 | La tarjeta "Cantidad 1.234.567,89" del Inicio parecía un dato real. | Etiqueta ambigua de un ejemplo de formato. | "Número de ejemplo" y descripción aclaratoria. |
+| E12 | Clonar en una carpeta profunda fallaba (`Filename too long`). | Evidencias con rutas de 127 caracteres + límite de 260 de Windows. | Rutas de evidencias acortadas (máximo del repositorio: 99) e instrucciones de clonado en ruta corta. |
+
+---
+
+## 11. Ramas, pull requests e historial
+
+**Hoy el repositorio solo tiene la rama `main`.** Todas las ramas secundarias
+se fusionaron mediante pull request y se borraron: no queda ninguna rama
+necesaria fuera de `main`. Las etapas E5 a E9 se integraron con commits previos
+a la protección de `main` (E9); desde entonces todo entró por pull request:
+
+| PR | Rama | Contenido |
+|---|---|---|
+| #1 | `docs/proteccion-main` | Documentación de la protección de `main` (E9). |
+| #2 | `prueba/ci-rojo-bloquea` | Cambio con una prueba rota a propósito para comprobar que el CI bloquea la fusión; se cerró sin fusionar. |
+| #3 | `e10-contenedores` | Imágenes de Docker y Docker Compose (E10). |
+| #4 | `correcciones-e10` | Revisión general, limpieza y soporte de `cmd`. |
+| #5 | `datos-demo-y-estilo` | Datos de demostración e identidad visual. |
+| #6 | `compras-ui` | Pantalla de Compras. |
+| #7 | `e11-render` | Despliegue en Render, respaldo y restauración (E11). |
+| #8 | `fix-venta-pais-lento` | País de la venta con servidor lento y prueba sensible a la hora. |
+| #9 | `demo-operaciones-por-proveedor` | Carga demo completa en Render y etiqueta del Inicio. |
+| #10 | `e12-cierre` | Cierre: evidencias, E2E en USD y `verificar-roles` (E12). |
+| #11 | `e12-readme-final` | Este README final, rutas cortas de evidencias y `.env.example` aclarado. |
+
+```bat
+rem Ver el historial de fusiones
+git log --merges --oneline
+rem Ver las ramas que existen (local y remoto)
+git branch -a
+```
+
+---
+
+## 12. Estructura del proyecto
+
+```text
+Proyecto_Inventario_Videojuegos/
 ├── README.md                     # Este documento
-├── .env.example                  # Variables de entorno documentadas (sin secretos)
-├── .gitignore
+├── .env.example                  # Plantilla de configuración (sin secretos); copiar a .env
+├── .gitignore                    # Excluye .env, logs/, backups/, dependencias y compilaciones
 ├── .gitattributes                # Saltos de línea LF en los archivos que usan los contenedores
-├── .pre-commit-config.yaml       # Hooks: commit (ruff, secretos) y push (validar y pruebas)
+├── .dockerignore                 # Contexto mínimo para construir las imágenes
+├── .pre-commit-config.yaml       # Revisiones de commit (ruff, secretos) y push (validar, pruebas)
 ├── .secrets.baseline             # Falsos positivos aceptados por detect-secrets
 ├── pyproject.toml                # Configuración de ruff y pytest
-├── requirements.txt              # Dependencias de ejecución de tools/ (versión fija)
-├── requirements-dev.txt          # requirements.txt + herramientas de desarrollo
-├── docker-compose.yml            # db, db-init, backend y frontend (E10)
+├── requirements.txt              # Dependencias de Python para ejecutar tools/ (versión fija)
+├── requirements-dev.txt          # requirements.txt + pytest, ruff, pre-commit y detect-secrets
+├── docker-compose.yml            # Servicios db, db-init, backend y frontend (E10)
 ├── render.yaml                   # Blueprint de Render: base, backend y frontend (E11)
-├── .dockerignore                 # Contexto mínimo para construir imágenes
-├── .github/workflows/ci.yml      # CI con GitHub Actions (E9)
-├── spec/
-│   ├── REQUIREMENTS.md           # Especificación de requisitos v0.7
-│   ├── GUIDE.md                  # Guía de desarrollo por etapas
-│   ├── INSTRUCTIONS.md           # Instrucciones de trabajo por etapas (resumen)
+├── .github/workflows/ci.yml      # CI de GitHub Actions: 4 trabajos (E9)
+├── spec/                         # Especificación (no se modifica al programar)
+│   ├── REQUIREMENTS.md           # Requisitos funcionales y no funcionales
+│   ├── GUIDE.md                  # Guía por etapas, checklist de entrega y anexos
+│   ├── INSTRUCTIONS.md           # Reglas de trabajo por etapas
 │   └── modelo-conceptual.md      # E1: entidades, reglas, estados y permisos
 ├── db/
 │   ├── model/
-│   │   ├── model.schema.json     # JSON Schema del modelo
+│   │   ├── model.schema.json     # JSON Schema del modelo (E2)
 │   │   ├── modulos/              # catalogo, inventario, parametrizacion, seguridad,
 │   │   │                         # terceros, transversal y ventas (.json)
-│   │   └── schema-resuelto.json  # Modelo resuelto (generado)
-│   ├── migrations/
-│   │   ├── V001__modelo_inicial.sql          # Generada desde el modelo
-│   │   ├── V002__pais_bodega.sql             # País de la bodega
-│   │   └── V003__bodega_pais_obligatorio.sql # País obligatorio en bodegas
+│   │   └── schema-resuelto.json  # Modelo resuelto (generado; lo valida el backend)
+│   ├── migrations/               # V001 (generada), V002 y V003
 │   └── seeds/
-│       ├── inicial.json          # Países, monedas, idiomas, impuestos, roles,
-│       │                         # permisos, bodega y parámetros (crear-bd)
-│       └── demo.json             # Datos de demostración (sembrar-demo, manual)
-├── tools/
-│   ├── cli.py                    # validar, generar, crear-bd, reiniciar-bd, sembrar,
-│   │                             # sembrar-demo, respaldar, restaurar, verificar-roles,
-│   │                             # probar y todo
-│   ├── demo_seed.py              # Carga de datos de demostración vía API
-│   ├── env_config.py             # Carga de .env sin reemplazar el entorno
-│   ├── model_validator.py        # Validación del modelo JSON
-│   ├── sql_generator.py          # SQL y metadatos del back y del front
-│   ├── seed_loader.py            # Carga idempotente de semillas
-│   ├── database.py               # Conexión, migraciones con checksum y verificación
-│   ├── test_runner.py            # Comando probar: suites, logs y resumen.md
-│   ├── postgres_desechable.py    # PostgreSQL temporal en Docker para pruebas
-│   ├── respaldo.py               # pg_dump/pg_restore en Docker y retención (RNF-011)
-│   ├── verificar_roles.py        # Accesos de cada rol contra un backend (Anexo D)
+│       ├── inicial.json          # Datos iniciales (crear-bd)
+│       └── demo.json             # Datos de demostración (sembrar-demo)
+├── tools/                        # CLI de Python (python tools/cli.py ...)
+│   ├── cli.py                    # Punto de entrada de todos los comandos
+│   ├── model_validator.py        # validar
+│   ├── sql_generator.py          # generar (SQL, CRUD del backend, metadatos del front)
 │   ├── templates/migration.sql.j2
-│   └── tests/                    # pytest: modelo, generador, base de datos, base real
-│                                 # en contenedor y orquestador de pruebas
-├── backend/
+│   ├── database.py               # Conexión, migraciones con checksum y verificación
+│   ├── seed_loader.py            # Semillas idempotentes
+│   ├── demo_seed.py              # sembrar-demo (vía API)
+│   ├── respaldo.py               # respaldar / restaurar (pg_dump en Docker)
+│   ├── verificar_roles.py        # verificar-roles (Anexo D)
+│   ├── test_runner.py            # probar: suites, logs y resumen.md
+│   ├── postgres_desechable.py    # PostgreSQL temporal en Docker para pruebas
+│   ├── env_config.py             # Lectura de .env
+│   └── tests/                    # 8 archivos de pytest (67 pruebas)
+├── backend/                      # Spring Boot (Java 17)
 │   ├── pom.xml, mvnw, mvnw.cmd, .mvn/
 │   └── src/
 │       ├── main/java/com/inventario/
 │       │   ├── InventarioApplication.java
-│       │   ├── config/           # API, CORS, idioma, paginación, JSON (decimales
-│       │   │                     # como texto), esquema y seguridad
-│       │   ├── controller/       # Endpoints REST: autenticación, configuración,
-│       │   │                     # catálogo, clientes, proveedores, compras, inventario,
-│       │   │                     # ajustes, ventas, reportes, parámetros y referencias
-│       │   ├── domain/           # Registros del dominio (Venta, Producto, Parametro…)
-│       │   ├── dto/              # Solicitudes y respuestas de la API
-│       │   ├── generated/        # SQL de CRUD generado; no editar a mano
-│       │   ├── repository/       # Persistencia JDBC por módulo
-│       │   ├── security/         # Filtro JWT, cadena de seguridad y errores 401/403
-│       │   └── service/          # Reglas de negocio, transacciones y auditoría
-│       ├── main/resources/       # application*.yml y mensajes es/en
-│       ├── test/java/com/inventario/service/  # Unitarias e integración PostgreSQL
-│       ├── test/java/com/inventario/support/  # Base Testcontainers + crear-bd
-│       └── test/resources/       # docker-java.properties (API de Docker)
-├── frontend/
-│   ├── package.json, package-lock.json, vite.config.ts, tsconfig*.json, .oxlintrc.json
-│   ├── index.html                # Página base de Vite (título, metadatos y favicon)
-│   ├── public/favicon.svg        # Logo de PixelVault (bóveda en pixel art)
+│       │   ├── config/           # CORS, idioma, JSON (decimales como texto), OpenAPI, esquema
+│       │   ├── security/         # Filtro JWT, cadena de seguridad, errores 401/403
+│       │   ├── controller/       # Endpoints REST /api/v1
+│       │   ├── service/          # Reglas de negocio, transacciones y auditoría
+│       │   ├── repository/       # SQL con JDBC
+│       │   ├── domain/, dto/     # Datos internos y contratos de la API
+│       │   └── generated/        # SQL de CRUD generado (no editar a mano)
+│       ├── main/resources/       # application.yml, perfiles local/produccion, mensajes es/en
+│       ├── test/java/com/inventario/service/  # 20 clases de prueba (74 pruebas)
+│       ├── test/java/com/inventario/support/  # Base de Testcontainers + crear-bd
+│       └── test/resources/       # docker-java.properties
+├── frontend/                     # React + TypeScript + Material UI (Vite)
+│   ├── package.json, vite.config.ts, tsconfig*.json, .oxlintrc.json, index.html
+│   ├── public/favicon.svg        # Logo de PixelVault
 │   └── src/
-│       ├── main.tsx, App.tsx, theme.ts, navigation.ts, index.css
-│       ├── api/                  # apiClient (peticiones y CSV), useApiQuery,
-│       │                         # errores y tipos comunes
+│       ├── main.tsx, App.tsx, theme.ts, navigation.ts, App.css, index.css
+│       ├── api/                  # Cliente HTTP, useApiQuery, errores y tipos
 │       ├── auth/                 # Sesión, identidad y renovación del token
-│       ├── crud/metadata.ts      # Lectura de metadatos generados y permisos
-│       ├── generated/            # entidades.json y entidades.ts (generados)
-│       ├── i18n/                 # Configuración, locales es.json / en.json y su prueba
+│       ├── crud/metadata.ts      # Metadatos del CRUD genérico y permisos
+│       ├── generated/            # entidades.json / entidades.ts (generados)
+│       ├── i18n/                 # Configuración y locales es.json / en.json
 │       ├── components/
-│       │   ├── AppShell, Dashboard, LoginPage, LanguageSwitcher
-│       │   ├── CrudPage          # CRUD genérico (E6.2)
-│       │   ├── PageHeader, CrudEntityLinks, PixelVaultLogo
-│       │   ├── catalog/          # Productos y formulario dinámico (E6.3)
-│       │   ├── inventory/        # Existencias, entradas, salidas, ajustes y
-│       │   │                     # movimientos (E6.3)
+│       │   ├── AppShell, Dashboard, LoginPage, LanguageSwitcher, CrudPage,
+│       │   │   PageHeader, CrudEntityLinks, PixelVaultLogo
+│       │   ├── catalog/          # Catálogo de productos
+│       │   ├── inventory/        # Existencias, entradas, salidas, ajustes y movimientos
 │       │   ├── purchases/        # Órdenes de compra y productos por proveedor
-│       │   ├── sales/            # Ventas, detalle y recibo (E6.4)
-│       │   ├── reports/          # Existencias, movimientos y CSV (E6.4)
-│       │   └── settings/         # Parámetros y configuración (E6.4)
+│       │   ├── sales/            # Ventas, detalle y recibo
+│       │   ├── reports/          # Reportes y CSV
+│       │   └── settings/         # Parámetros y configuración
 │       ├── utils/                # Formatos Intl, decimales y referencias
-│       └── test/                 # Configuración de Vitest y simulador de API
-│                                 # (las pruebas *.test.ts(x) junto a cada módulo)
-├── e2e/
-│   ├── package.json, package-lock.json   # Playwright con versión fija
-│   ├── playwright.config.ts      # URLs y credenciales por variables de entorno
-│   └── tests/flujo-venta.spec.ts # Producto → orden de compra → entrada → venta →
-│                                 # saldo y movimiento, en COP y en USD
+│       └── test/                 # Simulador de API (mockApi.ts) y configuración de Vitest
+│                                 # (13 archivos *.test.ts(x), 37 pruebas, junto a cada módulo)
+├── e2e/                          # Playwright
+│   ├── package.json, playwright.config.ts
+│   └── tests/flujo-venta.spec.ts # Flujos completos en COP y en USD
 ├── docker/
-│   ├── backend.Dockerfile        # JDK 17 (compilación) → JRE 21 (ejecución)
-│   ├── frontend.Dockerfile       # Node 22 (build de Vite) → nginx
+│   ├── backend.Dockerfile        # JDK 17 (compila) → JRE 21 (ejecuta)
+│   ├── frontend.Dockerfile       # Node 22 (compila) → nginx (sirve)
 │   ├── nginx.conf                # Sitio estático con respaldo a index.html
 │   └── db-init.Dockerfile        # Python 3.12 que ejecuta crear-bd
-├── backups/                      # No versionado: respaldos .dump (respaldar)
-├── logs/                         # No versionado: tools/ (CLI), tests/<fecha-hora>/
-│                                 # (probar) y corridas manuales de revisión
-└── docs/evidencias/              # Corrida final (E12): resumen, logs, JUnit,
-                                  # E2E en Render e informe de roles
+├── docs/evidencias/              # Evidencias de la entrega (versionadas)
+│   ├── README.md                 # Índice de las evidencias
+│   ├── final/                    # Corrida final de todo: resumen.md, logs, JUnit, todo.txt
+│   ├── render/                   # E2E contra las URL públicas de Render
+│   └── roles-y-permisos.md       # Informe de verificar-roles
+├── logs/                         # (No versionado) tools/ y tests/<fecha-hora>/
+└── backups/                      # (No versionado) respaldos .dump
 ```
 
-La capa REST valida y autoriza solicitudes; los servicios aplican reglas y
-transacciones; los repositorios acceden a PostgreSQL con JDBC; `domain` y `dto`
-mantienen separados los datos internos y los contratos de API. El SQL asociado
-a CRUD se genera desde el modelo JSON y se conserva en `generated/`.
+---
+
+## 13. Decisiones técnicas
+
+| Decisión | Por qué |
+|---|---|
+| Modelo de datos en JSON y generación de SQL, CRUD y metadatos con Python | Una sola fuente de verdad legible y corregible; el resto se regenera. |
+| La base la crea solo `crear-bd`; migraciones con checksum, sin Flyway; backend con `ddl-auto=validate` | Lo exige la guía; el backend nunca altera el esquema. |
+| Spring Boot con JDBC y SQL generado, sin entidades JPA | El SQL se ve y se corrige; JPA solo valida el esquema. |
+| Importes y tasas como texto decimal en toda la API | Sin errores de redondeo de `float` entre Java, JSON y JavaScript. |
+| Nada de negocio en el código (países, monedas, impuestos, medios de pago y límites son datos con ámbito y vigencia) | Agregar un país o cambiar un impuesto no requiere programar. |
+| JWT con registro de sesiones, inactividad y bloqueo configurables | Seguridad acorde con RNF-003. |
+| React + Material UI con i18next e `Intl` | Cambio de idioma y de formato al instante. |
+| Cuatro suites con un solo comando y base desechable | Se repiten igual en cualquier equipo y en el CI, sin tocar datos reales. |
+| CI en GitHub Actions y `main` protegida | Nada entra a `main` con pruebas en rojo. |
+| Docker Compose en local, Render para la demostración y respaldos con `pg_dump` en Docker | Mismo backend en ambos sitios; la base gratuita se recupera en minutos. |
+
+## 14. Cómo corregir a mano
+
+| Quiero cambiar… | Dónde | Después |
+|---|---|---|
+| Países, monedas, idiomas, impuestos, tipos de cambio o parámetros | La aplicación: **Configuración** (como administrador). | Nada más: son datos, con auditoría. |
+| Datos iniciales de una base nueva | `db/seeds/inicial.json` | `python tools/cli.py crear-bd` (solo inserta lo que falta). |
+| Datos de demostración | `db/seeds/demo.json` | `python tools/cli.py sembrar-demo` sobre una base limpia. |
+| Una tabla o columna | `db/model/modulos/*.json` | `python tools/cli.py validar` y `generar`; escribir `db/migrations/V004__<descripción>.sql` con el cambio; `python tools/cli.py crear-bd`; versionar todo junto. `V001` no se toca. |
+| SQL de CRUD o metadatos del frontend | No a mano: los produce `generar`. | El CI comprueba que lo generado coincide con el modelo: corrige el JSON o `tools/templates/`. |
+| Un texto de la interfaz | `frontend/src/i18n/locales/es.json` y `en.json` | `cd frontend && npm test` comprueba que no falten claves. |
+| Un mensaje de error del backend | `backend/src/main/resources/messages.properties` y `messages_en.properties` | Reiniciar el backend. |
+| Una variable de entorno | `.env` (local y Docker) o el panel de Render | Reiniciar el servicio (en Render, `VITE_API_URL` exige volver a desplegar el sitio). |
+
+Si algo falla: logs de los comandos en `logs/tools/` y de las pruebas en
+`logs/tests/<fecha-hora>/`.
+
+## 15. Fase 2 y pendientes conocidos
+
+Fuera de la primera entrega según la sección 7.3 de los requisitos (solo
+documentado, no construido):
+
+| Requisito | Tema |
+|---|---|
+| RF-011 | Devoluciones (de clientes, con inspección, y a proveedores) |
+| RF-012 | Números de serie por unidad |
+| RF-013 | Garantías y servicio técnico |
+| RF-014 | Canal de comercio electrónico para clientes |
+| RF-016 | Recompra de productos usados |
+| RF-017 | Traslados entre bodegas |
+| RF-018 | Alertas de stock mínimo y máximo |
+| RF-019 | Preventas y reservas |
+| RF-024 | Envíos y logística de entrega |
+| RF-025 | Comercio exterior en ventas: aranceles, impuestos de importación y aduanas |
+| RF-026 | Importaciones en compras a proveedores de otros países |
+| — | Autenticación multifactor, facturación electrónica real y pasarela de pagos real |
+
+Pendientes detectados dentro del alcance actual:
+
+- **Administración de usuarios:** no hay pantalla ni API para crear usuarios ni
+  cambiar contraseñas (el administrador se crea con `crear-bd`, los usuarios
+  demo con `sembrar-demo` y solo existe el desbloqueo).
+- **Clientes:** reclasificación automática (frecuente/infrecuente) y retención o
+  eliminación a 12 meses sin implementar.
+- **CSV:** nombres de archivo fijos (CORS no expone `Content-Disposition`).
+- **Frontend:** el paquete supera 500 kB (aviso de Vite); se puede dividir por
+  pantallas.
+- **Render gratuito:** la base caduca a los 30 días y el backend se suspende sin
+  tráfico (ver [8.3](#83-respaldo-y-restauración)).
+- **CI:** GitHub avisa que `actions/checkout@v4`, `setup-java@v4`,
+  `setup-python@v5` y `upload-artifact@v4` usan Node.js 20 (en desuso) y que
+  `ubuntu-latest` pasa a Ubuntu 26; hoy son solo avisos.
