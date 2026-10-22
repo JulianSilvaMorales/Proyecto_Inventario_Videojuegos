@@ -24,6 +24,8 @@ services:
     plan: free
     region: virginia
     branch: main
+    # Despliega solo cuando el CI de GitHub pasa en el commit de main.
+    autoDeployTrigger: checksPass
     dockerfilePath: ./docker/backend.Dockerfile
     dockerContext: .
     healthCheckPath: /actuator/health
@@ -64,6 +66,7 @@ services:
     name: pixelvault-web
     runtime: static
     branch: main
+    autoDeployTrigger: checksPass
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: ./frontend/dist
     buildFilter:

@@ -1,0 +1,30 @@
+
+===== ruff check: C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\.venv\Scripts\python.exe -m ruff check tools (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos)
+All checks passed!
+===== ruff check: código de salida 0
+
+===== ruff format: C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\.venv\Scripts\python.exe -m ruff format --check tools (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos)
+19 files already formatted
+===== ruff format: código de salida 0
+
+===== pytest: C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\.venv\Scripts\python.exe -m pytest --junitxml=C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\logs\tests\20261021-210902\python\pytest-junit.xml (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos)
+============================= test session starts =============================
+platform win32 -- Python 3.14.4, pytest-8.3.5, pluggy-1.7.0
+rootdir: C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos
+configfile: pyproject.toml
+testpaths: tools/tests
+plugins: platformdirs-4.13.5
+collected 67 items
+
+tools\tests\test_database.py .................                           [ 25%]
+tools\tests\test_database_integracion.py .....                           [ 32%]
+tools\tests\test_demo_seed.py ......                                     [ 41%]
+tools\tests\test_model_validator.py ........                             [ 53%]
+tools\tests\test_respaldo.py .......                                     [ 64%]
+tools\tests\test_sql_generator.py .............                          [ 83%]
+tools\tests\test_test_runner.py ........                                 [ 95%]
+tools\tests\test_verificar_roles.py ...                                  [100%]
+
+- generated xml file: C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\logs\tests\20261021-210902\python\pytest-junit.xml -
+============================= 67 passed in 16.80s =============================
+===== pytest: código de salida 0

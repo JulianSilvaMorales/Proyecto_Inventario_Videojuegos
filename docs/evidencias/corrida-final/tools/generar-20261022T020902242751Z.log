@@ -1,0 +1,2 @@
+OK
+Generado: db\migrations\V001__modelo_inicial.sql, db\model\schema-resuelto.json, backend\src\main\java\com\inventario\generated\ParametrizacionCrudSql.java, backend\src\main\java\com\inventario\generated\CatalogoCrudSql.java, backend\src\main\java\com\inventario\generated\InventarioCrudSql.java, frontend\src\generated\entidades.json, frontend\src\generated\entidades.ts

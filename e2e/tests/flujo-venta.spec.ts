@@ -6,6 +6,10 @@ import { expect, request, test, type APIRequestContext, type Page } from '@playw
  * registrar la entrada → vender → verificar saldo y movimiento. Los datos
  * maestros que la interfaz administra con el CRUD genérico (tipo, categorías y
  * proveedor) se preparan por API para que la prueba sea corta.
+ *
+ * La segunda prueba repite el flujo en USD (checklist de E12): compra con tipo
+ * de cambio escrito a mano, entrada en una bodega de Estados Unidos y venta con
+ * el impuesto de ese país.
  */
 
 const apiUrl = process.env.E2E_API_URL ?? 'http://127.0.0.1:8080'
@@ -52,7 +56,9 @@ async function elegir(page: Page, combo: string, opcion: string | RegExp) {
   await page.getByRole('option', { name: opcion }).click()
 }
 
-test('producto → orden de compra → entrada → venta en COP → saldo y movimiento', async ({ page }) => {
+test('producto → orden de compra → entrada → venta en COP → saldo y movimiento', async ({
+  page,
+}) => {
   expect(email, 'Defina E2E_ADMIN_EMAIL y E2E_ADMIN_PASSWORD').not.toBe('')
   const contexto = await api()
 
@@ -181,5 +187,179 @@ test('producto → orden de compra → entrada → venta en COP → saldo y movi
   const saldos = await contexto.get(`/api/v1/inventario/saldos?productoId=${producto.id}`)
   const pagina = (await saldos.json()) as { content: { cantidad: number }[] }
   expect(pagina.content.map((saldo) => saldo.cantidad)).toEqual([3])
+  await contexto.dispose()
+})
+
+interface Pagina<T> {
+  content: T[]
+}
+
+/**
+ * Habilita Estados Unidos como en los datos de demostración, si aún no lo está:
+ * impuesto de ejemplo, país habilitado y tipo de cambio USD→COP. Es idempotente,
+ * así que no altera un despliegue que ya tiene la demostración cargada.
+ */
+async function habilitarEstadosUnidos(contexto: APIRequestContext) {
+  const eeuu = await referencia(contexto, 'pais', 'US')
+  const usd = await referencia(contexto, 'moneda', 'USD')
+  const cop = await referencia(contexto, 'moneda', 'COP')
+  const impuestos = (await (
+    await contexto.get('/api/v1/configuracion/impuestos?size=100')
+  ).json()) as Pagina<{ paisId: string }>
+  if (!impuestos.content.some((impuesto) => impuesto.paisId === eeuu.id)) {
+    await post(contexto, '/api/v1/configuracion/impuestos', {
+      paisId: eeuu.id,
+      categoriaId: null,
+      nombre: 'Sales tax E2E',
+      tasa: '0.06',
+      incluidoEnPrecio: false,
+      vigenteDesde: '2026-01-01',
+      vigenteHasta: null,
+    })
+  }
+  const pais = (await (await contexto.get(`/api/v1/configuracion/paises/${eeuu.id}`)).json()) as {
+    codigoIso: string
+    nombre: string
+    monedaLocalId: string
+    idiomaPredeterminadoId: string
+    zonaHoraria: string
+    habilitado: boolean
+  }
+  if (!pais.habilitado) {
+    const respuesta = await contexto.put(`/api/v1/configuracion/paises/${eeuu.id}`, {
+      data: { ...pais, habilitado: true },
+    })
+    expect(respuesta.ok(), await respuesta.text()).toBeTruthy()
+  }
+  const tasas = (await (
+    await contexto.get('/api/v1/configuracion/tipos-cambio?size=100')
+  ).json()) as Pagina<{ monedaOrigenId: string; monedaDestinoId: string }>
+  if (!tasas.content.some((tasa) => tasa.monedaOrigenId === usd.id && tasa.monedaDestinoId === cop.id)) {
+    await post(contexto, '/api/v1/configuracion/tipos-cambio', {
+      monedaOrigenId: usd.id,
+      monedaDestinoId: cop.id,
+      tasa: '4100.00000000',
+      vigenteDesdeUtc: new Date(Date.now() - 86_400_000).toISOString().replace(/\.\d+Z$/, 'Z'),
+    })
+  }
+  return { eeuu, usd, cop }
+}
+
+test('compra en USD con tipo de cambio → entrada → venta en USD → saldo', async ({ page }) => {
+  expect(email, 'Defina E2E_ADMIN_EMAIL y E2E_ADMIN_PASSWORD').not.toBe('')
+  const contexto = await api()
+  const { eeuu, usd, cop } = await habilitarEstadosUnidos(contexto)
+  const nombre = `Control E2E USD ${sufijo}`
+  const proveedorUsd = `Proveedor USD E2E ${sufijo}`
+  const bodegaUsd = `E2E-US-${sufijo}`
+
+  // Preparación por API: catálogo, bodega en Estados Unidos, proveedor en USD y
+  // producto con precio en USD (la creación de productos por la interfaz ya la
+  // cubre la prueba en COP).
+  const tipo = await post<{ id: string }>(contexto, '/api/v1/catalogo/tipos-producto', {
+    codigo: `E2E-TU-${sufijo}`,
+    nombre: `Accesorio ${sufijo}`,
+    activo: true,
+  })
+  const categoria = await post<{ id: string }>(contexto, '/api/v1/catalogo/categorias', {
+    codigo: `E2E-CU-${sufijo}`,
+    nombre: `Accesorios ${sufijo}`,
+    padreId: null,
+    activo: true,
+  })
+  const subcategoria = await post<{ id: string }>(contexto, '/api/v1/catalogo/categorias', {
+    codigo: `E2E-SU-${sufijo}`,
+    nombre: `Controles ${sufijo}`,
+    padreId: categoria.id,
+    activo: true,
+  })
+  const espanol = await referencia(contexto, 'idioma', 'es')
+  await post(contexto, '/api/v1/catalogo/productos', {
+    tipoProductoId: tipo.id,
+    categoriaId: categoria.id,
+    subcategoriaId: subcategoria.id,
+    atributos: {},
+    traducciones: [{ idiomaId: espanol.id, nombre }],
+    precios: [
+      { monedaId: usd.id, importe: '100', vigenteDesde: '2026-01-01' },
+      { monedaId: cop.id, importe: '410000', vigenteDesde: '2026-01-01' },
+    ],
+  })
+  const producto = await referencia(contexto, 'producto', nombre)
+  await post(contexto, '/api/v1/inventario/bodegas', {
+    codigo: bodegaUsd,
+    nombre: `Bodega Miami E2E ${sufijo}`,
+    categoriaId: null,
+    paisId: eeuu.id,
+    activo: true,
+  })
+  const proveedor = await post<{ id: string }>(contexto, '/api/v1/proveedores', {
+    razonSocial: proveedorUsd,
+    paisId: eeuu.id,
+    monedaCompraId: usd.id,
+    activo: true,
+  })
+  await post(contexto, `/api/v1/proveedores/${proveedor.id}/productos/${producto.id}`)
+
+  await page.goto('/')
+  await page.getByLabel('Correo electrónico').fill(email)
+  await page.getByLabel('Contraseña').fill(password)
+  await page.getByRole('button', { name: 'Entrar' }).click()
+  await expect(page.getByRole('heading', { level: 4 })).toBeVisible()
+
+  // 1. Orden en USD: la tasa no es fija y hay que escribirla.
+  await page.getByRole('button', { name: 'Compras' }).click()
+  await page.getByRole('button', { name: 'Nueva orden de compra' }).click()
+  const nuevaOrden = page.getByRole('dialog')
+  await elegir(page, 'Proveedor', proveedorUsd)
+  const tasa = nuevaOrden.getByRole('textbox', { name: 'Tipo de cambio' })
+  await expect(tasa).toBeEnabled()
+  await tasa.fill('4100')
+  await elegir(page, 'Producto de la línea 1', new RegExp(nombre))
+  await nuevaOrden.getByRole('spinbutton', { name: 'Cantidad de la línea 1' }).fill('3')
+  await nuevaOrden.getByRole('textbox', { name: 'Costo unitario de la línea 1 (USD)' }).fill('60,5')
+  await nuevaOrden.getByRole('button', { name: 'Crear borrador' }).click()
+  const detalleOrden = page.getByRole('dialog', { name: /^Orden OC-/ })
+  await expect(detalleOrden.getByText('60,5 USD')).toBeVisible()
+  const numeroOrden = ((await detalleOrden.getByRole('heading').textContent()) ?? '').replace(
+    /^Orden /,
+    '',
+  )
+  await detalleOrden.getByRole('button', { name: 'Enviar al proveedor' }).click()
+  await expect(detalleOrden.getByText('Enviada al proveedor', { exact: true })).toBeVisible()
+  await detalleOrden.getByRole('button', { name: 'Cerrar' }).click()
+
+  // 2. Entrada en la bodega de Estados Unidos con la tasa de la orden.
+  await page.getByRole('button', { name: 'Inventario' }).click()
+  await page.getByRole('tab', { name: 'Entradas de compra' }).click()
+  await page.getByRole('button', { name: 'Registrar entrada' }).click()
+  const entrada = page.getByRole('dialog')
+  await elegir(page, 'Orden de compra (enviada o parcial)', new RegExp(numeroOrden))
+  await elegir(page, 'Bodega', new RegExp(bodegaUsd))
+  await expect(entrada.getByLabel(/Tipo de cambio aplicado/)).toHaveValue(/^4100/)
+  await entrada.getByLabel(/Documento o factura/).fill(`INV-${sufijo}`)
+  await entrada.getByRole('button', { name: 'Guardar' }).click()
+  await expect(page.getByText('Entrada de inventario registrada.')).toBeVisible()
+
+  // 3. Venta de 1 unidad en Estados Unidos: 100 USD + impuesto del 6 % = 106 USD.
+  await page.getByRole('button', { name: 'Ventas' }).click()
+  await page.getByRole('button', { name: 'Nueva venta' }).click()
+  await elegir(page, 'País', /Estados Unidos/)
+  await page.getByRole('combobox', { name: /Producto 1/ }).fill(nombre)
+  await page.getByRole('option', { name: new RegExp(nombre) }).click()
+  await elegir(page, 'Bodega', new RegExp(bodegaUsd))
+  await page.getByRole('dialog').getByLabel(/Cantidad/).fill('1')
+  await page.getByRole('button', { name: 'Calcular venta' }).click()
+  const detalle = page.getByRole('dialog', { name: /^Venta / })
+  await expect(detalle.getByTestId('sale-total')).toHaveText(/106/)
+  await expect(detalle.getByTestId('sale-total')).toHaveText(/US\$|USD/)
+  await elegir(page, 'Medio de pago', 'Efectivo')
+  await detalle.getByRole('button', { name: 'Confirmar pago' }).click()
+  await expect(page.getByText(/Pago confirmado/)).toBeVisible()
+
+  // 4. Saldo: 3 recibidas − 1 vendida.
+  const saldos = await contexto.get(`/api/v1/inventario/saldos?productoId=${producto.id}`)
+  const pagina = (await saldos.json()) as Pagina<{ cantidad: number }>
+  expect(pagina.content.map((saldo) => saldo.cantidad)).toEqual([2])
   await contexto.dispose()
 })

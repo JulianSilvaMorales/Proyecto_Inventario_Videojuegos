@@ -34,6 +34,7 @@ if __package__:
     )
     from .sql_generator import generar_archivos
     from .test_runner import ENTORNOS_E2E, SUITES, probar
+    from .verificar_roles import verificar_roles
 else:
     from database import (
         _migrations,
@@ -56,6 +57,7 @@ else:
     )
     from sql_generator import generar_archivos
     from test_runner import ENTORNOS_E2E, SUITES, probar
+    from verificar_roles import verificar_roles
 
 COMANDOS = (
     "validar",
@@ -66,6 +68,7 @@ COMANDOS = (
     "sembrar-demo",
     "respaldar",
     "restaurar",
+    "verificar-roles",
     "probar",
     "todo",
 )
@@ -93,6 +96,10 @@ def crear_parser() -> argparse.ArgumentParser:
             "--podar, aplicar la retención de 35 días y 12 meses."
         ),
         "restaurar": "Reemplazar el contenido de la base con un respaldo (pg_restore).",
+        "verificar-roles": (
+            "Iniciar sesión con un usuario de cada rol en un backend en ejecución y comprobar "
+            "sus accesos según el Anexo D (solo consulta)."
+        ),
         "probar": "Ejecutar las pruebas del proyecto.",
         "todo": "Validar, generar, crear la base de datos y ejecutar las pruebas.",
     }
@@ -140,6 +147,17 @@ def crear_parser() -> argparse.ArgumentParser:
                     "(un despliegue publicado, como Render, indicado con E2E_BASE_URL, "
                     "E2E_API_URL, E2E_ADMIN_EMAIL y E2E_ADMIN_PASSWORD)."
                 ),
+            )
+        if comando == "verificar-roles":
+            subparser.add_argument(
+                "--api",
+                default="http://localhost:8080",
+                help="URL del backend en ejecución (por defecto http://localhost:8080).",
+            )
+            subparser.add_argument(
+                "--salida",
+                type=Path,
+                help="Archivo Markdown para guardar el informe (por ejemplo, en docs/evidencias/).",
             )
         if comando == "sembrar-demo":
             subparser.add_argument(
@@ -400,6 +418,40 @@ def _ejecutar_respaldo(args: argparse.Namespace, root: Path) -> int:
     return 0
 
 
+def _ejecutar_verificar_roles(args: argparse.Namespace, root: Path) -> int:
+    command = "verificar-roles"
+    try:
+        cargar_env_file(root / ".env")
+        admin = _credenciales_admin()
+        demo_password = os.environ.get("DEMO_PASSWORD", "")
+        if not demo_password:
+            raise ValueError("Defina DEMO_PASSWORD: la contraseña de los usuarios de demostración.")
+        if args.dry_run:
+            message = f"Se verificarían los 5 roles contra {args.api}; no se conectó."
+            fallos = 0
+        else:
+            informe, fallos = verificar_roles(args.api, admin, demo_password)
+            print(informe)
+            message = informe
+            if args.salida:
+                args.salida.parent.mkdir(parents=True, exist_ok=True)
+                args.salida.write_text(informe, encoding="utf-8")
+                message += f"\nInforme guardado en {args.salida}."
+    except (OSError, ValueError, KeyError) as exc:
+        log_path = _escribir_log(root, command, "ERROR", str(exc))
+        print(f"ERROR: {exc}", file=sys.stderr)
+        if log_path is not None:
+            print(f"Log: {log_path}", file=sys.stderr)
+        return 1
+
+    status = "DRY-RUN" if args.dry_run else ("OK" if fallos == 0 else "ERROR")
+    log_path = _escribir_log(root, command, status, message)
+    if args.dry_run:
+        print(message)
+    print(f"Log: {log_path}")
+    return 0 if fallos == 0 else 1
+
+
 def _ejecutar_sembrar_demo(args: argparse.Namespace, root: Path) -> int:
     mensajes: list[str] = []
 
@@ -502,6 +554,8 @@ def main(argv: list[str] | None = None) -> int:
         return _ejecutar_bd(args, root)
     if args.comando == "sembrar-demo":
         return _ejecutar_sembrar_demo(args, root)
+    if args.comando == "verificar-roles":
+        return _ejecutar_verificar_roles(args, root)
     if args.comando in {"respaldar", "restaurar"}:
         return _ejecutar_respaldo(args, root)
     if args.comando == "probar":

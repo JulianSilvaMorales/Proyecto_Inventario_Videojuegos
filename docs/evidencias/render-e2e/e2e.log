@@ -1,0 +1,18 @@
+E2E remota: web https://pixelvault-web-ceen.onrender.com, API https://pixelvault-api-ljq6.onrender.com
+
+===== npm ci e2e: C:\Program Files\nodejs\npm.CMD ci --no-audit --no-fund (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\e2e)
+
+added 3 packages in 1s
+===== npm ci e2e: código de salida 0
+
+===== navegador Playwright: C:\Program Files\nodejs\npx.CMD playwright install chromium (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\e2e)
+===== navegador Playwright: código de salida 0
+
+===== playwright: C:\Program Files\nodejs\npx.CMD playwright test (en C:\Users\USER\Documents\Proyecto_Inventario_Videojuegos\e2e)
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › tests\flujo-venta.spec.ts:55:1 › producto → orden de compra → entrada → venta en COP → saldo y movimiento (30.6s)
+
+  1 passed (31.3s)
+===== playwright: código de salida 0
