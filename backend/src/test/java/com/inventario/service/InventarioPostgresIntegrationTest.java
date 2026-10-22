@@ -492,6 +492,12 @@ class InventarioPostgresIntegrationTest extends PostgresIntegrationTest {
         UUID copId = jdbcTemplate.queryForObject(
                 "SELECT id FROM public.moneda WHERE codigo_iso = 'COP'",
                 UUID.class);
+        // La venta toma la fecha local del país: el precio debe estar vigente ese día
+        // aunque el equipo (por ejemplo, el CI en UTC) ya esté en el día siguiente.
+        String zonaPais = jdbcTemplate.queryForObject(
+                "SELECT zona_horaria FROM public.pais WHERE id = ?",
+                String.class,
+                countryId);
         jdbcTemplate.update(
                 """
                 INSERT INTO public.precio_producto
@@ -502,7 +508,7 @@ class InventarioPostgresIntegrationTest extends PostgresIntegrationTest {
                 productId,
                 copId,
                 new BigDecimal("100.0000"),
-                java.time.LocalDate.now());
+                java.time.LocalDate.now(java.time.ZoneId.of(zonaPais)));
         SolicitudVenta solicitudVenta = new SolicitudVenta(
                 null,
                 countryId,
